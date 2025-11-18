@@ -2,37 +2,30 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod/v4";
 
-import {
-  and,
-  desc,
-  eq,
-  getEndOfDayInTimezone,
-  getStartOfDayInTimezone,
-  getUserTimezone,
-  gte,
-  lt,
-} from "@ssp/db";
-import {
-  CreateSessionSchema,
-  Profile,
-  SESSION_TYPES,
-  Session,
-} from "@ssp/db/schema";
+import { CreateSessionSchema, SESSION_TYPES } from "@ssp/db/schema";
 
+import {
+  createSession,
+  deleteSession,
+  getAllSessions,
+  getSessionById,
+  getSessionsByDateRange,
+  getSessionsToday,
+  getSessionsWeek,
+  toggleSessionComplete,
+  updateSession,
+} from "../helpers/session";
 import { protectedProcedure } from "../trpc";
 
 export const sessionRouter = {
   /**
    * Get all sessions for the authenticated user
    */
-  all: protectedProcedure.query(({ ctx }) => {
+  all: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
-    return ctx.db.query.Session.findMany({
-      where: eq(Session.userId, ctx.session.user.id),
-      orderBy: desc(Session.startTime),
-    });
+    return getAllSessions(ctx.db, ctx.session.user.id);
   }),
 
   /**
@@ -50,29 +43,12 @@ export const sessionRouter = {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-
-      // Get user's profile to retrieve timezone preference
-      const profile = await ctx.db.query.Profile.findFirst({
-        where: eq(Profile.userId, ctx.session.user.id),
-      });
-
-      const userTimezone = getUserTimezone(profile?.timezone ?? null);
-      // Input dates are already Date objects (z.coerce.date() handles conversion)
-      const startDate = input.startDate;
-      const endDate = input.endDate;
-
-      // Convert date boundaries to UTC based on user's timezone
-      const startUTC = getStartOfDayInTimezone(startDate, userTimezone);
-      const endUTC = getEndOfDayInTimezone(endDate, userTimezone);
-
-      return ctx.db.query.Session.findMany({
-        where: and(
-          eq(Session.userId, ctx.session.user.id),
-          gte(Session.startTime, startUTC),
-          lt(Session.startTime, endUTC), // Use < instead of <= for end boundary
-        ),
-        orderBy: desc(Session.startTime),
-      });
+      return getSessionsByDateRange(
+        ctx.db,
+        ctx.session.user.id,
+        input.startDate,
+        input.endDate,
+      );
     }),
 
   /**
@@ -83,29 +59,7 @@ export const sessionRouter = {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
-
-    // Get user's profile to retrieve timezone preference
-    const profile = await ctx.db.query.Profile.findFirst({
-      where: eq(Profile.userId, ctx.session.user.id),
-    });
-
-    // Get user's timezone (default to UTC)
-    const userTimezone = getUserTimezone(profile?.timezone ?? null);
-
-    const now = new Date();
-    // Calculate start and end of "today" in user's timezone, converted to UTC
-    const startOfTodayUTC = getStartOfDayInTimezone(now, userTimezone);
-    const endOfTodayUTC = getEndOfDayInTimezone(now, userTimezone);
-
-    // Query database using UTC boundaries
-    return ctx.db.query.Session.findMany({
-      where: and(
-        eq(Session.userId, ctx.session.user.id),
-        gte(Session.startTime, startOfTodayUTC),
-        lt(Session.startTime, endOfTodayUTC), // Use < instead of <= for end boundary
-      ),
-      orderBy: [Session.startTime],
-    });
+    return getSessionsToday(ctx.db, ctx.session.user.id);
   }),
 
   /**
@@ -116,60 +70,7 @@ export const sessionRouter = {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
-
-    // Get user's profile to retrieve timezone preference
-    const profile = await ctx.db.query.Profile.findFirst({
-      where: eq(Profile.userId, ctx.session.user.id),
-    });
-
-    // Get user's timezone (default to UTC)
-    const userTimezone = getUserTimezone(profile?.timezone ?? null);
-
-    const now = new Date();
-
-    // Get the current date components in the user's timezone
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: userTimezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      weekday: "long",
-    });
-
-    // Get day of week (0 = Sunday, 6 = Saturday) in user's timezone
-    const parts = formatter.formatToParts(now);
-    const weekday = parts.find((p) => p.type === "weekday")?.value ?? "Sunday";
-    const weekdayMap: Record<string, number> = {
-      Sunday: 0,
-      Monday: 1,
-      Tuesday: 2,
-      Wednesday: 3,
-      Thursday: 4,
-      Friday: 5,
-      Saturday: 6,
-    };
-    const dayOfWeek = weekdayMap[weekday] ?? 0;
-
-    // Calculate start of week (Sunday) - get today's start, then subtract days
-    const todayStart = getStartOfDayInTimezone(now, userTimezone);
-    const startOfWeekUTC = new Date(
-      todayStart.getTime() - dayOfWeek * 24 * 60 * 60 * 1000,
-    );
-
-    // Calculate end of week (Saturday) - add 6 days to start of week
-    const endOfWeekUTC = new Date(
-      startOfWeekUTC.getTime() + 7 * 24 * 60 * 60 * 1000,
-    );
-
-    // Query database using UTC boundaries
-    return ctx.db.query.Session.findMany({
-      where: and(
-        eq(Session.userId, ctx.session.user.id),
-        gte(Session.startTime, startOfWeekUTC),
-        lt(Session.startTime, endOfWeekUTC), // Use < instead of <= for end boundary
-      ),
-      orderBy: [Session.startTime],
-    });
+    return getSessionsWeek(ctx.db, ctx.session.user.id);
   }),
 
   /**
@@ -177,16 +78,11 @@ export const sessionRouter = {
    */
   byId: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .query(({ ctx, input }) => {
+    .query(async ({ ctx, input }) => {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      return ctx.db.query.Session.findFirst({
-        where: and(
-          eq(Session.id, input.id),
-          eq(Session.userId, ctx.session.user.id),
-        ),
-      });
+      return getSessionById(ctx.db, ctx.session.user.id, input.id);
     }),
 
   /**
@@ -198,19 +94,15 @@ export const sessionRouter = {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      const [result] = await ctx.db
-        .insert(Session)
-        .values({
-          ...input,
-          userId: ctx.session.user.id,
-        })
-        .returning();
-
-      if (!result) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      try {
+        return await createSession(ctx.db, ctx.session.user.id, input);
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error ? error.message : "Failed to create session",
+        });
       }
-
-      return result;
     }),
 
   /**
@@ -234,33 +126,21 @@ export const sessionRouter = {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       const { id, ...updates } = input;
-
-      // Verify the session belongs to the user
-      const existingSession = await ctx.db.query.Session.findFirst({
-        where: and(eq(Session.id, id), eq(Session.userId, ctx.session.user.id)),
-      });
-
-      if (!existingSession) {
+      try {
+        return await updateSession(ctx.db, ctx.session.user.id, id, updates);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: error.message,
+          });
+        }
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Session not found or access denied",
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error ? error.message : "Failed to update session",
         });
       }
-
-      const [updated] = await ctx.db
-        .update(Session)
-        .set({
-          ...updates,
-          updatedAt: new Date(),
-        })
-        .where(eq(Session.id, id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      }
-
-      return updated;
     }),
 
   /**
@@ -272,35 +152,27 @@ export const sessionRouter = {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      // Verify the session belongs to the user
-      const existingSession = await ctx.db.query.Session.findFirst({
-        where: and(
-          eq(Session.id, input.id),
-          eq(Session.userId, ctx.session.user.id),
-        ),
-      });
-
-      if (!existingSession) {
+      try {
+        return await toggleSessionComplete(
+          ctx.db,
+          ctx.session.user.id,
+          input.id,
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: error.message,
+          });
+        }
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Session not found or access denied",
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to toggle session completion",
         });
       }
-
-      const [updated] = await ctx.db
-        .update(Session)
-        .set({
-          completed: !existingSession.completed,
-          updatedAt: new Date(),
-        })
-        .where(eq(Session.id, input.id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      }
-
-      return updated;
     }),
 
   /**
@@ -312,21 +184,20 @@ export const sessionRouter = {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      // Verify the session belongs to the user
-      const existingSession = await ctx.db.query.Session.findFirst({
-        where: and(
-          eq(Session.id, input.id),
-          eq(Session.userId, ctx.session.user.id),
-        ),
-      });
-
-      if (!existingSession) {
+      try {
+        return await deleteSession(ctx.db, ctx.session.user.id, input.id);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: error.message,
+          });
+        }
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Session not found or access denied",
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error ? error.message : "Failed to delete session",
         });
       }
-
-      return ctx.db.delete(Session).where(eq(Session.id, input.id));
     }),
 } satisfies TRPCRouterRecord;
