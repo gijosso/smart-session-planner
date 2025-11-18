@@ -1,9 +1,10 @@
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack, useGlobalSearchParams } from "expo-router";
+import { router, Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
+import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 
 export default function Session() {
@@ -27,27 +28,53 @@ export default function Session() {
     }),
   );
 
-  const formatTime = (date: Date | string) => {
-    const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+  const deleteMutation = useMutation(
+    trpc.session.delete.mutationOptions({
+      onSuccess: () => {
+        // Store session data before removing query (needed for cache invalidation)
+        const sessionData = data;
 
-  const formatDate = (date: Date | string) => {
-    const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+        // Remove the byId query from cache first to prevent refetch errors
+        // This prevents React Query from trying to refetch a deleted session
+        if (id) {
+          queryClient.removeQueries(trpc.session.byId.queryFilter({ id }));
+        }
 
-  const formatTimeRange = (start: Date | string, end: Date | string) => {
-    return `${formatTime(start)} - ${formatTime(end)}`;
+        // Invalidate other queries based on session date
+        // Note: We skip invalidating byId since we already removed it above
+        if (sessionData) {
+          invalidateSessionQueries(queryClient, {
+            startTime: sessionData.startTime,
+            // Don't pass id to avoid invalidating byId (we already removed it)
+          });
+        }
+
+        // Navigate back to home after successful deletion
+        router.replace("/home");
+      },
+    }),
+  );
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Session",
+      `Are you sure you want to delete "${data?.title}"? This action cannot be undone.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            if (id) {
+              deleteMutation.mutate({ id });
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (isLoading) {
@@ -94,9 +121,35 @@ export default function Session() {
           </Text>
 
           <View className="mb-4">
+            <Text className="text-muted-foreground mb-1 text-sm">Priority</Text>
+            <View className="flex flex-row gap-2">
+              {[1, 2, 3, 4, 5].map((priority) => (
+                <View
+                  key={priority}
+                  className={`rounded-md border px-3 py-1 ${
+                    data.priority === priority
+                      ? "bg-primary border-primary"
+                      : "border-input bg-background"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-medium ${
+                      data.priority === priority
+                        ? "text-primary-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {priority}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View className="mb-4">
             <Text className="text-muted-foreground mb-1 text-sm">Date</Text>
             <Text className="text-foreground text-base">
-              {formatDate(data.startTime)}
+              {formatDateForDisplay(data.startTime)}
             </Text>
           </View>
 
@@ -137,6 +190,34 @@ export default function Session() {
                 : data.completed
                   ? "Mark as Incomplete"
                   : "Mark as Complete"}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push(`/session/${id}/update`)}
+            className="bg-primary border-primary mt-4 rounded-md border px-4 py-3"
+          >
+            <Text className="text-primary-foreground text-center text-base font-semibold">
+              Update
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleDelete}
+            disabled={deleteMutation.isPending}
+            className={`mt-4 rounded-md border px-4 py-3 ${
+              deleteMutation.isPending
+                ? "bg-muted border-input opacity-50"
+                : "bg-destructive border-destructive"
+            }`}
+          >
+            <Text
+              className={`text-center text-base font-semibold ${
+                deleteMutation.isPending
+                  ? "text-muted-foreground"
+                  : "text-destructive-foreground"
+              }`}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete Session"}
             </Text>
           </Pressable>
         </View>

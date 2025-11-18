@@ -21,8 +21,12 @@ export const Session = pgTable("session", (t) => ({
   startTime: t.timestamp({ mode: "date", withTimezone: true }).notNull(), // Store in UTC
   endTime: t.timestamp({ mode: "date", withTimezone: true }).notNull(), // Store in UTC
   completed: t.boolean().notNull().default(false),
+  priority: t.integer().notNull().default(3), // Priority level 1-5 (default: 3)
   description: t.text(), // Optional description/notes
-  createdAt: t.timestamp().defaultNow().notNull(),
+  createdAt: t
+    .timestamp({ mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: t
     .timestamp({ mode: "date", withTimezone: true })
     .$onUpdateFn(() => sql`now()`),
@@ -34,6 +38,7 @@ export const CreateSessionSchema = createInsertSchema(Session, {
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   completed: z.boolean().default(false),
+  priority: z.coerce.number().int().min(1).max(5).default(3),
   description: z.string().optional(),
   userId: z.uuid(),
 }).omit({

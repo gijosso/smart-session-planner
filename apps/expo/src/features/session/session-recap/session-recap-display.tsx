@@ -1,13 +1,13 @@
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import type { FilterType } from ".";
 import type { RouterOutputs } from "~/utils/api";
-
-type Session = RouterOutputs["session"]["today"][number];
+import { formatDateShort } from "~/utils/date";
 
 interface SessionRecapDisplayProps {
-  sessions: Session[];
-  filter: "today" | "week";
+  sessions: RouterOutputs["session"]["today"][number][];
+  filter: FilterType;
 }
 
 export const SessionRecapDisplay: React.FC<SessionRecapDisplayProps> = ({
@@ -16,14 +16,6 @@ export const SessionRecapDisplay: React.FC<SessionRecapDisplayProps> = ({
 }) => {
   const totalSessions = sessions.length;
   const completedSessions = sessions.filter((s) => s.completed).length;
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const getSubtitle = () => {
     if (filter === "today") {
@@ -36,7 +28,7 @@ export const SessionRecapDisplay: React.FC<SessionRecapDisplayProps> = ({
     <View className="flex-1">
       <View className="mb-3">
         <Text className="text-foreground text-xl font-bold">
-          {formatDate(new Date())}
+          {formatDateShort(new Date())}
         </Text>
         <Text className="text-muted-foreground mt-1 text-sm">
           {getSubtitle()}

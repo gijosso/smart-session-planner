@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { CreateSessionForm } from "~/features/session/forms/create";
 import { trpc } from "~/utils/api";
+import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 
 export default function CreateSession() {
@@ -45,9 +46,17 @@ export default function CreateSession() {
     type: string;
     startTime: Date;
     endTime: Date;
+    priority: number;
     description?: string;
   }) => {
-    mutate(values);
+    mutate({
+      title: values.title,
+      type: values.type,
+      startTime: values.startTime.toISOString(),
+      endTime: values.endTime.toISOString(),
+      priority: values.priority,
+      description: values.description,
+    });
   };
 
   return (
@@ -57,24 +66,7 @@ export default function CreateSession() {
           key={resetKey}
           onSubmit={handleSubmit}
           isPending={isPending}
-          serverError={
-            mutationError?.data
-              ? {
-                  data: {
-                    zodError: mutationError.data.zodError
-                      ? {
-                          fieldErrors: Object.fromEntries(
-                            Object.entries(
-                              mutationError.data.zodError.fieldErrors,
-                            ).filter(([, value]) => Array.isArray(value)),
-                          ) as Record<string, string[]>,
-                        }
-                      : undefined,
-                    code: mutationError.data.code,
-                  },
-                }
-              : undefined
-          }
+          serverError={transformMutationError(mutationError)}
         />
       </View>
     </SafeAreaView>

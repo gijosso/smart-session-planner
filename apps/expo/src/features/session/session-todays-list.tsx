@@ -1,3 +1,4 @@
+import type React from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { LegendList } from "@legendapp/list";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +7,7 @@ import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import { SessionItem } from "./session-item";
 
-export const SessionTodaysList = () => {
+export const SessionTodaysList: React.FC = () => {
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery(trpc.session.today.queryOptions());
 

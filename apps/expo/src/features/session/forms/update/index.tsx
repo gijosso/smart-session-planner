@@ -1,10 +1,11 @@
 import type React from "react";
+import { useMemo } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
 
 import type { SessionFormValues } from "../session-form-schema";
 import type { ServerError } from "~/utils/formik";
-import { getCurrentTime, getTodayDate } from "~/utils/date";
+import { formatDateForInput, formatTimeForInput } from "~/utils/date";
 import {
   getFieldError,
   getFieldErrorClassName,
@@ -23,35 +24,58 @@ const SESSION_TYPES = [
   "Other",
 ] as const;
 
-interface CreateSessionFormProps {
-  onSubmit: (values: {
+interface UpdateSessionFormProps {
+  initialValues: {
     title: string;
     type: string;
-    startTime: Date;
-    endTime: Date;
+    startTime: Date | string;
+    endTime: Date | string;
     priority: number;
+    description?: string | null;
+  };
+  onSubmit: (values: {
+    title?: string;
+    type?: string;
+    startTime?: Date;
+    endTime?: Date;
+    priority?: number;
     description?: string;
+    completed?: boolean;
   }) => void;
   isPending?: boolean;
   serverError?: ServerError;
 }
 
-export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
+export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
+  initialValues,
   onSubmit,
   isPending = false,
   serverError,
 }) => {
+  // Safely format dates, ensuring we have valid values
+  // Use useMemo to recalculate when initialValues change
+  const formattedInitialValues = useMemo<SessionFormValues>(() => {
+    return {
+      title: initialValues.title,
+      type: initialValues.type,
+      startDate: formatDateForInput(initialValues.startTime),
+      startTime: formatTimeForInput(initialValues.startTime),
+      endDate: formatDateForInput(initialValues.endTime),
+      endTime: formatTimeForInput(initialValues.endTime),
+      priority: initialValues.priority,
+      description: initialValues.description ?? "",
+    };
+  }, [
+    initialValues.title,
+    initialValues.type,
+    initialValues.startTime,
+    initialValues.endTime,
+    initialValues.priority,
+    initialValues.description,
+  ]);
+
   const formik = useFormik<SessionFormValues>({
-    initialValues: {
-      title: "",
-      type: "",
-      startDate: getTodayDate(),
-      startTime: getCurrentTime(),
-      endDate: getTodayDate(),
-      endTime: getCurrentTime(),
-      priority: 3,
-      description: "",
-    },
+    initialValues: formattedInitialValues,
     validate: (values: SessionFormValues) => {
       const result = sessionFormSchema.safeParse(values);
       if (!result.success) {
@@ -78,6 +102,12 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
       // Create Date objects - JavaScript will interpret these in local timezone
       const startTimeDate = new Date(startDateTime);
       const endTimeDate = new Date(endDateTime);
+
+      // Validate dates before submitting
+      if (isNaN(startTimeDate.getTime()) || isNaN(endTimeDate.getTime())) {
+        // Dates are invalid, don't submit
+        return;
+      }
 
       onSubmit({
         title: values.title,
@@ -215,7 +245,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
               value={formik.values.startDate}
               onChangeText={formik.handleChange("startDate")}
               onBlur={formik.handleBlur("startDate")}
-              placeholder={getTodayDate()}
+              placeholder="YYYY-MM-DD"
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -233,7 +263,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
               value={formik.values.startTime}
               onChangeText={formik.handleChange("startTime")}
               onBlur={formik.handleBlur("startTime")}
-              placeholder={getCurrentTime()}
+              placeholder="HH:mm"
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -266,7 +296,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
               value={formik.values.endDate}
               onChangeText={formik.handleChange("endDate")}
               onBlur={formik.handleBlur("endDate")}
-              placeholder={getTodayDate()}
+              placeholder="YYYY-MM-DD"
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -284,7 +314,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
               value={formik.values.endTime}
               onChangeText={formik.handleChange("endTime")}
               onBlur={formik.handleBlur("endTime")}
-              placeholder={getCurrentTime()}
+              placeholder="HH:mm"
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -324,7 +354,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
 
       {isUnauthorizedError(serverError) && (
         <Text className="text-destructive mb-4 text-center">
-          You need to be logged in to create a session
+          You need to be logged in to update a session
         </Text>
       )}
 
@@ -340,7 +370,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
             !isPending ? "text-primary-foreground" : "text-muted-foreground"
           }`}
         >
-          {isPending ? "Creating..." : "Create Session"}
+          {isPending ? "Updating..." : "Update Session"}
         </Text>
       </Pressable>
     </ScrollView>

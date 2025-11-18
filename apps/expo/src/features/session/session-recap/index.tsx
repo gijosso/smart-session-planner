@@ -6,7 +6,7 @@ import { trpc } from "~/utils/api";
 import { SessionRecapDisplay } from "./session-recap-display";
 import { SessionRecapFilter } from "./session-recap-filter";
 
-type FilterType = "today" | "week";
+export type FilterType = "today" | "week";
 
 export const SessionRecap: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>("today");

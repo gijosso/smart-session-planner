@@ -1,10 +1,8 @@
 import { Pressable, Text, View } from "react-native";
 
-type FilterType = "today" | "week";
-
 interface SessionRecapFilterProps {
-  filter: FilterType;
-  onFilterChange: (filter: FilterType) => void;
+  filter: "today" | "week";
+  onFilterChange: (filter: "today" | "week") => void;
 }
 
 export const SessionRecapFilter: React.FC<SessionRecapFilterProps> = ({

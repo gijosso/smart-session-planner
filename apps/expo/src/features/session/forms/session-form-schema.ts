@@ -26,6 +26,7 @@ export const sessionFormSchema = z
     endTime: z
       .string()
       .regex(/^\d{2}:\d{2}$/, "End time must be in HH:mm format"),
+    priority: z.coerce.number().int().min(1).max(5),
     description: z.string().optional(),
   })
   .refine(

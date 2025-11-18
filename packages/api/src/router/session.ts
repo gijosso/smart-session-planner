@@ -220,6 +220,7 @@ export const sessionRouter = {
         startTime: z.coerce.date().optional(),
         endTime: z.coerce.date().optional(),
         completed: z.boolean().optional(),
+        priority: z.coerce.number().int().min(1).max(5).optional(),
         description: z.string().optional(),
       }),
     )
@@ -241,7 +242,20 @@ export const sessionRouter = {
         });
       }
 
-      return ctx.db.update(Session).set(updates).where(eq(Session.id, id));
+      const [updated] = await ctx.db
+        .update(Session)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(Session.id, id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      }
+
+      return updated;
     }),
 
   /**
@@ -268,10 +282,20 @@ export const sessionRouter = {
         });
       }
 
-      return ctx.db
+      const [updated] = await ctx.db
         .update(Session)
-        .set({ completed: !existingSession.completed })
-        .where(eq(Session.id, input.id));
+        .set({
+          completed: !existingSession.completed,
+          updatedAt: new Date(),
+        })
+        .where(eq(Session.id, input.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      }
+
+      return updated;
     }),
 
   /**
