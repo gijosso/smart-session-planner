@@ -1,6 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 
 const ACCESS_TOKEN_KEY = "supabase_access_token";
+const REFRESH_TOKEN_KEY = "supabase_refresh_token";
+const EXPIRES_AT_KEY = "supabase_expires_at";
 
 /**
  * Auth client that stores session tokens securely
@@ -9,7 +11,24 @@ const ACCESS_TOKEN_KEY = "supabase_access_token";
  */
 export const authClient = {
   /**
-   * Store access token securely
+   * Store session tokens securely
+   */
+  setSession: async (data: {
+    accessToken: string;
+    refreshToken?: string | null;
+    expiresAt?: number | null;
+  }): Promise<void> => {
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.accessToken);
+    if (data.refreshToken) {
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refreshToken);
+    }
+    if (data.expiresAt !== null && data.expiresAt !== undefined) {
+      await SecureStore.setItemAsync(EXPIRES_AT_KEY, data.expiresAt.toString());
+    }
+  },
+
+  /**
+   * Store access token securely (backward compatibility)
    */
   setAccessToken: async (token: string): Promise<void> => {
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
@@ -23,10 +42,40 @@ export const authClient = {
   },
 
   /**
-   * Remove stored access token
+   * Get stored refresh token
+   */
+  getRefreshToken: async (): Promise<string | null> => {
+    return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  },
+
+  /**
+   * Get stored expiration time (Unix timestamp in seconds)
+   */
+  getExpiresAt: async (): Promise<number | null> => {
+    const expiresAtStr = await SecureStore.getItemAsync(EXPIRES_AT_KEY);
+    if (!expiresAtStr) return null;
+    const expiresAt = parseInt(expiresAtStr, 10);
+    return isNaN(expiresAt) ? null : expiresAt;
+  },
+
+  /**
+   * Check if token is expired or will expire soon (within 5 minutes)
+   */
+  isTokenExpired: async (): Promise<boolean> => {
+    const expiresAt = await authClient.getExpiresAt();
+    if (!expiresAt) return false; // If no expiration, assume not expired
+    // Check if token expires within 5 minutes (300 seconds)
+    const now = Math.floor(Date.now() / 1000);
+    return expiresAt <= now + 300;
+  },
+
+  /**
+   * Remove all stored tokens
    */
   removeAccessToken: async (): Promise<void> => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(EXPIRES_AT_KEY);
   },
 
   /**

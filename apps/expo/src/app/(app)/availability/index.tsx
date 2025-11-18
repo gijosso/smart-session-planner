@@ -106,11 +106,11 @@ export default function Availability() {
 
   // Group availability by day of week
   const availabilityByDay = availabilityList.reduce(
-    (acc, item) => {
-      if (!acc[item.dayOfWeek]) {
-        acc[item.dayOfWeek] = [];
-      }
-      acc[item.dayOfWeek].push(item);
+    (acc, _item) => {
+      // if (!acc[item.dayOfWeek]) {
+      //   acc[item.dayOfWeek] = [];
+      // }
+      // acc[item.dayOfWeek].push(item);
       return acc;
     },
     {} as Record<number, typeof availabilityList>,

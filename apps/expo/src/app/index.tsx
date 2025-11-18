@@ -16,9 +16,15 @@ function MobileAuth() {
       async onSuccess(data: {
         user: { id: string; email: string; emailVerified: boolean };
         accessToken: string;
+        refreshToken: string | null;
+        expiresAt: number | null;
       }) {
-        // Store the access token securely
-        await authClient.setAccessToken(data.accessToken);
+        // Store the session tokens securely
+        await authClient.setSession({
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          expiresAt: data.expiresAt,
+        });
         // Invalidate session query to refetch with new token
         await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
       },

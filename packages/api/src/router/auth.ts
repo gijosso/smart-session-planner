@@ -97,6 +97,8 @@ const authRouter = {
 
       const session = signInResult.data.session;
       const accessToken = session.access_token;
+      const refreshToken = session.refresh_token;
+      const expiresAt = session.expires_at;
 
       if (!accessToken) {
         throw new Error("Failed to sign in: No session token returned");
@@ -109,6 +111,8 @@ const authRouter = {
           emailVerified: !!createdUser.email_confirmed_at,
         },
         accessToken: accessToken,
+        refreshToken: refreshToken,
+        expiresAt: expiresAt ?? null,
       };
     }),
   signIn: publicProcedure
@@ -131,6 +135,8 @@ const authRouter = {
 
       const session = signInResult.data.session;
       const accessToken = session.access_token;
+      const refreshToken = session.refresh_token;
+      const expiresAt = session.expires_at;
 
       return {
         user: {
@@ -139,6 +145,8 @@ const authRouter = {
           emailVerified: !!signInResult.data.user.email_confirmed_at,
         },
         accessToken: accessToken,
+        refreshToken: refreshToken,
+        expiresAt: expiresAt ?? null,
       };
     }),
   signUpAnonymously: publicProcedure
@@ -234,6 +242,8 @@ const authRouter = {
 
       const session = signInResult.data.session;
       const accessToken = session.access_token;
+      const refreshToken = session.refresh_token;
+      const expiresAt = session.expires_at;
 
       if (!accessToken) {
         throw new Error(
@@ -248,6 +258,41 @@ const authRouter = {
           emailVerified: !!createdUser.email_confirmed_at,
         },
         accessToken: accessToken,
+        refreshToken: refreshToken,
+        expiresAt: expiresAt ?? null,
+      };
+    }),
+  refreshToken: publicProcedure
+    .input(
+      z.object({
+        refreshToken: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Use Supabase to refresh the token
+      const refreshResult = await ctx.auth.supabase.auth.refreshSession({
+        refresh_token: input.refreshToken,
+      });
+
+      if (refreshResult.error) {
+        throw new Error(
+          `Failed to refresh token: ${refreshResult.error.message}`,
+        );
+      }
+
+      const session = refreshResult.data.session;
+      const accessToken = session?.access_token;
+      const refreshToken = session?.refresh_token;
+      const expiresAt = session?.expires_at;
+
+      if (!accessToken) {
+        throw new Error("Failed to refresh token: No session token returned");
+      }
+
+      return {
+        accessToken: accessToken,
+        refreshToken: refreshToken ?? null,
+        expiresAt: expiresAt ?? null,
       };
     }),
 } satisfies TRPCRouterRecord;
