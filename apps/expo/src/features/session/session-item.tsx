@@ -2,6 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { Link } from "expo-router";
 
 import type { RouterOutputs } from "~/utils/api";
+import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatTimeRange } from "~/utils/date";
 
 interface SessionItemProps {
@@ -32,7 +33,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
             )}
           </View>
           <Text className="text-muted-foreground mt-1 text-sm">
-            {session.type}
+            {SESSION_TYPES_DISPLAY[session.type].label}
           </Text>
           <Text className="text-foreground mt-1 text-sm">
             {formatTimeRange(session.startTime, session.endTime)}

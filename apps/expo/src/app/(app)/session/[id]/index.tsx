@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
@@ -117,7 +118,7 @@ export default function Session() {
           </View>
 
           <Text className="text-muted-foreground mb-4 text-lg">
-            {data.type}
+            {SESSION_TYPES_DISPLAY[data.type].label}
           </Text>
 
           <View className="mb-4">

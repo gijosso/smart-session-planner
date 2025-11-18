@@ -7,3 +7,6 @@
 // Re-export session types for frontend use
 export { SESSION_TYPES } from "@ssp/db/schema";
 export type { SessionType } from "@ssp/db/schema";
+
+export { DAYS_OF_WEEK } from "@ssp/db/schema";
+export type { DayOfWeek } from "@ssp/db/schema";

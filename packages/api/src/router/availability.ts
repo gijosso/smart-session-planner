@@ -3,7 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod/v4";
 
 import { and, eq } from "@ssp/db";
-import { Availability, CreateAvailabilitySchema } from "@ssp/db/schema";
+import {
+  Availability,
+  CreateAvailabilitySchema,
+  DAYS_OF_WEEK,
+} from "@ssp/db/schema";
 
 import { protectedProcedure } from "../trpc";
 
@@ -52,7 +56,7 @@ export const availabilityRouter = {
     .input(
       z.object({
         id: z.string(),
-        dayOfWeek: z.coerce.number().int().min(0).max(6).optional(),
+        dayOfWeek: z.enum(DAYS_OF_WEEK).optional(),
         startTime: z
           .string()
           .regex(/^\d{2}:\d{2}:\d{2}$/, "Start time must be in HH:MM:SS format")

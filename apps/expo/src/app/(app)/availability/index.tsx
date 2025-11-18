@@ -4,19 +4,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
 import { AvailabilityForm } from "~/features/availability/availability-form";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
-
-const DAYS_OF_WEEK = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-] as const;
 
 const formatTime = (time: string): string => {
   // Convert HH:MM:SS to HH:MM for display
@@ -144,14 +135,14 @@ export default function Availability() {
               </View>
             ) : (
               <View className="flex-1 px-4">
-                {DAYS_OF_WEEK.map((day, dayIndex) => {
+                {Object.values(DAYS_OF_WEEK_DISPLAY).map((day, dayIndex) => {
                   const dayAvailability = availabilityByDay[dayIndex] ?? [];
                   if (dayAvailability.length === 0) return null;
 
                   return (
-                    <View key={day} className="mb-4">
+                    <View key={day.value} className="mb-4">
                       <Text className="text-foreground mb-2 text-lg font-semibold">
-                        {day}
+                        {day.label}
                       </Text>
                       {dayAvailability.map((item) => (
                         <View
@@ -174,7 +165,7 @@ export default function Availability() {
                               onPress={() =>
                                 handleDelete(
                                   item.id,
-                                  day,
+                                  day.value,
                                   formatTimeRange(item.startTime, item.endTime),
                                 )
                               }

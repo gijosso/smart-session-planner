@@ -3,6 +3,9 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
 import { z } from "zod";
 
+import type { DayOfWeek } from "@ssp/api/client";
+import { DAYS_OF_WEEK } from "@ssp/api/client";
+
 import type { ServerError } from "~/utils/formik";
 import {
   getFieldError,
@@ -10,19 +13,9 @@ import {
   isUnauthorizedError,
 } from "~/utils/formik";
 
-const DAYS_OF_WEEK = [
-  { value: 0, label: "Sunday" },
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" },
-  { value: 6, label: "Saturday" },
-] as const;
-
 const availabilityFormSchema = z
   .object({
-    dayOfWeek: z.coerce.number().int().min(0).max(6),
+    dayOfWeek: z.enum(DAYS_OF_WEEK),
     startTime: z
       .string()
       .regex(/^\d{2}:\d{2}$/, "Start time must be in HH:mm format"),
@@ -48,14 +41,14 @@ type AvailabilityFormValues = z.infer<typeof availabilityFormSchema>;
 
 interface AvailabilityFormProps {
   onSubmit: (values: {
-    dayOfWeek: number;
+    dayOfWeek: DayOfWeek;
     startTime: string;
     endTime: string;
   }) => void;
   isPending?: boolean;
   serverError?: ServerError;
   initialValues?: {
-    dayOfWeek?: number;
+    dayOfWeek?: DayOfWeek;
     startTime?: string;
     endTime?: string;
   };
@@ -69,7 +62,7 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
 }) => {
   const formik = useFormik<AvailabilityFormValues>({
     initialValues: {
-      dayOfWeek: initialValues?.dayOfWeek ?? 1,
+      dayOfWeek: initialValues?.dayOfWeek ?? "monday",
       startTime: initialValues?.startTime ?? "09:00",
       endTime: initialValues?.endTime ?? "17:00",
     },
@@ -124,7 +117,7 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
           Day of Week *
         </Text>
         <View className="flex flex-row flex-wrap gap-2">
-          {DAYS_OF_WEEK.map((day) => (
+          {DAYS_OF_WEEK_DISPLAY.map((day) => (
             <Pressable
               key={day.value}
               onPress={() => formik.setFieldValue("dayOfWeek", day.value)}

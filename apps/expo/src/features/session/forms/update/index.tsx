@@ -4,10 +4,10 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
 
 import type { SessionType } from "@ssp/api/client";
-import { SESSION_TYPES } from "@ssp/api/client";
 
 import type { SessionFormValues } from "../session-form-schema";
 import type { ServerError } from "~/utils/formik";
+import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatDateForInput, formatTimeForInput } from "~/utils/date";
 import {
   getFieldError,
@@ -158,24 +158,24 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
       <View className="mb-4">
         <Text className="text-foreground mb-2 text-sm font-medium">Type *</Text>
         <View className="flex flex-row flex-wrap gap-2">
-          {SESSION_TYPES.map((sessionType: SessionType) => (
+          {Object.values(SESSION_TYPES_DISPLAY).map((sessionType) => (
             <Pressable
-              key={sessionType}
-              onPress={() => formik.setFieldValue("type", sessionType)}
+              key={sessionType.value}
+              onPress={() => formik.setFieldValue("type", sessionType.value)}
               className={`rounded-md border px-3 py-2 ${
-                formik.values.type === sessionType
+                formik.values.type === sessionType.value
                   ? "bg-primary border-primary"
                   : "border-input bg-background"
               }`}
             >
               <Text
                 className={
-                  formik.values.type === sessionType
+                  formik.values.type === sessionType.value
                     ? "text-primary-foreground text-sm font-medium"
                     : "text-foreground text-sm"
                 }
               >
-                {sessionType}
+                {sessionType.label}
               </Text>
             </Pressable>
           ))}

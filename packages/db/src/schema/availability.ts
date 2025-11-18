@@ -1,9 +1,23 @@
 import { sql } from "drizzle-orm";
-import { pgTable } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 import { User } from "./user";
+
+export const DAYS_OF_WEEK = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+] as const;
+
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+export const dayOfWeekEnum = pgEnum("days_of_week", DAYS_OF_WEEK);
 
 /**
  * Availability table - stores user's weekly availability windows
@@ -17,7 +31,7 @@ export const Availability = pgTable("availability", (t) => ({
     .uuid()
     .notNull()
     .references(() => User.id, { onDelete: "cascade" }),
-  dayOfWeek: t.integer().notNull(), // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
   startTime: t.time().notNull(), // Format: HH:MM:SS (e.g., "07:00:00")
   endTime: t.time().notNull(), // Format: HH:MM:SS (e.g., "09:00:00")
   createdAt: t
@@ -31,7 +45,7 @@ export const Availability = pgTable("availability", (t) => ({
 
 export const CreateAvailabilitySchema = createInsertSchema(Availability, {
   userId: z.uuid(),
-  dayOfWeek: z.coerce.number().int().min(0).max(6),
+  dayOfWeek: z.enum(DAYS_OF_WEEK),
   startTime: z
     .string()
     .regex(/^\d{2}:\d{2}:\d{2}$/, "Start time must be in HH:MM:SS format"),

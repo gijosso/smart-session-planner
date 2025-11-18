@@ -1,5 +1,7 @@
+import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
@@ -15,14 +17,26 @@ export default function Settings() {
     },
   });
 
+  const handleSignOut = useCallback(() => {
+    signOutMutation.mutate();
+  }, [signOutMutation]);
+
   return (
     <SafeAreaView className="bg-background flex-1">
       <View className="flex flex-col gap-4 p-4">
         <Text className="text-foreground text-2xl font-bold">Settings</Text>
 
         <View className="flex flex-col gap-4">
+          <Link href="/settings/availability" asChild>
+            <Pressable className="bg-primary flex items-center rounded-sm p-3">
+              <Text className="text-primary-foreground font-semibold">
+                Availability
+              </Text>
+            </Pressable>
+          </Link>
+
           <Pressable
-            onPress={() => signOutMutation.mutate()}
+            onPress={handleSignOut}
             className="bg-destructive flex items-center rounded-sm p-3"
             disabled={signOutMutation.isPending}
           >

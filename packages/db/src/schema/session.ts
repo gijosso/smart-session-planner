@@ -6,14 +6,14 @@ import { z } from "zod/v4";
 import { User } from "./user";
 
 export const SESSION_TYPES = [
-  "Deep Work",
-  "Workout",
-  "Language",
-  "Meditation",
-  "Client Meeting",
-  "Study",
-  "Reading",
-  "Other",
+  "DEEP_WORK",
+  "WORKOUT",
+  "LANGUAGE",
+  "MEDITATION",
+  "CLIENT_MEETING",
+  "STUDY",
+  "READING",
+  "OTHER",
 ] as const;
 
 export type SessionType = (typeof SESSION_TYPES)[number];
