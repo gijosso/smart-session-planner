@@ -15,6 +15,7 @@ export const Profile = pgTable("profile", (t) => ({
     .notNull()
     .references(() => User.id, { onDelete: "cascade" })
     .unique(), // One profile per user
+  timezone: t.varchar({ length: 50 }), // IANA timezone string (e.g., "America/New_York", "Europe/London")
   createdAt: t.timestamp().defaultNow().notNull(),
   updatedAt: t
     .timestamp({ mode: "date", withTimezone: true })
@@ -23,6 +24,7 @@ export const Profile = pgTable("profile", (t) => ({
 
 export const CreateProfileSchema = createInsertSchema(Profile, {
   userId: z.uuid(),
+  timezone: z.string().max(50).optional(),
 }).omit({
   id: true,
   createdAt: true,

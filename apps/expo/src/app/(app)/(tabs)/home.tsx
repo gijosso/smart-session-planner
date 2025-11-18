@@ -120,10 +120,12 @@ export default function Home() {
   return (
     <SafeAreaView className="bg-background flex-1">
       <View className="p-4">
-        <Text className="text-foreground text-2xl font-bold">Home</Text>
-        <Pressable onPress={() => signOutMutation.mutate()}>
-          <Text>Sign Out</Text>
-        </Pressable>
+        <View className="flex flex-row items-center justify-between">
+          <Text className="text-foreground text-2xl font-bold">Dashboard</Text>
+          <Pressable onPress={() => signOutMutation.mutate()}>
+            <Text>Sign Out</Text>
+          </Pressable>
+        </View>
 
         <View className="py-2">
           <Text className="text-primary font-semibold italic">

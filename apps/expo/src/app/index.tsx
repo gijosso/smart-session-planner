@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, Stack } from "expo-router";
@@ -31,6 +32,12 @@ function MobileAuth() {
     },
   });
 
+  const handleSignIn = useCallback(() => {
+    signInMutation.mutate({
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+  }, [signInMutation]);
+
   const isSignedIn = session?.user;
 
   return (
@@ -41,7 +48,7 @@ function MobileAuth() {
           : "Not logged in"}
       </Text>
       <Pressable
-        onPress={() => signInMutation.mutate()}
+        onPress={handleSignIn}
         className="bg-primary flex items-center rounded-sm p-2"
         disabled={signInMutation.isPending || signOutMutation.isPending}
       >
@@ -66,7 +73,7 @@ export default function Index() {
 
   return (
     <SafeAreaView className="bg-background">
-      <Stack.Screen options={{ title: "Home Page" }} />
+      <Stack.Screen options={{ title: "Dashboard" }} />
       <View className="bg-background h-full w-full p-4">
         <Text className="text-foreground pb-2 text-center text-5xl font-bold">
           Create <Text className="text-primary">T3</Text> Turbo
