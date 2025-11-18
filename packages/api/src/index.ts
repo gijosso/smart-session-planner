@@ -18,6 +18,10 @@ type RouterInputs = inferRouterInputs<AppRouter>;
  */
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
+// Server-only exports (should not be imported in client apps)
 export { type AppRouter, appRouter } from "./root";
 export { createTRPCContext } from "./trpc";
+
+// Client-safe type exports (safe to import in frontend apps)
+// Note: For runtime values like SESSION_TYPES, import from "@ssp/api/client" instead
 export type { RouterInputs, RouterOutputs };

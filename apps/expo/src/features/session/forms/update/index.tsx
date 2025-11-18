@@ -3,6 +3,9 @@ import { useMemo } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
 
+import type { SessionType } from "@ssp/api/client";
+import { SESSION_TYPES } from "@ssp/api/client";
+
 import type { SessionFormValues } from "../session-form-schema";
 import type { ServerError } from "~/utils/formik";
 import { formatDateForInput, formatTimeForInput } from "~/utils/date";
@@ -13,21 +16,10 @@ import {
 } from "~/utils/formik";
 import { sessionFormSchema } from "../session-form-schema";
 
-const SESSION_TYPES = [
-  "Deep Work",
-  "Workout",
-  "Language",
-  "Meditation",
-  "Client Meeting",
-  "Study",
-  "Reading",
-  "Other",
-] as const;
-
 interface UpdateSessionFormProps {
   initialValues: {
     title: string;
-    type: string;
+    type: SessionType;
     startTime: Date | string;
     endTime: Date | string;
     priority: number;
@@ -35,7 +27,7 @@ interface UpdateSessionFormProps {
   };
   onSubmit: (values: {
     title?: string;
-    type?: string;
+    type?: SessionType;
     startTime?: Date;
     endTime?: Date;
     priority?: number;
@@ -111,7 +103,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
 
       onSubmit({
         title: values.title,
-        type: values.type,
+        type: values.type as SessionType | undefined,
         startTime: startTimeDate,
         endTime: endTimeDate,
         priority: values.priority,
@@ -166,7 +158,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
       <View className="mb-4">
         <Text className="text-foreground mb-2 text-sm font-medium">Type *</Text>
         <View className="flex flex-row flex-wrap gap-2">
-          {SESSION_TYPES.map((sessionType) => (
+          {SESSION_TYPES.map((sessionType: SessionType) => (
             <Pressable
               key={sessionType}
               onPress={() => formik.setFieldValue("type", sessionType)}

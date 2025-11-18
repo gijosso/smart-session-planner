@@ -2,6 +2,9 @@ import type React from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
 
+import type { SessionType } from "@ssp/api/client";
+import { SESSION_TYPES } from "@ssp/api/client";
+
 import type { SessionFormValues } from "../session-form-schema";
 import type { ServerError } from "~/utils/formik";
 import { getCurrentTime, getTodayDate } from "~/utils/date";
@@ -12,21 +15,10 @@ import {
 } from "~/utils/formik";
 import { sessionFormSchema } from "../session-form-schema";
 
-const SESSION_TYPES = [
-  "Deep Work",
-  "Workout",
-  "Language",
-  "Meditation",
-  "Client Meeting",
-  "Study",
-  "Reading",
-  "Other",
-] as const;
-
 interface CreateSessionFormProps {
   onSubmit: (values: {
     title: string;
-    type: string;
+    type: SessionType;
     startTime: Date;
     endTime: Date;
     priority: number;
@@ -44,7 +36,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
   const formik = useFormik<SessionFormValues>({
     initialValues: {
       title: "",
-      type: "",
+      type: SESSION_TYPES[0],
       startDate: getTodayDate(),
       startTime: getCurrentTime(),
       endDate: getTodayDate(),
@@ -136,7 +128,7 @@ export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
       <View className="mb-4">
         <Text className="text-foreground mb-2 text-sm font-medium">Type *</Text>
         <View className="flex flex-row flex-wrap gap-2">
-          {SESSION_TYPES.map((sessionType) => (
+          {SESSION_TYPES.map((sessionType: SessionType) => (
             <Pressable
               key={sessionType}
               onPress={() => formik.setFieldValue("type", sessionType)}

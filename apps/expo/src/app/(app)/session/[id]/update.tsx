@@ -3,6 +3,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useGlobalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { SessionType } from "@ssp/api/client";
+
 import { UpdateSessionForm } from "~/features/session/forms/update";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
@@ -27,7 +29,7 @@ export default function UpdateSession() {
 
   const handleSubmit = (values: {
     title?: string;
-    type?: string;
+    type?: SessionType;
     startTime?: Date;
     endTime?: Date;
     priority?: number;
@@ -40,7 +42,7 @@ export default function UpdateSession() {
     const payload: {
       id: string;
       title?: string;
-      type?: string;
+      type?: SessionType;
       startTime?: string;
       endTime?: string;
       priority?: number;

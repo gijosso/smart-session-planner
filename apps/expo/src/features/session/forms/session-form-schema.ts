@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SESSION_TYPES } from "@ssp/api/client";
+
 /**
  * Form schema for creating a session
  * This validates the form inputs before they're combined into Date objects
@@ -10,10 +12,9 @@ export const sessionFormSchema = z
       .string()
       .min(1, "Title is required")
       .max(256, "Title must be 256 characters or less"),
-    type: z
-      .string()
-      .min(1, "Type is required")
-      .max(100, "Type must be 100 characters or less"),
+    type: z.enum(SESSION_TYPES, {
+      message: "Please select a valid session type",
+    }),
     startDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),

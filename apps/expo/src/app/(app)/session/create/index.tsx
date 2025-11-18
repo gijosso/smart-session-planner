@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import type { SessionType } from "@ssp/api/client";
+
 import { CreateSessionForm } from "~/features/session/forms/create";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
@@ -43,7 +45,7 @@ export default function CreateSession() {
 
   const handleSubmit = (values: {
     title: string;
-    type: string;
+    type: SessionType;
     startTime: Date;
     endTime: Date;
     priority: number;

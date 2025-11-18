@@ -12,7 +12,12 @@ import {
   gte,
   lt,
 } from "@ssp/db";
-import { CreateSessionSchema, Profile, Session } from "@ssp/db/schema";
+import {
+  CreateSessionSchema,
+  Profile,
+  SESSION_TYPES,
+  Session,
+} from "@ssp/db/schema";
 
 import { protectedProcedure } from "../trpc";
 
@@ -216,7 +221,7 @@ export const sessionRouter = {
       z.object({
         id: z.string(),
         title: z.string().max(256).optional(),
-        type: z.string().max(100).optional(),
+        type: z.enum(SESSION_TYPES).optional(),
         startTime: z.coerce.date().optional(),
         endTime: z.coerce.date().optional(),
         completed: z.boolean().optional(),
