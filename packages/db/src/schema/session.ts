@@ -38,6 +38,7 @@ export const CreateSessionSchema = createInsertSchema(Session, {
   userId: z.uuid(),
 }).omit({
   id: true,
+  userId: true, // userId is added by the API from the session
   createdAt: true,
   updatedAt: true,
 });

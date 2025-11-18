@@ -125,14 +125,23 @@ export const sessionRouter = {
    */
   create: protectedProcedure
     .input(CreateSessionSchema)
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      return ctx.db.insert(Session).values({
-        ...input,
-        userId: ctx.session.user.id,
-      });
+      const [result] = await ctx.db
+        .insert(Session)
+        .values({
+          ...input,
+          userId: ctx.session.user.id,
+        })
+        .returning();
+
+      if (!result) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      }
+
+      return result;
     }),
 
   /**

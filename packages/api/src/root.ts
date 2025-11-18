@@ -1,5 +1,4 @@
 import { authRouter } from "./router/auth";
-import { postRouter } from "./router/post";
 import { sessionRouter } from "./router/session";
 import { createTRPCRouter } from "./trpc";
 
@@ -8,12 +7,10 @@ import { createTRPCRouter } from "./trpc";
 const appRouter: ReturnType<
   typeof createTRPCRouter<{
     auth: typeof authRouter;
-    post: typeof postRouter;
     session: typeof sessionRouter;
   }>
 > = createTRPCRouter({
   auth: authRouter,
-  post: postRouter,
   session: sessionRouter,
 });
 
