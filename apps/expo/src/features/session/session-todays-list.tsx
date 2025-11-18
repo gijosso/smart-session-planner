@@ -3,16 +3,26 @@ import { LegendList } from "@legendapp/list";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
+import { invalidateSessionQueries } from "~/utils/session-cache";
 import { SessionItem } from "./session-item";
 
-export const TodaysSessions = () => {
+export const SessionTodaysList = () => {
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery(trpc.session.today.queryOptions());
 
+  const sessions = sessionsQuery.data ?? [];
+
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
-      onSettled: () => {
-        void queryClient.invalidateQueries(trpc.session.today.queryFilter());
+      onSettled: (_, __, variables) => {
+        // Find the session that was toggled to invalidate based on its date
+        const session = sessions.find((s) => s.id === variables.id);
+        if (session) {
+          invalidateSessionQueries(queryClient, {
+            startTime: session.startTime,
+            id: session.id,
+          });
+        }
       },
     }),
   );
@@ -34,8 +44,6 @@ export const TodaysSessions = () => {
       </View>
     );
   }
-
-  const sessions = sessionsQuery.data ?? [];
 
   if (sessions.length === 0) {
     return (

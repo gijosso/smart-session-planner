@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
+import { invalidateSessionQueries } from "~/utils/session-cache";
 
 const SESSION_TYPES = [
   "Deep Work",
@@ -41,9 +42,11 @@ export default function CreateSession() {
         setEndTime("");
         setDescription("");
 
-        // Invalidate queries to refresh lists
-        void queryClient.invalidateQueries(trpc.session.today.queryFilter());
-        void queryClient.invalidateQueries(trpc.session.all.queryFilter());
+        // Invalidate queries based on session date (granular invalidation)
+        invalidateSessionQueries(queryClient, {
+          startTime: data.startTime,
+          id: data.id,
+        });
 
         // Navigate to the created session
         const sessionId = (data as { id?: string }).id;

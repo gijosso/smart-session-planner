@@ -2,8 +2,9 @@ import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { AddSession } from "~/features/session/add-session";
-import { TodaysSessions } from "~/features/session/todays-sessions";
+import { SessionAddButton } from "~/features/session/session-add-button";
+import { SessionRecap } from "~/features/session/session-recap";
+import { SessionTodaysList } from "~/features/session/session-todays-list";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -27,15 +28,17 @@ export default function Home() {
           </Pressable>
         </View>
 
+        <SessionRecap />
+
         <View className="flex flex-col gap-2">
           <View className="flex flex-row items-center justify-between">
             <Text className="text-foreground text-xl font-bold">
               Today's Sessions
             </Text>
-            <AddSession />
+            <SessionAddButton />
           </View>
         </View>
-        <TodaysSessions />
+        <SessionTodaysList />
       </View>
     </SafeAreaView>
   );

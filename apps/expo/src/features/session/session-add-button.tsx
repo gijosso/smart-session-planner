@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-export const AddSession: React.FC = () => {
+export const SessionAddButton: React.FC = () => {
   const router = useRouter();
 
   const handleAddSession = useCallback(() => {

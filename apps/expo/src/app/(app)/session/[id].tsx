@@ -4,6 +4,7 @@ import { Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
+import { invalidateSessionQueries } from "~/utils/session-cache";
 
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -15,10 +16,13 @@ export default function Session() {
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
       onSettled: () => {
-        void queryClient.invalidateQueries(
-          trpc.session.byId.queryFilter({ id }),
-        );
-        void queryClient.invalidateQueries(trpc.session.today.queryFilter());
+        // Use current session data for invalidation (date hasn't changed, just completion status)
+        if (data) {
+          invalidateSessionQueries(queryClient, {
+            startTime: data.startTime,
+            id: data.id,
+          });
+        }
       },
     }),
   );

@@ -104,6 +104,70 @@ export const sessionRouter = {
   }),
 
   /**
+   * Get sessions for the current week (timezone-aware)
+   * Calculates the week (Sunday to Saturday) based on user's timezone preference
+   */
+  week: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    // Get user's profile to retrieve timezone preference
+    const profile = await ctx.db.query.Profile.findFirst({
+      where: eq(Profile.userId, ctx.session.user.id),
+    });
+
+    // Get user's timezone (default to UTC)
+    const userTimezone = getUserTimezone(profile?.timezone ?? null);
+
+    const now = new Date();
+
+    // Get the current date components in the user's timezone
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: userTimezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "long",
+    });
+
+    // Get day of week (0 = Sunday, 6 = Saturday) in user's timezone
+    const parts = formatter.formatToParts(now);
+    const weekday = parts.find((p) => p.type === "weekday")?.value ?? "Sunday";
+    const weekdayMap: Record<string, number> = {
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
+    };
+    const dayOfWeek = weekdayMap[weekday] ?? 0;
+
+    // Calculate start of week (Sunday) - get today's start, then subtract days
+    const todayStart = getStartOfDayInTimezone(now, userTimezone);
+    const startOfWeekUTC = new Date(
+      todayStart.getTime() - dayOfWeek * 24 * 60 * 60 * 1000,
+    );
+
+    // Calculate end of week (Saturday) - add 6 days to start of week
+    const endOfWeekUTC = new Date(
+      startOfWeekUTC.getTime() + 7 * 24 * 60 * 60 * 1000,
+    );
+
+    // Query database using UTC boundaries
+    return ctx.db.query.Session.findMany({
+      where: and(
+        eq(Session.userId, ctx.session.user.id),
+        gte(Session.startTime, startOfWeekUTC),
+        lt(Session.startTime, endOfWeekUTC), // Use < instead of <= for end boundary
+      ),
+      orderBy: [Session.startTime],
+    });
+  }),
+
+  /**
    * Get a session by ID (only if it belongs to the authenticated user)
    */
   byId: protectedProcedure
