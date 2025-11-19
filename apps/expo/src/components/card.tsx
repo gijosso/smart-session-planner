@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 import type { ViewProps } from "react-native";
 import { Text, View } from "react-native";
 
@@ -10,27 +10,28 @@ export interface CardProps extends ViewProps {
   className?: string;
 }
 
+const VARIANT_STYLES = {
+  default: "bg-card border border-border",
+  outline: "bg-transparent border border-border",
+  muted: "bg-muted border border-transparent",
+} as const;
+
 /**
  * Card primitive component for Expo
  * A container component with consistent styling and variants
  */
-export const Card: React.FC<CardProps> = ({
+export const Card = React.memo<CardProps>(({
   variant = "default",
   className,
   children,
   ...props
 }) => {
-  const variantStyles = {
-    default: "bg-card border border-border",
-    outline: "bg-transparent border border-border",
-    muted: "bg-muted border border-transparent",
-  };
 
   return (
     <View
       className={cn(
         "rounded-xl p-4 shadow-sm",
-        variantStyles[variant],
+        VARIANT_STYLES[variant],
         className,
       )}
       {...props}
@@ -38,7 +39,7 @@ export const Card: React.FC<CardProps> = ({
       {children}
     </View>
   );
-};
+});
 
 export interface CardHeaderProps extends ViewProps {
   children: React.ReactNode;
@@ -48,7 +49,7 @@ export interface CardHeaderProps extends ViewProps {
 /**
  * Card header component
  */
-export const CardHeader: React.FC<CardHeaderProps> = ({
+export const CardHeader = React.memo<CardHeaderProps>(({
   className,
   children,
   ...props
@@ -58,7 +59,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
       {children}
     </View>
   );
-};
+});
 
 export interface CardTitleProps {
   children: React.ReactNode;
@@ -68,7 +69,7 @@ export interface CardTitleProps {
 /**
  * Card title component
  */
-export const CardTitle: React.FC<CardTitleProps> = ({
+export const CardTitle = React.memo<CardTitleProps>(({
   className,
   children,
 }) => {
@@ -79,7 +80,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
       {children}
     </Text>
   );
-};
+});
 
 export interface CardDescriptionProps {
   children: React.ReactNode;
@@ -89,7 +90,7 @@ export interface CardDescriptionProps {
 /**
  * Card description component
  */
-export const CardDescription: React.FC<CardDescriptionProps> = ({
+export const CardDescription = React.memo<CardDescriptionProps>(({
   className,
   children,
 }) => {
@@ -98,7 +99,7 @@ export const CardDescription: React.FC<CardDescriptionProps> = ({
       {children}
     </Text>
   );
-};
+});
 
 export interface CardContentProps extends ViewProps {
   children: React.ReactNode;
@@ -108,7 +109,7 @@ export interface CardContentProps extends ViewProps {
 /**
  * Card content component
  */
-export const CardContent: React.FC<CardContentProps> = ({
+export const CardContent = React.memo<CardContentProps>(({
   className,
   children,
   ...props
@@ -118,7 +119,7 @@ export const CardContent: React.FC<CardContentProps> = ({
       {children}
     </View>
   );
-};
+});
 
 export interface CardFooterProps extends ViewProps {
   children: React.ReactNode;
@@ -128,7 +129,7 @@ export interface CardFooterProps extends ViewProps {
 /**
  * Card footer component
  */
-export const CardFooter: React.FC<CardFooterProps> = ({
+export const CardFooter = React.memo<CardFooterProps>(({
   className,
   children,
   ...props
@@ -141,4 +142,4 @@ export const CardFooter: React.FC<CardFooterProps> = ({
       {children}
     </View>
   );
-};
+});

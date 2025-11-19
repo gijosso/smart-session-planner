@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 import type { PressableProps } from "react-native";
 import { Pressable, Text, View } from "react-native";
 
@@ -22,11 +22,44 @@ export interface ButtonProps extends Omit<PressableProps, "children"> {
   textClassName?: string;
 }
 
+const VARIANT_STYLES = {
+  default: "bg-primary active:bg-primary/90",
+  destructive: "bg-destructive active:bg-destructive/90",
+  outline:
+    "bg-transparent border border-border active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50",
+  secondary: "bg-secondary active:bg-secondary/80",
+  ghost: "bg-transparent active:bg-accent dark:active:bg-accent/50",
+  link: "bg-transparent",
+} as const;
+
+const TEXT_VARIANT_STYLES = {
+  default: "text-primary-foreground",
+  destructive: "text-destructive-foreground",
+  outline: "text-foreground",
+  secondary: "text-secondary-foreground",
+  ghost: "text-foreground",
+  link: "text-primary underline",
+} as const;
+
+const SIZE_STYLES = {
+  default: "h-10 px-4",
+  sm: "h-8 px-3",
+  lg: "h-11 px-6",
+  icon: "h-10 w-10",
+} as const;
+
+const TEXT_SIZE_STYLES = {
+  default: "text-sm",
+  sm: "text-sm",
+  lg: "text-base",
+  icon: "text-base",
+} as const;
+
 /**
  * Button primitive component for Expo
  * A pressable button with consistent styling and variants
  */
-export const Button: React.FC<ButtonProps> = ({
+export const Button = React.memo<ButtonProps>(({
   variant = "default",
   size = "default",
   className,
@@ -35,38 +68,6 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const variantStyles = {
-    default: "bg-primary active:bg-primary/90",
-    destructive: "bg-destructive active:bg-destructive/90",
-    outline:
-      "bg-transparent border border-border active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50",
-    secondary: "bg-secondary active:bg-secondary/80",
-    ghost: "bg-transparent active:bg-accent dark:active:bg-accent/50",
-    link: "bg-transparent",
-  };
-
-  const textVariantStyles = {
-    default: "text-primary-foreground",
-    destructive: "text-destructive-foreground",
-    outline: "text-foreground",
-    secondary: "text-secondary-foreground",
-    ghost: "text-foreground",
-    link: "text-primary underline",
-  };
-
-  const sizeStyles = {
-    default: "h-10 px-4",
-    sm: "h-8 px-3",
-    lg: "h-11 px-6",
-    icon: "h-10 w-10",
-  };
-
-  const textSizeStyles = {
-    default: "text-sm",
-    sm: "text-sm",
-    lg: "text-base",
-    icon: "text-base",
-  };
 
   const isIconOnly = size === "icon";
 
@@ -74,8 +75,8 @@ export const Button: React.FC<ButtonProps> = ({
     <Pressable
       className={cn(
         "items-center justify-center rounded-md shadow-xs",
-        variantStyles[variant],
-        sizeStyles[size],
+        VARIANT_STYLES[variant],
+        SIZE_STYLES[size],
         disabled && "opacity-50",
         className,
       )}
@@ -93,8 +94,8 @@ export const Button: React.FC<ButtonProps> = ({
             <Text
               className={cn(
                 "font-medium",
-                textVariantStyles[variant],
-                textSizeStyles[size],
+                TEXT_VARIANT_STYLES[variant],
+                TEXT_SIZE_STYLES[size],
                 isIconOnly && "hidden",
                 textClassName,
               )}
@@ -108,4 +109,4 @@ export const Button: React.FC<ButtonProps> = ({
       )}
     </Pressable>
   );
-};
+});

@@ -1,3 +1,4 @@
+import React from "react";
 import type { ViewProps } from "react-native";
 import { View } from "react-native";
 
@@ -7,7 +8,8 @@ export interface ContentProps extends ViewProps {
   children: React.ReactNode;
   className?: string;
 }
-export const Content: React.FC<ContentProps> = ({
+
+export const Content = React.memo<ContentProps>(({
   children,
   className,
   ...props
@@ -15,4 +17,4 @@ export const Content: React.FC<ContentProps> = ({
   <View className={cn("p-4", className)} {...props}>
     {children}
   </View>
-);
+));

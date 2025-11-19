@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,27 @@ import { Suggestions } from "~/features/suggestions/smart-suggestions";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 
+const SUGGESTIONS_PARAMS = {
+  type: "DEEP_WORK",
+  durationMinutes: "60",
+  priority: "3",
+} as const;
+
+const SuggestionsHeaderButton = () => {
+  const handlePress = useCallback(() => {
+    router.push({
+      pathname: "/suggestions",
+      params: SUGGESTIONS_PARAMS,
+    });
+  }, []);
+
+  return (
+    <Pressable onPress={handlePress}>
+      <Ionicons name="chevron-forward-outline" size={20} color="#71717A" />
+    </Pressable>
+  );
+};
+
 export default function Home() {
   // Fetch all shared data at route level
   const statsQuery = useQuery(trpc.stats.sessions.queryOptions());
@@ -20,9 +41,9 @@ export default function Home() {
   const weekSessionsQuery = useQuery(trpc.session.week.queryOptions());
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
-      type: "DEEP_WORK",
-      durationMinutes: 60,
-      priority: 3,
+      type: SUGGESTIONS_PARAMS.type,
+      durationMinutes: Number.parseInt(SUGGESTIONS_PARAMS.durationMinutes, 10),
+      priority: Number.parseInt(SUGGESTIONS_PARAMS.priority, 10),
       lookAheadDays: 14,
     }),
     placeholderData: (previousData) => previousData,
@@ -62,24 +83,7 @@ export default function Home() {
           <Text className="text-foreground text-xl font-bold">
             Smart Suggestions
           </Text>
-          <Pressable
-            onPress={() => {
-              router.push({
-                pathname: "/suggestions",
-                params: {
-                  type: "DEEP_WORK",
-                  durationMinutes: "60",
-                  priority: "3",
-                },
-              });
-            }}
-          >
-            <Ionicons
-              name="chevron-forward-outline"
-              size={20}
-              color="#71717A"
-            />
-          </Pressable>
+          <SuggestionsHeaderButton />
         </View>
       </Content>
       <Suggestions suggestions={suggestions} />

@@ -10,9 +10,17 @@ import {
 } from "../utils/date";
 import { checkSessionConflicts } from "./session";
 
-export interface SuggestedTimeSlot {
+/**
+ * Suggested session - returns the full shape of a session creation
+ * This can be directly used to prefill a session creation form
+ */
+export interface SuggestedSession {
+  title: string;
+  type: SessionType;
   startTime: Date;
   endTime: Date;
+  priority: number;
+  description?: string;
   score: number; // Higher is better (0-100)
   reasons: string[]; // Why this slot was suggested
 }
@@ -171,7 +179,7 @@ export async function suggestTimeSlots(
   database: typeof db,
   userId: string,
   options: SuggestionOptions,
-): Promise<SuggestedTimeSlot[]> {
+): Promise<SuggestedSession[]> {
   // Get user's profile for timezone
   const profile = await database.query.Profile.findFirst({
     where: eq(Profile.userId, userId),
@@ -201,7 +209,20 @@ export async function suggestTimeSlots(
   const startDate = options.startDate ?? new Date();
   const lookAheadDays = options.lookAheadDays ?? 14;
 
-  const suggestions: SuggestedTimeSlot[] = [];
+  // Get session type display label for title
+  const sessionTypeLabels: Record<SessionType, string> = {
+    DEEP_WORK: "Deep Work",
+    WORKOUT: "Workout",
+    LANGUAGE: "Language",
+    MEDITATION: "Meditation",
+    CLIENT_MEETING: "Client Meeting",
+    STUDY: "Study",
+    READING: "Reading",
+    OTHER: "Other",
+  };
+  const defaultTitle = sessionTypeLabels[options.type];
+
+  const suggestions: SuggestedSession[] = [];
 
   // Generate candidate slots for each availability window
   for (const window of availabilityWindows) {
@@ -342,8 +363,12 @@ export async function suggestTimeSlots(
         score = Math.max(0, Math.min(100, score));
 
         suggestions.push({
+          title: defaultTitle,
+          type: options.type,
           startTime: slotStart,
           endTime: slotEnd,
+          priority: options.priority,
+          description: undefined, // Can be filled by user when adjusting
           score,
           reasons: reasons.length > 0 ? reasons : ["Available slot"],
         });

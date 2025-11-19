@@ -74,30 +74,43 @@ export default function SuggestionsScreen() {
   const cardColor = sessionTypeDisplay.color;
 
   const handleAccept = (suggestion: {
+    title: string;
+    type: SessionType;
     startTime: Date;
     endTime: Date;
+    priority: number;
+    description?: string;
     score: number;
     reasons: string[];
   }) => {
     createSessionMutation.mutate({
-      title: sessionTypeDisplay.label,
-      type: sessionType,
+      title: suggestion.title,
+      type: suggestion.type,
       startTime: suggestion.startTime,
       endTime: suggestion.endTime,
-      priority,
+      priority: suggestion.priority,
+      description: suggestion.description,
       allowConflicts: false,
     });
   };
 
-  const handleAdjust = (suggestion: { startTime: Date; endTime: Date }) => {
+  const handleAdjust = (suggestion: {
+    title: string;
+    type: SessionType;
+    startTime: Date;
+    endTime: Date;
+    priority: number;
+    description?: string;
+  }) => {
     router.push({
       pathname: "/session/create",
       params: {
-        type: sessionType,
-        durationMinutes: durationMinutes.toString(),
-        priority: priority.toString(),
+        title: suggestion.title,
+        type: suggestion.type,
         suggestedStartTime: suggestion.startTime.toISOString(),
         suggestedEndTime: suggestion.endTime.toISOString(),
+        priority: suggestion.priority.toString(),
+        ...(suggestion.description && { description: suggestion.description }),
       },
     });
   };

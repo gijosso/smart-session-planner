@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -8,11 +9,14 @@ interface SessionRecapCardProps {
   sessions: RouterOutputs["session"]["today"][number][];
 }
 
-export const SessionRecapCard: React.FC<SessionRecapCardProps> = ({
+export const SessionRecapCard = React.memo<SessionRecapCardProps>(({
   sessions,
 }) => {
-  const totalSessions = sessions.length;
-  const completedSessions = sessions.filter((s) => s.completed).length;
+  const { totalSessions, completedSessions } = useMemo(() => {
+    const total = sessions.length;
+    const completed = sessions.filter((s) => s.completed).length;
+    return { totalSessions: total, completedSessions: completed };
+  }, [sessions]);
 
   return (
     <Card variant="outline" className="flex flex-row items-center">
@@ -33,4 +37,4 @@ export const SessionRecapCard: React.FC<SessionRecapCardProps> = ({
       </View>
     </Card>
   );
-};
+});

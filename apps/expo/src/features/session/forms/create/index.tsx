@@ -26,23 +26,25 @@ interface CreateSessionFormProps {
   }) => void;
   isPending?: boolean;
   serverError?: ServerError;
+  initialValues?: Partial<SessionFormValues>;
 }
 
 export const CreateSessionForm: React.FC<CreateSessionFormProps> = ({
   onSubmit,
   isPending = false,
   serverError,
+  initialValues: prefilledValues,
 }) => {
   const formik = useFormik<SessionFormValues>({
     initialValues: {
-      title: "",
-      type: "DEEP_WORK",
-      startDate: getTodayDate(),
-      startTime: getCurrentTime(),
-      endDate: getTodayDate(),
-      endTime: getCurrentTime(),
-      priority: 3,
-      description: "",
+      title: prefilledValues?.title ?? "",
+      type: prefilledValues?.type ?? "OTHER",
+      startDate: prefilledValues?.startDate ?? getTodayDate(),
+      startTime: prefilledValues?.startTime ?? getCurrentTime(),
+      endDate: prefilledValues?.endDate ?? getTodayDate(),
+      endTime: prefilledValues?.endTime ?? getCurrentTime(),
+      priority: prefilledValues?.priority ?? 3,
+      description: prefilledValues?.description ?? "",
     },
     validate: (values: SessionFormValues) => {
       const result = sessionFormSchema.safeParse(values);
