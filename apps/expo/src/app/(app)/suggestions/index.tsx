@@ -74,6 +74,7 @@ export default function SuggestionsScreen() {
   const cardColor = sessionTypeDisplay.color;
 
   const handleAccept = (suggestion: {
+    id: string;
     title: string;
     type: SessionType;
     startTime: Date;
@@ -90,11 +91,13 @@ export default function SuggestionsScreen() {
       endTime: suggestion.endTime,
       priority: suggestion.priority,
       description: suggestion.description,
+      fromSuggestionId: suggestion.id,
       allowConflicts: false,
     });
   };
 
   const handleAdjust = (suggestion: {
+    id: string;
     title: string;
     type: SessionType;
     startTime: Date;
@@ -110,6 +113,7 @@ export default function SuggestionsScreen() {
         suggestedStartTime: suggestion.startTime.toISOString(),
         suggestedEndTime: suggestion.endTime.toISOString(),
         priority: suggestion.priority.toString(),
+        suggestionId: suggestion.id,
         ...(suggestion.description && { description: suggestion.description }),
       },
     });

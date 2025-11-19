@@ -28,6 +28,7 @@ export default function CreateSession() {
     suggestedEndTime?: string;
     priority?: string;
     description?: string;
+    suggestionId?: string; // ID of the suggestion this session is being created from
     // Legacy params (for backwards compatibility)
     durationMinutes?: string;
   }>();
@@ -74,6 +75,7 @@ export default function CreateSession() {
       endTime: values.endTime.toISOString(),
       priority: values.priority,
       description: values.description,
+      ...(params.suggestionId && { fromSuggestionId: params.suggestionId }),
     });
   };
 

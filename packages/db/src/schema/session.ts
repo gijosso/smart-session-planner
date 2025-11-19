@@ -40,6 +40,7 @@ export const Session = pgTable(
     completed: t.boolean().notNull().default(false),
     priority: t.integer().notNull().default(3), // Priority level 1-5 (default: 3)
     description: t.text(), // Optional description/notes
+    fromSuggestionId: t.text(), // Optional: ID of the suggestion this session was created from
     createdAt: t
       .timestamp({ mode: "date", withTimezone: true })
       .defaultNow()
@@ -74,6 +75,7 @@ export const CreateSessionSchema = createInsertSchema(Session, {
   completed: z.boolean().default(false),
   priority: z.coerce.number().int().min(1).max(5).default(3),
   description: z.string().optional(),
+  fromSuggestionId: z.string().optional(),
   userId: z.uuid(),
 }).omit({
   id: true,

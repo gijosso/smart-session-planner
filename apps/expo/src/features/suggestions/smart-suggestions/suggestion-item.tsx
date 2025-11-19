@@ -56,9 +56,11 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         endTime: suggestion.endTime,
         priority: suggestion.priority,
         description: suggestion.description,
+        fromSuggestionId: suggestion.id,
         allowConflicts: false,
       });
     }, [
+      suggestion.id,
       suggestion.title,
       suggestion.type,
       suggestion.startTime,
@@ -77,12 +79,14 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
           suggestedStartTime: suggestion.startTime.toISOString(),
           suggestedEndTime: suggestion.endTime.toISOString(),
           priority: suggestion.priority.toString(),
+          suggestionId: suggestion.id,
           ...(suggestion.description && {
             description: suggestion.description,
           }),
         },
       });
     }, [
+      suggestion.id,
       suggestion.title,
       suggestion.type,
       suggestion.startTime,
