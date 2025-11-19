@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
+import { Card } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { trpc } from "~/utils/api";
 
@@ -47,17 +48,15 @@ export const ProgressCard: React.FC = () => {
   }
 
   // Get session types that have sessions (non-zero counts)
-  const activeTypes: [type: SessionType, count: number][] = Object.entries(
-    stats.byType,
-  )
+  const activeTypes = (Object.entries(stats.byType) as [SessionType, number][])
     .filter(([_, count]) => count > 0)
     .sort(([_, a], [__, b]) => b - a); // Sort by count descending
 
   const totalByType = activeTypes.reduce((sum, [_, count]) => sum + count, 0);
 
   return (
-    <View className="bg-muted rounded-lg p-4">
-      <View className="mb-4 flex flex-row items-center gap-2">
+    <Card>
+      <View className="mb-6">
         <Text className="text-foreground text-lg font-semibold">
           Your Progress
         </Text>
@@ -86,12 +85,10 @@ export const ProgressCard: React.FC = () => {
 
       {/* Average Spacing */}
       {stats.averageSpacingHours !== null && (
-        <View className="bg-background mb-4 rounded-lg p-3">
-          <View className="flex flex-row items-center gap-2">
-            <Text className="text-foreground text-2xl font-bold">
-              {stats.averageSpacingHours} days
-            </Text>
-          </View>
+        <View className="bg-muted mb-4 rounded-lg p-4">
+          <Text className="text-foreground mb-1 text-2xl font-bold">
+            {stats.averageSpacingHours} days
+          </Text>
           <Text className="text-muted-foreground text-sm">
             Average spacing between sessions
           </Text>
@@ -119,16 +116,19 @@ export const ProgressCard: React.FC = () => {
           </View>
 
           {/* Legend */}
-          <View className="gap-2">
-            {activeTypes.map(([type, count]) => (
-              <View key={type} className="flex flex-row items-center gap-2">
+          <View>
+            {activeTypes.map(([type, count], index) => (
+              <View
+                key={type}
+                className={`flex flex-row items-center ${index > 0 ? "mt-2" : ""}`}
+              >
                 <View
                   className="h-3 w-3 rounded-full"
                   style={{
                     backgroundColor: SESSION_TYPES_DISPLAY[type].color,
                   }}
                 />
-                <Text className="text-foreground text-sm">
+                <Text className="text-foreground ml-2 text-sm">
                   {SESSION_TYPES_DISPLAY[type].label} · {count}
                 </Text>
               </View>
@@ -139,15 +139,15 @@ export const ProgressCard: React.FC = () => {
 
       {/* Streaks */}
       {stats.currentStreakDays > 0 && (
-        <View className="mb-4 gap-2">
-          <View className="bg-background rounded-lg p-3">
-            <View className="flex flex-row items-center gap-2">
+        <View className="mb-4">
+          <View className="bg-muted rounded-lg p-4">
+            <View className="mb-1 flex flex-row items-center">
               <Text className="text-foreground text-2xl font-bold">
                 {stats.currentStreakDays} day
                 {stats.currentStreakDays > 1 ? "s" : ""}
               </Text>
               {stats.currentStreakDays === stats.longestStreakDays && (
-                <View className="bg-primary rounded-full px-2 py-1">
+                <View className="bg-primary ml-2 rounded-full px-2 py-1">
                   <Text className="text-primary-foreground text-xs font-medium">
                     Best
                   </Text>
@@ -160,13 +160,11 @@ export const ProgressCard: React.FC = () => {
           </View>
           {stats.longestStreakDays > stats.currentStreakDays &&
             stats.longestStreakDays > 0 && (
-              <View className="bg-background rounded-lg p-3">
-                <View className="flex flex-row items-center gap-2">
-                  <Text className="text-foreground text-2xl font-bold">
-                    {stats.longestStreakDays} day
-                    {stats.longestStreakDays > 1 ? "s" : ""}
-                  </Text>
-                </View>
+              <View className="bg-muted mt-2 rounded-lg p-4">
+                <Text className="text-foreground mb-1 text-2xl font-bold">
+                  {stats.longestStreakDays} day
+                  {stats.longestStreakDays > 1 ? "s" : ""}
+                </Text>
                 <Text className="text-muted-foreground text-sm">
                   Longest streak
                 </Text>
@@ -174,6 +172,6 @@ export const ProgressCard: React.FC = () => {
             )}
         </View>
       )}
-    </View>
+    </Card>
   );
 };

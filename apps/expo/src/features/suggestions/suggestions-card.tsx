@@ -60,15 +60,15 @@ export const SuggestionsCard: React.FC<SuggestionsCardProps> = ({
 
   if (isLoading) {
     return (
-      <View className="bg-muted rounded-xl p-4">
-        <View className="mb-2 flex flex-row items-center gap-2">
+      <View className="bg-card border-border rounded-xl border p-5 shadow-sm">
+        <View className="mb-4">
           <Text className="text-foreground text-lg font-semibold">
             Smart Suggestions
           </Text>
         </View>
         <View className="flex items-center justify-center py-8">
           <ActivityIndicator size="small" />
-          <Text className="text-muted-foreground mt-2 text-sm">
+          <Text className="text-muted-foreground mt-3 text-sm">
             Finding the best times for you...
           </Text>
         </View>
@@ -78,8 +78,8 @@ export const SuggestionsCard: React.FC<SuggestionsCardProps> = ({
 
   if (!suggestions || suggestions.length === 0) {
     return (
-      <View className="bg-muted rounded-xl p-4">
-        <View className="mb-2 flex flex-row items-center gap-2">
+      <View className="bg-card border-border rounded-xl border p-5 shadow-sm">
+        <View className="mb-4">
           <Text className="text-foreground text-lg font-semibold">
             Smart Suggestions
           </Text>
@@ -93,8 +93,8 @@ export const SuggestionsCard: React.FC<SuggestionsCardProps> = ({
   }
 
   return (
-    <View className="mb-4">
-      <View className="mb-3 flex flex-row items-center justify-between px-4">
+    <View>
+      <View className="mb-4 flex flex-row items-center justify-between">
         <Text className="text-foreground text-lg font-semibold">
           Smart Suggestions
         </Text>
@@ -111,7 +111,7 @@ export const SuggestionsCard: React.FC<SuggestionsCardProps> = ({
               });
             }}
           >
-            <Text className="text-primary text-sm">See all →</Text>
+            <Text className="text-primary text-sm font-medium">See all →</Text>
           </Pressable>
         )}
       </View>

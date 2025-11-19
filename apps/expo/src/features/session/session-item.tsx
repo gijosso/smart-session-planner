@@ -2,6 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { Link } from "expo-router";
 
 import type { RouterOutputs } from "~/utils/api";
+import { Card } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatTimeRange } from "~/utils/date";
 
@@ -15,7 +16,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
   onToggleComplete,
 }) => {
   return (
-    <View className="bg-muted flex flex-row items-center rounded-lg p-4">
+    <Card variant="outline">
       <Link
         asChild
         href={{
@@ -64,6 +65,6 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           {session.completed ? "Done" : "Mark Done"}
         </Text>
       </Pressable>
-    </View>
+    </Card>
   );
 };

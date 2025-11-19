@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
+import { formatDateShort } from "~/utils/date";
 import { SessionRecapDisplay } from "./session-recap-display";
 import { SessionRecapFilter } from "./session-recap-filter";
 
@@ -35,13 +36,21 @@ export const SessionRecap: React.FC = () => {
   }
 
   return (
-    <View>
-      <View className="mb-3 flex flex-row items-start justify-between">
-        <SessionRecapDisplay sessions={sessions ?? []} filter={filter} />
-        <View className="ml-4 pt-1">
-          <SessionRecapFilter filter={filter} onFilterChange={setFilter} />
+    <View className="flex flex-col">
+      <View className="mb-4 flex flex-row items-start justify-between">
+        <View>
+          <Text className="text-foreground text-2xl font-bold">
+            {formatDateShort(new Date())}
+          </Text>
+          <Text className="text-muted-foreground mt-1 text-sm">
+            {filter === "today"
+              ? "Your schedule today"
+              : "Your schedule this week"}
+          </Text>
         </View>
+        <SessionRecapFilter filter={filter} onFilterChange={setFilter} />
       </View>
+      <SessionRecapDisplay sessions={sessions ?? []} />
     </View>
   );
 };
