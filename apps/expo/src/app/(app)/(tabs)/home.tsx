@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 
-import { Content, Screen } from "~/components";
+import { Content, LoadingScreen, Screen } from "~/components";
 import { SessionAddButton } from "~/features/session/session-add-button";
 import { SessionRecap } from "~/features/session/session-recap";
 import { SessionTodaysList } from "~/features/session/session-todays-list";
@@ -41,11 +41,7 @@ export default function Home() {
     weekSessionsQuery.isLoading;
 
   if (isLoading) {
-    return (
-      <Screen contentClassName="items-center justify-center">
-        <ActivityIndicator size="large" />
-      </Screen>
-    );
+    return <LoadingScreen />;
   }
 
   return (

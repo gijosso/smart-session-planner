@@ -25,7 +25,10 @@ export const Screen = ({
 
   return (
     <View className={cn("bg-background flex-1", className)}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         <View className={cn("flex-1", contentClassName)} style={style}>
           {children}
         </View>

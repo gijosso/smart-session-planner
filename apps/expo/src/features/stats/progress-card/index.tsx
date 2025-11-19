@@ -21,13 +21,7 @@ interface ProgressCardProps {
  */
 export const ProgressCard: React.FC<ProgressCardProps> = ({ stats }) => {
   if (!stats || stats.total === 0) {
-    return (
-      <View className="bg-muted rounded-lg p-4">
-        <Text className="text-muted-foreground text-center">
-          No sessions yet. Start scheduling to see your progress!
-        </Text>
-      </View>
-    );
+    return null;
   }
 
   return (

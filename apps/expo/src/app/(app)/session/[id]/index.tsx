@@ -1,8 +1,9 @@
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { LoadingScreen } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
@@ -79,11 +80,7 @@ export default function Session() {
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="bg-background flex-1 items-center justify-center">
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   if (error || !data) {

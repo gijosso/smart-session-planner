@@ -1,9 +1,10 @@
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, router, Stack } from "expo-router";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "@tanstack/react-query";
 
+import { LoadingScreen } from "~/components";
 import { trpc } from "~/utils/api";
 
 export default function AvailabilityList() {
@@ -15,10 +16,10 @@ export default function AvailabilityList() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="bg-background flex-1 items-center justify-center">
+      <>
         <Stack.Screen options={{ title: "Availability" }} />
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
+        <LoadingScreen />
+      </>
     );
   }
 
