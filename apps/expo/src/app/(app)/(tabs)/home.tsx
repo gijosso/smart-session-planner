@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ProgressCard } from "~/features/progress/progress-card";
 import { SessionAddButton } from "~/features/session/session-add-button";
 import { SessionRecap } from "~/features/session/session-recap";
 import { SessionTodaysList } from "~/features/session/session-todays-list";
@@ -22,6 +23,8 @@ export default function Home() {
           </View>
         </View>
         <SessionTodaysList />
+
+        <ProgressCard />
       </View>
     </SafeAreaView>
   );

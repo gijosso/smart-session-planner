@@ -48,6 +48,7 @@ function isThisWeek(date: Date | string): boolean {
 /**
  * Invalidate session queries based on the session's date
  * Only invalidates "today" and "week" if the session actually falls within those ranges
+ * Also invalidates stats queries since they depend on session data
  */
 export function invalidateSessionQueries(
   queryClient: QueryClient,
@@ -63,6 +64,9 @@ export function invalidateSessionQueries(
 
   // Always invalidate all sessions (for lists that show all sessions)
   void queryClient.invalidateQueries(trpc.session.all.queryFilter());
+
+  // Invalidate stats (since any session change affects stats)
+  void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
 
   // Invalidate byId if we have an id
   if (session.id) {
@@ -84,6 +88,7 @@ export function invalidateSessionQueries(
 /**
  * Invalidate session queries for both old and new session states
  * Useful for updates where the date might have changed
+ * Also invalidates stats queries since they depend on session data
  */
 export function invalidateSessionQueriesForUpdate(
   queryClient: QueryClient,
@@ -107,6 +112,9 @@ export function invalidateSessionQueriesForUpdate(
 
   // Always invalidate all sessions
   void queryClient.invalidateQueries(trpc.session.all.queryFilter());
+
+  // Invalidate stats (since any session change affects stats)
+  void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
 
   // Invalidate byId if we have an id
   if (oldSession.id || newSession.id) {
