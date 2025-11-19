@@ -1,11 +1,22 @@
-import type { z } from "zod/v4";
-
 import type { db } from "@ssp/db/client";
-import type { CreateAvailabilitySchema } from "@ssp/db/schema";
-import { and, eq } from "@ssp/db";
+import type { DayOfWeek, WeeklyAvailability } from "@ssp/db/schema";
+import { eq } from "@ssp/db";
 import { Availability, DAYS_OF_WEEK } from "@ssp/db/schema";
 
 import { mergeTimeRanges, timeRangesOverlap } from "../utils/date";
+
+/**
+ * Default weekly availability structure
+ */
+const DEFAULT_WEEKLY_AVAILABILITY: WeeklyAvailability = {
+  MONDAY: [{ startTime: "07:00:00", endTime: "09:00:00" }],
+  TUESDAY: [{ startTime: "07:00:00", endTime: "09:00:00" }],
+  WEDNESDAY: [{ startTime: "07:00:00", endTime: "09:00:00" }],
+  THURSDAY: [{ startTime: "07:00:00", endTime: "09:00:00" }],
+  FRIDAY: [{ startTime: "07:00:00", endTime: "09:00:00" }],
+  SATURDAY: [{ startTime: "10:00:00", endTime: "14:00:00" }],
+  SUNDAY: [{ startTime: "10:00:00", endTime: "14:00:00" }],
+};
 
 /**
  * Create default availability for a new user
@@ -27,174 +38,40 @@ export async function createDefaultAvailability(
     return;
   }
 
-  const defaultAvailability = [
-    // Monday-Friday: 7am-9am
-    ...DAYS_OF_WEEK.slice(0, 5).map((day) => ({
-      userId,
-      dayOfWeek: day,
-      startTime: "07:00:00",
-      endTime: "09:00:00",
-    })),
-    // Saturday-Sunday: 10am-2pm
-    ...DAYS_OF_WEEK.slice(5).map((day) => ({
-      userId,
-      dayOfWeek: day,
-      startTime: "10:00:00",
-      endTime: "14:00:00",
-    })),
-  ];
-
-  await database.insert(Availability).values(defaultAvailability);
+  await database.insert(Availability).values({
+    userId,
+    weeklyAvailability: DEFAULT_WEEKLY_AVAILABILITY,
+  });
 }
 
 /**
- * Get all availability windows for a user
+ * Get availability for a user (returns single record with weekly JSON)
  */
-export async function getAllAvailability(database: typeof db, userId: string) {
-  return database.query.Availability.findMany({
+export async function getAvailability(database: typeof db, userId: string) {
+  return database.query.Availability.findFirst({
     where: eq(Availability.userId, userId),
-    orderBy: [Availability.dayOfWeek, Availability.startTime],
   });
 }
 
 /**
- * Create a new availability window, merging with overlapping windows
+ * Set/update weekly availability for a user
  */
-export async function createAvailability(
+export async function setWeeklyAvailability(
   database: typeof db,
   userId: string,
-  input: z.infer<typeof CreateAvailabilitySchema>,
+  weeklyAvailability: WeeklyAvailability,
 ) {
-  // Find all availability windows for the same day
-  const sameDayAvailability = await database.query.Availability.findMany({
-    where: and(
-      eq(Availability.userId, userId),
-      eq(Availability.dayOfWeek, input.dayOfWeek),
-    ),
-  });
+  // Get existing availability or create new
+  const existing = await getAvailability(database, userId);
 
-  // Find overlapping windows
-  const overlappingWindows = sameDayAvailability.filter((item) =>
-    timeRangesOverlap(
-      input.startTime,
-      input.endTime,
-      item.startTime,
-      item.endTime,
-    ),
-  );
-
-  if (overlappingWindows.length === 0) {
-    // No overlaps, just create the new window
-    const [result] = await database
-      .insert(Availability)
-      .values({
-        ...input,
-        userId,
-      })
-      .returning();
-
-    if (!result) {
-      throw new Error("Failed to create availability");
-    }
-
-    return result;
-  }
-
-  // Merge all overlapping windows
-  let mergedStart = input.startTime;
-  let mergedEnd = input.endTime;
-
-  for (const window of overlappingWindows) {
-    const merged = mergeTimeRanges(
-      mergedStart,
-      mergedEnd,
-      window.startTime,
-      window.endTime,
-    );
-    mergedStart = merged.start;
-    mergedEnd = merged.end;
-  }
-
-  // Delete overlapping windows
-  for (const window of overlappingWindows) {
-    await database.delete(Availability).where(eq(Availability.id, window.id));
-  }
-
-  // Create merged window
-  const [result] = await database
-    .insert(Availability)
-    .values({
-      dayOfWeek: input.dayOfWeek,
-      startTime: mergedStart,
-      endTime: mergedEnd,
-      userId,
-    })
-    .returning();
-
-  if (!result) {
-    throw new Error("Failed to create availability");
-  }
-
-  return result;
-}
-
-/**
- * Update an availability window (only if it belongs to the user)
- * Merges with overlapping windows if day or time changes
- */
-export async function updateAvailability(
-  database: typeof db,
-  userId: string,
-  id: string,
-  updates: {
-    dayOfWeek?: z.infer<typeof CreateAvailabilitySchema>["dayOfWeek"];
-    startTime?: string;
-    endTime?: string;
-  },
-) {
-  // Verify the availability belongs to the user
-  const existingAvailability = await database.query.Availability.findFirst({
-    where: and(eq(Availability.id, id), eq(Availability.userId, userId)),
-  });
-
-  if (!existingAvailability) {
-    throw new Error("Availability not found or access denied");
-  }
-
-  // Determine the final values (use updates or existing values)
-  const finalDayOfWeek = updates.dayOfWeek ?? existingAvailability.dayOfWeek;
-  const finalStartTime = updates.startTime ?? existingAvailability.startTime;
-  const finalEndTime = updates.endTime ?? existingAvailability.endTime;
-
-  // Find all availability windows for the same day (excluding the current one)
-  const sameDayAvailability = await database.query.Availability.findMany({
-    where: and(
-      eq(Availability.userId, userId),
-      eq(Availability.dayOfWeek, finalDayOfWeek),
-    ),
-  });
-
-  // Find overlapping windows (excluding the current one)
-  const overlappingWindows = sameDayAvailability.filter(
-    (item) =>
-      item.id !== id &&
-      timeRangesOverlap(
-        finalStartTime,
-        finalEndTime,
-        item.startTime,
-        item.endTime,
-      ),
-  );
-
-  if (overlappingWindows.length === 0) {
-    // No overlaps, just update the window
+  if (existing) {
     const [updated] = await database
       .update(Availability)
       .set({
-        ...updates,
+        weeklyAvailability,
         updatedAt: new Date(),
       })
-      .where(eq(Availability.id, id))
+      .where(eq(Availability.id, existing.id))
       .returning();
 
     if (!updated) {
@@ -204,61 +81,17 @@ export async function updateAvailability(
     return updated;
   }
 
-  // Merge all overlapping windows
-  let mergedStart = finalStartTime;
-  let mergedEnd = finalEndTime;
-
-  for (const window of overlappingWindows) {
-    const merged = mergeTimeRanges(
-      mergedStart,
-      mergedEnd,
-      window.startTime,
-      window.endTime,
-    );
-    mergedStart = merged.start;
-    mergedEnd = merged.end;
-  }
-
-  // Delete overlapping windows
-  for (const window of overlappingWindows) {
-    await database.delete(Availability).where(eq(Availability.id, window.id));
-  }
-
-  // Update the current window with merged values
-  const [updated] = await database
-    .update(Availability)
-    .set({
-      dayOfWeek: finalDayOfWeek,
-      startTime: mergedStart,
-      endTime: mergedEnd,
-      updatedAt: new Date(),
+  const [created] = await database
+    .insert(Availability)
+    .values({
+      userId,
+      weeklyAvailability,
     })
-    .where(eq(Availability.id, id))
     .returning();
 
-  if (!updated) {
-    throw new Error("Failed to update availability");
+  if (!created) {
+    throw new Error("Failed to create availability");
   }
 
-  return updated;
-}
-
-/**
- * Delete an availability window (only if it belongs to the user)
- */
-export async function deleteAvailability(
-  database: typeof db,
-  userId: string,
-  id: string,
-) {
-  // Verify the availability belongs to the user
-  const existingAvailability = await database.query.Availability.findFirst({
-    where: and(eq(Availability.id, id), eq(Availability.userId, userId)),
-  });
-
-  if (!existingAvailability) {
-    throw new Error("Availability not found or access denied");
-  }
-
-  return database.delete(Availability).where(eq(Availability.id, id));
+  return created;
 }

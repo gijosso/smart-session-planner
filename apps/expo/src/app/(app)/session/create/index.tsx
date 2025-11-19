@@ -29,8 +29,6 @@ export default function CreateSession() {
     priority?: string;
     description?: string;
     suggestionId?: string; // ID of the suggestion this session is being created from
-    // Legacy params (for backwards compatibility)
-    durationMinutes?: string;
   }>();
 
   const {

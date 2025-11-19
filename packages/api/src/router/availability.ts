@@ -2,120 +2,60 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { CreateAvailabilitySchema, DAYS_OF_WEEK } from "@ssp/db/schema";
+import { weeklyAvailabilitySchema } from "@ssp/db/schema";
 
 import {
-  createAvailability,
-  deleteAvailability,
-  getAllAvailability,
-  updateAvailability,
+  getAvailability,
+  setWeeklyAvailability,
 } from "../helpers/availability";
 import { protectedProcedure } from "../trpc";
 
 export const availabilityRouter = {
   /**
-   * Get all availability windows for the authenticated user
+   * Get weekly availability for the authenticated user (JSON structure)
+   * Returns: { id, userId, weeklyAvailability: { MONDAY: [...], ... }, createdAt, updatedAt }
    */
-  all: protectedProcedure.query(async ({ ctx }) => {
+  get: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
-    return getAllAvailability(ctx.db, ctx.session.user.id);
+    const availability = await getAvailability(ctx.db, ctx.session.user.id);
+    if (!availability) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Availability not found",
+      });
+    }
+    return availability;
   }),
 
   /**
-   * Create a new availability window
+   * Set/update weekly availability for the authenticated user (JSON structure)
+   * Input: { weeklyAvailability: { MONDAY: [{ startTime, endTime }], ... } }
    */
-  create: protectedProcedure
-    .input(CreateAvailabilitySchema)
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      try {
-        return await createAvailability(ctx.db, ctx.session.user.id, input);
-      } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to create availability",
-        });
-      }
-    }),
-
-  /**
-   * Update an availability window (only if it belongs to the authenticated user)
-   */
-  update: protectedProcedure
+  setWeekly: protectedProcedure
     .input(
       z.object({
-        id: z.string(),
-        dayOfWeek: z.enum(DAYS_OF_WEEK).optional(),
-        startTime: z
-          .string()
-          .regex(/^\d{2}:\d{2}:\d{2}$/, "Start time must be in HH:MM:SS format")
-          .optional(),
-        endTime: z
-          .string()
-          .regex(/^\d{2}:\d{2}:\d{2}$/, "End time must be in HH:MM:SS format")
-          .optional(),
+        weeklyAvailability: weeklyAvailabilitySchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
-      const { id, ...updates } = input;
       try {
-        return await updateAvailability(
+        return await setWeeklyAvailability(
           ctx.db,
           ctx.session.user.id,
-          id,
-          updates,
+          input.weeklyAvailability,
         );
       } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: error.message,
-          });
-        }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
             error instanceof Error
               ? error.message
-              : "Failed to update availability",
-        });
-      }
-    }),
-
-  /**
-   * Delete an availability window (only if it belongs to the authenticated user)
-   */
-  delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      try {
-        return await deleteAvailability(ctx.db, ctx.session.user.id, input.id);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: error.message,
-          });
-        }
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to delete availability",
+              : "Failed to set weekly availability",
         });
       }
     }),

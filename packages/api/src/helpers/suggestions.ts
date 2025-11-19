@@ -1,7 +1,7 @@
 import type { db } from "@ssp/db/client";
-import type { SessionType } from "@ssp/db/schema";
+import type { DayOfWeek, SessionType } from "@ssp/db/schema";
 import { eq, getUserTimezone } from "@ssp/db";
-import { Availability, Profile, Session } from "@ssp/db/schema";
+import { Availability, DAYS_OF_WEEK, Profile, Session } from "@ssp/db/schema";
 
 import {
   convertLocalTimeToUTC,
@@ -186,16 +186,52 @@ export async function suggestTimeSlots(
   });
   const userTimezone = getUserTimezone(profile?.timezone ?? null);
 
-  // Get user's availability windows
-  const availabilityWindows = await database.query.Availability.findMany({
+  // Get user's availability (JSON structure)
+  const availability = await database.query.Availability.findFirst({
     where: eq(Availability.userId, userId),
-    orderBy: [Availability.dayOfWeek, Availability.startTime],
   });
 
-  if (availabilityWindows.length === 0) {
+  if (!availability?.weeklyAvailability) {
     // No availability set, return empty suggestions
     return [];
   }
+
+  // Convert JSON structure to array format for processing
+  const availabilityWindows: {
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }[] = [];
+
+  for (const [dayOfWeek, windows] of Object.entries(
+    availability.weeklyAvailability,
+  )) {
+    for (const window of windows) {
+      availabilityWindows.push({
+        dayOfWeek,
+        startTime: window.startTime,
+        endTime: window.endTime,
+      });
+    }
+  }
+
+  // Sort by day of week and start time
+  const dayOrder: Record<string, number> = {
+    MONDAY: 0,
+    TUESDAY: 1,
+    WEDNESDAY: 2,
+    THURSDAY: 3,
+    FRIDAY: 4,
+    SATURDAY: 5,
+    SUNDAY: 6,
+  };
+
+  availabilityWindows.sort((a, b) => {
+    const dayDiff =
+      (dayOrder[a.dayOfWeek] ?? 99) - (dayOrder[b.dayOfWeek] ?? 99);
+    if (dayDiff !== 0) return dayDiff;
+    return a.startTime.localeCompare(b.startTime);
+  });
 
   // Get existing sessions for conflict checking
   const existingSessions = await database.query.Session.findMany({
@@ -226,12 +262,14 @@ export async function suggestTimeSlots(
 
   // Generate candidate slots for each availability window
   for (const window of availabilityWindows) {
+    // Validate and cast dayOfWeek to DayOfWeek type
+    if (!DAYS_OF_WEEK.includes(window.dayOfWeek as DayOfWeek)) {
+      continue; // Skip invalid day of week
+    }
+    const dayOfWeek = window.dayOfWeek as DayOfWeek;
+
     // Calculate dates for this day of week within the look-ahead period
-    const windowDate = getDateForDayOfWeek(
-      startDate,
-      window.dayOfWeek,
-      userTimezone,
-    );
+    const windowDate = getDateForDayOfWeek(startDate, dayOfWeek, userTimezone);
 
     // Generate slots for each week in the look-ahead period
     for (

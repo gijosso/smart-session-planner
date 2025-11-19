@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Link } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { Screen } from "~/components";
+import { Card, Screen } from "~/components";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -28,10 +29,17 @@ export default function Settings() {
 
         <View className="flex flex-col gap-4">
           <Link href="/settings/availability" asChild>
-            <Pressable className="bg-primary flex items-center rounded-sm p-3">
-              <Text className="text-primary-foreground font-semibold">
-                Availability
-              </Text>
+            <Pressable>
+              <Card variant="outline" className="flex flex-row items-center justify-between">
+                <Text className="text-foreground font-semibold">
+                  Availability
+                </Text>
+                <Ionicons
+                  name="chevron-forward-outline"
+                  size={20}
+                  color="#71717A"
+                />
+              </Card>
             </Pressable>
           </Link>
 

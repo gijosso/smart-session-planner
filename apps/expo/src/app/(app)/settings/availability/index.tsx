@@ -1,10 +1,10 @@
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, router, Stack } from "expo-router";
-import { LegendList } from "@legendapp/list";
+import { router, Stack } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { LoadingScreen } from "~/components";
+import { AvailabilityCalendar } from "~/features/availability/availability-calendar";
 import { trpc } from "~/utils/api";
 
 export default function AvailabilityList() {
@@ -12,7 +12,7 @@ export default function AvailabilityList() {
     data: availability,
     isLoading,
     error,
-  } = useQuery(trpc.availability.all.queryOptions());
+  } = useQuery(trpc.availability.get.queryOptions());
 
   if (isLoading) {
     return (
@@ -36,45 +36,40 @@ export default function AvailabilityList() {
     );
   }
 
-  const availabilityList = availability ?? [];
+  if (!availability) {
+    return (
+      <SafeAreaView className="bg-background">
+        <Stack.Screen options={{ title: "Availability" }} />
+        <View className="h-full w-full p-4">
+          <Text className="text-foreground text-lg">
+            No availability set. Click Edit to set your weekly availability.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="bg-background flex-1">
-      <Stack.Screen options={{ title: "Availability" }} />
       <View className="h-full w-full">
-        <View className="flex flex-row items-center justify-between p-4">
-          <Text className="text-foreground text-lg font-semibold">
-            Availability Windows
-          </Text>
-          <Pressable
-            onPress={() => router.push("/settings/availability/create")}
-          >
-            <Text className="text-primary text-base font-medium underline">
-              Add New
-            </Text>
-          </Pressable>
-        </View>
-        <LegendList
-          data={availabilityList}
-          estimatedItemSize={20}
-          keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <View className="h-2" />}
-          renderItem={(p) => (
-            <Link
-              href={{
-                pathname: "/settings/availability/[id]/update",
-                params: { id: p.item.id },
-              }}
-              asChild
-            >
-              <Pressable className="p-4">
-                <Text className="text-foreground text-lg font-semibold">
-                  {p.item.dayOfWeek}
-                </Text>
+        <Stack.Screen
+          options={{
+            title: "Availability",
+            headerRight: () => (
+              <Pressable
+                onPress={() => router.push("/settings/availability/edit")}
+                className="px-4"
+              >
+                <Text className="text-primary text-base font-medium">Edit</Text>
               </Pressable>
-            </Link>
-          )}
+            ),
+          }}
         />
+        <View className="flex-1">
+          <AvailabilityCalendar
+            weeklyAvailability={availability.weeklyAvailability}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
