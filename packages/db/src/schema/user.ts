@@ -12,9 +12,14 @@ export const User = pgTable("user", (t) => ({
   id: uuid("id").primaryKey(), // References Supabase auth.users.id
   name: t.text(),
   image: t.text(),
-  createdAt: t.timestamp().defaultNow().notNull(),
+  createdAt: t
+    .timestamp({ mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: t
     .timestamp({ mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull()
     .$onUpdateFn(() => sql`now()`),
 }));
 

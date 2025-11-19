@@ -1,6 +1,6 @@
 import type { db } from "@ssp/db/client";
 import type { DayOfWeek, SessionType } from "@ssp/db/schema";
-import { eq, getUserTimezone } from "@ssp/db";
+import { and, eq, getUserTimezone, sql } from "@ssp/db";
 import { Availability, Profile, Session } from "@ssp/db/schema";
 
 import {
@@ -483,9 +483,9 @@ export async function suggestTimeSlots(
     return [];
   }
 
-  // Get all past completed sessions to detect patterns
+  // Get all past completed sessions to detect patterns (excluding deleted sessions)
   const allSessions = await database.query.Session.findMany({
-    where: eq(Session.userId, userId),
+    where: and(eq(Session.userId, userId), sql`${Session.deletedAt} IS NULL`),
   });
 
   // Filter to completed sessions (excluding CLIENT_MEETING) for pattern detection

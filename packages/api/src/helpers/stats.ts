@@ -34,6 +34,7 @@ export async function getSessionStats(
 ): Promise<SessionStats> {
   // Combined query: Get summary stats and type breakdown in a single query
   // This reduces database round trips from 2 to 1
+  // Excludes soft-deleted sessions (deleted_at IS NULL)
   const combinedResult = await database.execute(
     sql`
       WITH summary AS (
@@ -42,6 +43,7 @@ export async function getSessionStats(
           COUNT(*) FILTER (WHERE completed = true)::integer as completed
         FROM session
         WHERE user_id = ${userId}
+          AND deleted_at IS NULL
       ),
       type_breakdown AS (
         SELECT 
@@ -49,6 +51,7 @@ export async function getSessionStats(
           COUNT(*)::integer as count
         FROM session
         WHERE user_id = ${userId}
+          AND deleted_at IS NULL
         GROUP BY type
       )
       SELECT 
@@ -95,6 +98,7 @@ export async function getSessionStats(
   // Calculate average spacing between consecutive sessions using SQL window functions
   // This is efficient: runs entirely in database, uses LAG to get previous session
   // Includes all sessions (not just completed) to show spacing in your schedule
+  // Excludes soft-deleted sessions
   const spacingResult = await database.execute(
     sql`
       WITH ordered_sessions AS (
@@ -103,6 +107,7 @@ export async function getSessionStats(
           LAG(start_time) OVER (ORDER BY start_time) as prev_start_time
         FROM session
         WHERE user_id = ${userId}
+          AND deleted_at IS NULL
         ORDER BY start_time
       ),
       spacing_calculations AS (
@@ -125,6 +130,7 @@ export async function getSessionStats(
   // Calculate streaks using SQL
   // Groups sessions by day, finds consecutive days, calculates current and longest streak
   // Uses the "islands" technique: consecutive dates have the same (date - row_number) value
+  // Excludes soft-deleted sessions
   const streakResult = await database.execute(
     sql`
       WITH daily_sessions AS (
@@ -133,6 +139,7 @@ export async function getSessionStats(
         FROM session
         WHERE user_id = ${userId}
           AND completed = true
+          AND deleted_at IS NULL
         ORDER BY session_date DESC
       ),
       date_groups AS (

@@ -1,9 +1,7 @@
 import type { db } from "@ssp/db/client";
-import type { DayOfWeek, WeeklyAvailability } from "@ssp/db/schema";
+import type { WeeklyAvailability } from "@ssp/db/schema";
 import { eq } from "@ssp/db";
-import { Availability, DAYS_OF_WEEK } from "@ssp/db/schema";
-
-import { mergeTimeRanges, timeRangesOverlap } from "../utils/date";
+import { Availability } from "@ssp/db/schema";
 
 /**
  * Default weekly availability structure
@@ -71,7 +69,7 @@ export async function setWeeklyAvailability(
         weeklyAvailability,
         updatedAt: new Date(),
       })
-      .where(eq(Availability.id, existing.id))
+      .where(eq(Availability.userId, userId))
       .returning();
 
     if (!updated) {

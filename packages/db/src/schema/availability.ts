@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgTable } from "drizzle-orm/pg-core";
+import { check, jsonb, pgTable } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -49,12 +49,12 @@ export type WeeklyAvailability = z.infer<typeof weeklyAvailabilitySchema>;
 export const Availability = pgTable(
   "availability",
   (t) => ({
-    id: t.uuid().notNull().primaryKey().defaultRandom(),
+    // Use userId as primary key since it's already unique (one record per user)
     userId: t
       .uuid()
       .notNull()
-      .references(() => User.id, { onDelete: "cascade" })
-      .unique(), // One availability record per user
+      .primaryKey()
+      .references(() => User.id, { onDelete: "cascade" }),
     // JSON structure: { "MONDAY": [{ startTime, endTime }], "TUESDAY": [...], ... }
     weeklyAvailability: jsonb("weekly_availability")
       .$type<WeeklyAvailability>()
@@ -66,11 +66,19 @@ export const Availability = pgTable(
       .notNull(),
     updatedAt: t
       .timestamp({ mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull()
       .$onUpdateFn(() => sql`now()`),
   }),
-  (table) => [
-    // Index for filtering by userId (most common query pattern)
-    index("availability_user_id_idx").on(table.userId),
+  () => [
+    // CHECK constraint: Validate JSONB structure
+    // Ensures weeklyAvailability is an object (empty object is valid)
+    // Day keys and array structure are validated by Zod schema at application level
+    // This provides basic database-level protection against invalid JSONB types
+    check(
+      "availability_jsonb_structure",
+      sql`jsonb_typeof(weekly_availability) = 'object'`,
+    ),
   ],
 );
 
@@ -78,7 +86,6 @@ export const CreateAvailabilitySchema = createInsertSchema(Availability, {
   userId: z.uuid(),
   weeklyAvailability: weeklyAvailabilitySchema,
 }).omit({
-  id: true,
   userId: true, // userId is added by the API from the session
   createdAt: true,
   updatedAt: true,

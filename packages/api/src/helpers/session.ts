@@ -10,16 +10,19 @@ import {
   getStartOfDayInTimezone,
   getUserTimezone,
   gte,
+  isNull,
   lt,
+  ne,
+  sql,
 } from "@ssp/db";
 import { Profile, Session } from "@ssp/db/schema";
 
 /**
- * Get all sessions for a user
+ * Get all sessions for a user (excluding soft-deleted sessions)
  */
 export async function getAllSessions(database: typeof db, userId: string) {
   return database.query.Session.findMany({
-    where: eq(Session.userId, userId),
+    where: and(eq(Session.userId, userId), isNull(Session.deletedAt)),
     orderBy: desc(Session.startTime),
   });
 }
@@ -47,6 +50,7 @@ export async function getSessionsByDateRange(
   return database.query.Session.findMany({
     where: and(
       eq(Session.userId, userId),
+      isNull(Session.deletedAt), // Exclude soft-deleted sessions
       gte(Session.startTime, startUTC),
       lt(Session.startTime, endUTC), // Use < instead of <= for end boundary
     ),
@@ -75,6 +79,7 @@ export async function getSessionsToday(database: typeof db, userId: string) {
   return database.query.Session.findMany({
     where: and(
       eq(Session.userId, userId),
+      isNull(Session.deletedAt), // Exclude soft-deleted sessions
       gte(Session.startTime, startOfTodayUTC),
       lt(Session.startTime, endOfTodayUTC), // Use < instead of <= for end boundary
     ),
@@ -134,6 +139,7 @@ export async function getSessionsWeek(database: typeof db, userId: string) {
   return database.query.Session.findMany({
     where: and(
       eq(Session.userId, userId),
+      isNull(Session.deletedAt), // Exclude soft-deleted sessions
       gte(Session.startTime, startOfWeekUTC),
       lt(Session.startTime, endOfWeekUTC), // Use < instead of <= for end boundary
     ),
@@ -142,7 +148,7 @@ export async function getSessionsWeek(database: typeof db, userId: string) {
 }
 
 /**
- * Get a session by ID (only if it belongs to the user)
+ * Get a session by ID (only if it belongs to the user and is not deleted)
  */
 export async function getSessionById(
   database: typeof db,
@@ -150,7 +156,11 @@ export async function getSessionById(
   id: string,
 ) {
   return database.query.Session.findFirst({
-    where: and(eq(Session.id, id), eq(Session.userId, userId)),
+    where: and(
+      eq(Session.id, id),
+      eq(Session.userId, userId),
+      isNull(Session.deletedAt), // Exclude soft-deleted sessions
+    ),
   });
 }
 
@@ -179,12 +189,17 @@ export async function createSession(
     }
   }
 
+  // Handle completedAt when creating a session
+  // If completed = true, set completedAt to current time
+  const insertData = {
+    ...input,
+    userId,
+    completedAt: input.completed ? new Date() : null,
+  };
+
   const [result] = await database
     .insert(Session)
-    .values({
-      ...input,
-      userId,
-    })
+    .values(insertData)
     .returning();
 
   if (!result) {
@@ -213,9 +228,13 @@ export async function updateSession(
   },
   allowConflicts = false,
 ) {
-  // Verify the session belongs to the user
+  // Verify the session belongs to the user and is not deleted
   const existingSession = await database.query.Session.findFirst({
-    where: and(eq(Session.id, id), eq(Session.userId, userId)),
+    where: and(
+      eq(Session.id, id),
+      eq(Session.userId, userId),
+      isNull(Session.deletedAt),
+    ),
   });
 
   if (!existingSession) {
@@ -241,12 +260,25 @@ export async function updateSession(
     }
   }
 
+  // Handle completedAt when completed status changes
+  // Ensure completedAt is set when completing, cleared when uncompleting
+  const updateData: typeof updates & { completedAt?: Date | null } = {
+    ...updates,
+  };
+
+  if (updates.completed !== undefined) {
+    if (updates.completed) {
+      // Marking as completed: set completedAt if not already set
+      updateData.completedAt = existingSession.completedAt ?? new Date();
+    } else {
+      // Marking as incomplete: clear completedAt
+      updateData.completedAt = null;
+    }
+  }
+
   const [updated] = await database
     .update(Session)
-    .set({
-      ...updates,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(Session.id, id))
     .returning();
 
@@ -259,25 +291,33 @@ export async function updateSession(
 
 /**
  * Toggle completion status of a session
+ * Sets completedAt timestamp when completing, clears it when uncompleting
  */
 export async function toggleSessionComplete(
   database: typeof db,
   userId: string,
   id: string,
 ) {
-  // Verify the session belongs to the user
+  // Verify the session belongs to the user and is not deleted
   const existingSession = await database.query.Session.findFirst({
-    where: and(eq(Session.id, id), eq(Session.userId, userId)),
+    where: and(
+      eq(Session.id, id),
+      eq(Session.userId, userId),
+      isNull(Session.deletedAt),
+    ),
   });
 
   if (!existingSession) {
     throw new Error("Session not found or access denied");
   }
 
+  const newCompletedStatus = !existingSession.completed;
+
   const [updated] = await database
     .update(Session)
     .set({
-      completed: !existingSession.completed,
+      completed: newCompletedStatus,
+      completedAt: newCompletedStatus ? new Date() : null, // Set timestamp when completing
       updatedAt: new Date(),
     })
     .where(eq(Session.id, id))
@@ -291,28 +331,51 @@ export async function toggleSessionComplete(
 }
 
 /**
- * Delete a session (only if it belongs to the user)
+ * Soft delete a session (only if it belongs to the user)
+ * Sets deletedAt timestamp instead of actually deleting the record
  */
 export async function deleteSession(
   database: typeof db,
   userId: string,
   id: string,
 ) {
-  // Verify the session belongs to the user
+  // Verify the session belongs to the user and is not already deleted
   const existingSession = await database.query.Session.findFirst({
-    where: and(eq(Session.id, id), eq(Session.userId, userId)),
+    where: and(
+      eq(Session.id, id),
+      eq(Session.userId, userId),
+      isNull(Session.deletedAt),
+    ),
   });
 
   if (!existingSession) {
     throw new Error("Session not found or access denied");
   }
 
-  return database.delete(Session).where(eq(Session.id, id));
+  const [deleted] = await database
+    .update(Session)
+    .set({
+      deletedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(Session.id, id))
+    .returning();
+
+  if (!deleted) {
+    throw new Error("Failed to delete session");
+  }
+
+  return deleted;
 }
 
 /**
  * Check if a session time range conflicts with existing sessions
  * Returns an array of conflicting sessions (empty if no conflicts)
+ *
+ * Optimized: Uses SQL query instead of loading all sessions into memory
+ * Two sessions overlap if: start1 < end2 AND start2 < end1
+ *
+ * Performance: Uses database indexes efficiently and filters in SQL
  */
 export async function checkSessionConflicts(
   database: typeof db,
@@ -321,28 +384,27 @@ export async function checkSessionConflicts(
   endTime: Date,
   excludeSessionId?: string, // Optional: exclude a session (useful for updates)
 ): Promise<Awaited<ReturnType<typeof database.query.Session.findMany>>> {
-  // Find all sessions that overlap with the given time range
-  // Two sessions overlap if:
-  // - session1.start < session2.end AND session2.start < session1.end
-  const allSessions = await database.query.Session.findMany({
-    where: eq(Session.userId, userId),
-  });
+  // Build conditions for conflict detection
+  // Two sessions overlap if: start1 < end2 AND start2 < end1
+  const conditions = [
+    eq(Session.userId, userId),
+    isNull(Session.deletedAt), // Only check non-deleted sessions
+    eq(Session.completed, false), // Only check non-completed sessions
+    lt(Session.startTime, endTime), // start_time < endTime
+    sql`${startTime} < ${Session.endTime}`, // startTime < end_time
+  ];
 
-  const conflicts = allSessions.filter((session) => {
-    // Exclude the session being updated
-    if (excludeSessionId && session.id === excludeSessionId) {
-      return false;
-    }
+  // Exclude specific session if provided (for updates)
+  if (excludeSessionId) {
+    conditions.push(ne(Session.id, excludeSessionId));
+  }
 
-    // Check for overlap: sessions overlap if start1 < end2 AND start2 < end1
-    return (
-      session.startTime < endTime &&
-      startTime < session.endTime &&
-      !session.completed // Only check conflicts with non-completed sessions
-    );
-  });
-
-  return conflicts;
+  // Use select query for type safety and efficiency
+  // This leverages the partial index on (user_id, start_time) WHERE deleted_at IS NULL AND completed = false
+  return database
+    .select()
+    .from(Session)
+    .where(and(...conditions));
 }
 
 /**
@@ -363,6 +425,7 @@ export async function getUpcomingSessions(database: typeof db, userId: string) {
   return database.query.Session.findMany({
     where: and(
       eq(Session.userId, userId),
+      isNull(Session.deletedAt), // Exclude soft-deleted sessions
       gte(Session.startTime, now), // Only future sessions
     ),
     orderBy: [Session.startTime], // Order by start time ascending

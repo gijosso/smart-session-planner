@@ -19,6 +19,7 @@ import {
 } from "../helpers/session";
 import { suggestTimeSlots } from "../helpers/suggestions";
 import { protectedProcedure } from "../trpc";
+import { handleDatabaseError } from "../utils/db-errors";
 
 export const sessionRouter = {
   /**
@@ -121,20 +122,7 @@ export const sessionRouter = {
           allowConflicts,
         );
       } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.includes("conflicts with")
-        ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: error.message,
-          });
-        }
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error ? error.message : "Failed to create session",
-        });
+        handleDatabaseError(error, "create session");
       }
     }),
 
@@ -170,26 +158,7 @@ export const sessionRouter = {
           allowConflicts,
         );
       } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: error.message,
-          });
-        }
-        if (
-          error instanceof Error &&
-          error.message.includes("conflicts with")
-        ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: error.message,
-          });
-        }
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error ? error.message : "Failed to update session",
-        });
+        handleDatabaseError(error, "update session");
       }
     }),
 
@@ -209,19 +178,7 @@ export const sessionRouter = {
           input.id,
         );
       } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: error.message,
-          });
-        }
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to toggle session completion",
-        });
+        handleDatabaseError(error, "toggle session completion");
       }
     }),
 
@@ -237,17 +194,7 @@ export const sessionRouter = {
       try {
         return await deleteSession(ctx.db, ctx.session.user.id, input.id);
       } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: error.message,
-          });
-        }
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error ? error.message : "Failed to delete session",
-        });
+        handleDatabaseError(error, "delete session");
       }
     }),
 

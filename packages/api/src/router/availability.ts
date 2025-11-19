@@ -13,7 +13,7 @@ import { protectedProcedure } from "../trpc";
 export const availabilityRouter = {
   /**
    * Get weekly availability for the authenticated user (JSON structure)
-   * Returns: { id, userId, weeklyAvailability: { MONDAY: [...], ... }, createdAt, updatedAt }
+   * Returns: { userId, weeklyAvailability: { MONDAY: [...], ... }, createdAt, updatedAt }
    */
   get: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.session?.user) {
