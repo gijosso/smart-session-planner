@@ -1,5 +1,6 @@
-import { ActivityIndicator, View } from "react-native";
+import { useEffect } from "react";
 import { Redirect, Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
@@ -16,12 +17,14 @@ export default function AppLayout() {
 
   useRefreshAccessToken();
 
+  useEffect(() => {
+    if (!isLoading) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
+
   if (isLoading) {
-    return (
-      <View className="bg-background flex-1 items-center justify-center">
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return null;
   }
 
   if (!session?.user) {

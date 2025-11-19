@@ -1,8 +1,9 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, Stack } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as SplashScreen from "expo-splash-screen";
 
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
@@ -71,7 +72,21 @@ function MobileAuth() {
 }
 
 export default function Index() {
-  const { data: session } = useQuery(trpc.auth.getSession.queryOptions());
+  const { data: session, isLoading } = useQuery(
+    trpc.auth.getSession.queryOptions(),
+  );
+
+  useEffect(() => {
+    // Hide splash screen once auth check is complete
+    if (!isLoading) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
+
+  if (isLoading) {
+    // Return null to keep splash screen visible
+    return null;
+  }
 
   if (session?.user) {
     return <Redirect href="/home" />;
