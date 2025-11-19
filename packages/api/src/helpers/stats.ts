@@ -94,7 +94,7 @@ export async function getSessionStats(
 
   // Calculate average spacing between consecutive sessions using SQL window functions
   // This is efficient: runs entirely in database, uses LAG to get previous session
-  // Only considers completed sessions for spacing calculation
+  // Includes all sessions (not just completed) to show spacing in your schedule
   const spacingResult = await database.execute(
     sql`
       WITH ordered_sessions AS (
@@ -103,7 +103,6 @@ export async function getSessionStats(
           LAG(start_time) OVER (ORDER BY start_time) as prev_start_time
         FROM session
         WHERE user_id = ${userId}
-          AND completed = true
         ORDER BY start_time
       ),
       spacing_calculations AS (

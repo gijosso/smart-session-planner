@@ -13,17 +13,10 @@ import { Suggestions } from "~/features/suggestions/smart-suggestions";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 
-const SUGGESTIONS_PARAMS = {
-  type: "DEEP_WORK",
-  durationMinutes: "60",
-  priority: "3",
-} as const;
-
 const SuggestionsHeaderButton = () => {
   const handlePress = useCallback(() => {
     router.push({
       pathname: "/suggestions",
-      params: SUGGESTIONS_PARAMS,
     });
   }, []);
 
@@ -41,9 +34,6 @@ export default function Home() {
   const weekSessionsQuery = useQuery(trpc.session.week.queryOptions());
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
-      type: SUGGESTIONS_PARAMS.type,
-      durationMinutes: Number.parseInt(SUGGESTIONS_PARAMS.durationMinutes, 10),
-      priority: Number.parseInt(SUGGESTIONS_PARAMS.priority, 10),
       lookAheadDays: 14,
     }),
     placeholderData: (previousData) => previousData,

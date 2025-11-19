@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
@@ -28,23 +28,9 @@ import { addSuggestionIds } from "~/utils/suggestion-id";
 export default function SuggestionsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const params = useLocalSearchParams<{
-    type: SessionType;
-    durationMinutes: string;
-    priority: string;
-  }>();
-
-  const sessionType: SessionType =
-    (params.type as SessionType | undefined) ?? "DEEP_WORK";
-  const durationMinutes = Number.parseInt(params.durationMinutes || "60", 10);
-  const priority = Number.parseInt(params.priority || "3", 10);
-
-  // Fetch suggestions
+  // Fetch suggestions (no type or priority needed - based on repeating patterns)
   const { data: rawSuggestions, isLoading } = useQuery(
     trpc.session.suggest.queryOptions({
-      type: sessionType,
-      durationMinutes,
-      priority,
       lookAheadDays: 14,
     }),
   );
@@ -70,7 +56,10 @@ export default function SuggestionsScreen() {
     }),
   );
 
-  const sessionTypeDisplay = SESSION_TYPES_DISPLAY[sessionType];
+  // Get the most common session type from suggestions for display
+  const mostCommonType =
+    suggestions && suggestions.length > 0 ? suggestions[0].type : "DEEP_WORK";
+  const sessionTypeDisplay = SESSION_TYPES_DISPLAY[mostCommonType];
   const cardColor = sessionTypeDisplay.color;
 
   const handleAccept = (suggestion: {
@@ -144,10 +133,10 @@ export default function SuggestionsScreen() {
             </View>
             <View className="flex-1">
               <Text className="text-foreground text-lg font-semibold">
-                {sessionTypeDisplay.label}
+                Smart Suggestions
               </Text>
               <Text className="text-muted-foreground text-sm">
-                {durationMinutes} min · Priority {priority}
+                Based on your repeating tasks
               </Text>
             </View>
           </View>
@@ -185,66 +174,85 @@ export default function SuggestionsScreen() {
               {suggestions.length !== 1 ? "s" : ""} found
             </Text>
 
-            {suggestions.map((suggestion) => (
-              <View
-                key={suggestion.id}
-                className="mb-4 rounded-xl p-5"
-                style={{ backgroundColor: `${cardColor}15` }}
-              >
-                <View className="mb-3 flex flex-row items-center justify-between">
-                  <View
-                    className="rounded-full px-3 py-1"
-                    style={{ backgroundColor: `${cardColor}30` }}
-                  >
-                    <Text
-                      className="text-xs font-semibold"
-                      style={{ color: cardColor }}
+            {suggestions.map((suggestion) => {
+              const suggestionTypeDisplay =
+                SESSION_TYPES_DISPLAY[suggestion.type];
+              const suggestionCardColor = suggestionTypeDisplay.color;
+              return (
+                <View
+                  key={suggestion.id}
+                  className="mb-4 rounded-xl p-5"
+                  style={{ backgroundColor: `${suggestionCardColor}15` }}
+                >
+                  <View className="mb-3 flex flex-row items-center justify-between">
+                    <View
+                      className="rounded-full px-3 py-1"
+                      style={{ backgroundColor: `${suggestionCardColor}30` }}
                     >
-                      {formatScore(suggestion.score)} ({suggestion.score}/100)
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: suggestionCardColor }}
+                      >
+                        {suggestionTypeDisplay.label}
+                      </Text>
+                    </View>
+                    <View
+                      className="rounded-full px-3 py-1"
+                      style={{ backgroundColor: `${suggestionCardColor}30` }}
+                    >
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: suggestionCardColor }}
+                      >
+                        {formatScore(suggestion.score)} ({suggestion.score}/100)
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="mb-3 flex flex-row items-center gap-2">
+                    <Text className="text-muted-foreground text-sm">🕐</Text>
+                    <Text className="text-foreground text-base font-medium">
+                      {formatDateDisplay(suggestion.startTime)} ·{" "}
+                      {formatTimeRange(
+                        suggestion.startTime,
+                        suggestion.endTime,
+                      )}
                     </Text>
                   </View>
-                </View>
 
-                <View className="mb-3 flex flex-row items-center gap-2">
-                  <Text className="text-muted-foreground text-sm">🕐</Text>
-                  <Text className="text-foreground text-base font-medium">
-                    {formatDateDisplay(suggestion.startTime)} ·{" "}
-                    {formatTimeRange(suggestion.startTime, suggestion.endTime)}
-                  </Text>
-                </View>
+                  {/* Rationale */}
+                  {suggestion.reasons.length > 0 && (
+                    <View className="mb-4">
+                      <Text className="text-muted-foreground text-sm leading-5">
+                        {suggestion.reasons.join(". ")}.
+                      </Text>
+                    </View>
+                  )}
 
-                {/* Rationale */}
-                {suggestion.reasons.length > 0 && (
-                  <View className="mb-4">
-                    <Text className="text-muted-foreground text-sm leading-5">
-                      {suggestion.reasons.join(". ")}.
-                    </Text>
+                  <View className="flex flex-row gap-3">
+                    <Pressable
+                      onPress={() => handleAccept(suggestion)}
+                      disabled={createSessionMutation.isPending}
+                      className="bg-foreground flex-1 rounded-lg px-4 py-3"
+                    >
+                      <Text className="text-background text-center text-sm font-semibold">
+                        {createSessionMutation.isPending
+                          ? "Accepting..."
+                          : "Accept"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleAdjust(suggestion)}
+                      className="border-foreground/20 bg-background flex-1 rounded-lg border px-4 py-3"
+                    >
+                      <Text className="text-foreground text-center text-sm font-semibold">
+                        Adjust
+                      </Text>
+                    </Pressable>
                   </View>
-                )}
-
-                <View className="flex flex-row gap-3">
-                  <Pressable
-                    onPress={() => handleAccept(suggestion)}
-                    disabled={createSessionMutation.isPending}
-                    className="bg-foreground flex-1 rounded-lg px-4 py-3"
-                  >
-                    <Text className="text-background text-center text-sm font-semibold">
-                      {createSessionMutation.isPending
-                        ? "Accepting..."
-                        : "Accept"}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => handleAdjust(suggestion)}
-                    className="border-foreground/20 bg-background flex-1 rounded-lg border px-4 py-3"
-                  >
-                    <Text className="text-foreground text-center text-sm font-semibold">
-                      Adjust
-                    </Text>
-                  </Pressable>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
         )}
       </View>

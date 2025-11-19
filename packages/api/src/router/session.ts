@@ -276,23 +276,14 @@ export const sessionRouter = {
     }),
 
   /**
-   * Get smart time slot suggestions for a session
-   * Considers availability, existing sessions, priority, and spacing/fatigue
+   * Get smart time slot suggestions based on repeating task patterns
+   * Analyzes past sessions to detect patterns and suggests future slots
    */
   suggest: protectedProcedure
     .input(
       z.object({
-        type: z.enum(SESSION_TYPES),
-        durationMinutes: z.number().int().min(15).max(480), // 15 minutes to 8 hours
-        priority: z.number().int().min(1).max(5).default(3),
         startDate: z.coerce.date().optional(),
         lookAheadDays: z.number().int().min(1).max(30).optional().default(14),
-        preferredTimes: z
-          .object({
-            startHour: z.number().int().min(0).max(23).optional(),
-            endHour: z.number().int().min(0).max(23).optional(),
-          })
-          .optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
