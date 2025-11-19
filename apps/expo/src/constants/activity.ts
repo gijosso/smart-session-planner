@@ -1,11 +1,11 @@
 import type { DayOfWeek } from "@ssp/api/client";
 
 export const DAYS_OF_WEEK_DISPLAY = {
-  sunday: { label: "Sunday", value: "sunday" },
-  monday: { label: "Monday", value: "monday" },
-  tuesday: { label: "Tuesday", value: "tuesday" },
-  wednesday: { label: "Wednesday", value: "wednesday" },
-  thursday: { label: "Thursday", value: "thursday" },
-  friday: { label: "Friday", value: "friday" },
-  saturday: { label: "Saturday", value: "saturday" },
+  SUNDAY: { label: "Sunday", value: "SUNDAY" },
+  MONDAY: { label: "Monday", value: "MONDAY" },
+  TUESDAY: { label: "Tuesday", value: "TUESDAY" },
+  WEDNESDAY: { label: "Wednesday", value: "WEDNESDAY" },
+  THURSDAY: { label: "Thursday", value: "THURSDAY" },
+  FRIDAY: { label: "Friday", value: "FRIDAY" },
+  SATURDAY: { label: "Saturday", value: "SATURDAY" },
 } satisfies Record<DayOfWeek, { label: string; value: DayOfWeek }>;

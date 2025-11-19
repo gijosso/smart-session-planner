@@ -1,41 +1,18 @@
 import type React from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import type { z } from "zod";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
-import { z } from "zod";
 
 import type { DayOfWeek } from "@ssp/api/client";
-import { DAYS_OF_WEEK } from "@ssp/api/client";
 
 import type { ServerError } from "~/utils/formik";
+import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
 import {
   getFieldError,
   getFieldErrorClassName,
   isUnauthorizedError,
 } from "~/utils/formik";
-
-const availabilityFormSchema = z
-  .object({
-    dayOfWeek: z.enum(DAYS_OF_WEEK),
-    startTime: z
-      .string()
-      .regex(/^\d{2}:\d{2}$/, "Start time must be in HH:mm format"),
-    endTime: z
-      .string()
-      .regex(/^\d{2}:\d{2}$/, "End time must be in HH:mm format"),
-  })
-  .refine(
-    (data) => {
-      const [startHours, startMinutes] = data.startTime.split(":").map(Number);
-      const [endHours, endMinutes] = data.endTime.split(":").map(Number);
-      const startTotal = (startHours ?? 0) * 60 + (startMinutes ?? 0);
-      const endTotal = (endHours ?? 0) * 60 + (endMinutes ?? 0);
-      return endTotal > startTotal;
-    },
-    {
-      message: "End time must be after start time",
-      path: ["endTime"],
-    },
-  );
+import { availabilityFormSchema } from "./availibility-form-schema";
 
 type AvailabilityFormValues = z.infer<typeof availabilityFormSchema>;
 
@@ -62,7 +39,7 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
 }) => {
   const formik = useFormik<AvailabilityFormValues>({
     initialValues: {
-      dayOfWeek: initialValues?.dayOfWeek ?? "monday",
+      dayOfWeek: initialValues?.dayOfWeek ?? "MONDAY",
       startTime: initialValues?.startTime ?? "09:00",
       endTime: initialValues?.endTime ?? "17:00",
     },
@@ -107,17 +84,13 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-      showsVerticalScrollIndicator={true}
-      className="flex-1"
-    >
-      <View className="mb-4">
+    <View className="flex-1 flex-col gap-4">
+      <View>
         <Text className="text-foreground mb-2 text-sm font-medium">
           Day of Week *
         </Text>
         <View className="flex flex-row flex-wrap gap-2">
-          {DAYS_OF_WEEK_DISPLAY.map((day) => (
+          {Object.values(DAYS_OF_WEEK_DISPLAY).map((day) => (
             <Pressable
               key={day.value}
               onPress={() => formik.setFieldValue("dayOfWeek", day.value)}
@@ -146,7 +119,7 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
         )}
       </View>
 
-      <View className="mb-4">
+      <View>
         <Text className="text-foreground mb-2 text-sm font-medium">
           Start Time *
         </Text>
@@ -173,7 +146,7 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
         )}
       </View>
 
-      <View className="mb-6">
+      <View>
         <Text className="text-foreground mb-2 text-sm font-medium">
           End Time *
         </Text>
@@ -222,6 +195,6 @@ export const AvailabilityForm: React.FC<AvailabilityFormProps> = ({
           Availability
         </Text>
       </Pressable>
-    </ScrollView>
+    </View>
   );
 };
