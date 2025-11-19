@@ -1,6 +1,6 @@
 import type { db } from "@ssp/db/client";
-import { count, eq, sql } from "@ssp/db";
-import { Session, SESSION_TYPES } from "@ssp/db/schema";
+import { sql } from "@ssp/db";
+import { SESSION_TYPES } from "@ssp/db/schema";
 
 export interface SessionStats {
   total: number;
@@ -19,13 +19,12 @@ export interface SessionStats {
  *
  * Performance benefits:
  * - Runs entirely in database (no data transfer)
- * - Uses database indexes efficiently
+ * - Uses database indexes efficiently (indexes on user_id, user_id+completed, user_id+type, etc.)
  * - Scales well as session count grows (O(1) data transfer vs O(n))
- * - Single query for type breakdown (GROUP BY)
+ * - Combined query for summary and type breakdown (reduces round trips)
  *
  * This is server-side optimized and pre-computed on each request.
  * For even better performance, consider:
- * - Adding database indexes on (user_id, completed) and (user_id, type)
  * - Caching results with TTL (e.g., Redis) if needed
  * - Materialized views for very large datasets
  */
@@ -33,27 +32,46 @@ export async function getSessionStats(
   database: typeof db,
   userId: string,
 ): Promise<SessionStats> {
-  // Single query for total and completed counts using conditional aggregation
-  const [summaryResult] = await database
-    .select({
-      total: count(),
-      completed: sql<number>`count(*) filter (where ${Session.completed} = true)`,
-    })
-    .from(Session)
-    .where(eq(Session.userId, userId));
+  // Combined query: Get summary stats and type breakdown in a single query
+  // This reduces database round trips from 2 to 1
+  const combinedResult = await database.execute(
+    sql`
+      WITH summary AS (
+        SELECT 
+          COUNT(*)::integer as total,
+          COUNT(*) FILTER (WHERE completed = true)::integer as completed
+        FROM session
+        WHERE user_id = ${userId}
+      ),
+      type_breakdown AS (
+        SELECT 
+          type,
+          COUNT(*)::integer as count
+        FROM session
+        WHERE user_id = ${userId}
+        GROUP BY type
+      )
+      SELECT 
+        s.total,
+        s.completed,
+        COALESCE(
+          (SELECT json_object_agg(type::text, count) FROM type_breakdown),
+          '{}'::json
+        ) as by_type
+      FROM summary s
+    `,
+  );
 
-  // Single query for breakdown by type using GROUP BY
-  const typeBreakdown = await database
-    .select({
-      type: Session.type,
-      count: count(),
-    })
-    .from(Session)
-    .where(eq(Session.userId, userId))
-    .groupBy(Session.type);
+  const combinedRow = combinedResult.rows[0] as
+    | {
+        total: number;
+        completed: number;
+        by_type: Record<string, number>;
+      }
+    | undefined;
 
-  const total = summaryResult?.total ?? 0;
-  const completed = Number(summaryResult?.completed ?? 0);
+  const total = Number(combinedRow?.total ?? 0);
+  const completed = Number(combinedRow?.completed ?? 0);
   const pending = total - completed;
 
   // Initialize all types to 0
@@ -63,8 +81,12 @@ export async function getSessionStats(
   }
 
   // Populate from database results
-  for (const row of typeBreakdown) {
-    byType[row.type] = row.count;
+  if (combinedRow?.by_type) {
+    for (const [type, count] of Object.entries(combinedRow.by_type)) {
+      if (SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number])) {
+        byType[type as (typeof SESSION_TYPES)[number]] = Number(count);
+      }
+    }
   }
 
   // Calculate completion rate

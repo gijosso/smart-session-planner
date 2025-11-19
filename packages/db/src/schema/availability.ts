@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgEnum, pgTable } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -25,23 +25,35 @@ export const dayOfWeekEnum = pgEnum("days_of_week", DAYS_OF_WEEK);
  * Example: Monday 7-9am, Saturday 10am-2pm
  * A user can have multiple availability windows per day
  */
-export const Availability = pgTable("availability", (t) => ({
-  id: t.uuid().notNull().primaryKey().defaultRandom(),
-  userId: t
-    .uuid()
-    .notNull()
-    .references(() => User.id, { onDelete: "cascade" }),
-  dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
-  startTime: t.time().notNull(), // Format: HH:MM:SS (e.g., "07:00:00")
-  endTime: t.time().notNull(), // Format: HH:MM:SS (e.g., "09:00:00")
-  createdAt: t
-    .timestamp({ mode: "date", withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: t
-    .timestamp({ mode: "date", withTimezone: true })
-    .$onUpdateFn(() => sql`now()`),
-}));
+export const Availability = pgTable(
+  "availability",
+  (t) => ({
+    id: t.uuid().notNull().primaryKey().defaultRandom(),
+    userId: t
+      .uuid()
+      .notNull()
+      .references(() => User.id, { onDelete: "cascade" }),
+    dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
+    startTime: t.time().notNull(), // Format: HH:MM:SS (e.g., "07:00:00")
+    endTime: t.time().notNull(), // Format: HH:MM:SS (e.g., "09:00:00")
+    createdAt: t
+      .timestamp({ mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: t
+      .timestamp({ mode: "date", withTimezone: true })
+      .$onUpdateFn(() => sql`now()`),
+  }),
+  (table) => [
+    // Index for filtering by userId (most common query pattern)
+    index("availability_user_id_idx").on(table.userId),
+    // Composite index for queries filtering by userId and dayOfWeek
+    index("availability_user_id_day_of_week_idx").on(
+      table.userId,
+      table.dayOfWeek,
+    ),
+  ],
+);
 
 export const CreateAvailabilitySchema = createInsertSchema(Availability, {
   userId: z.uuid(),
