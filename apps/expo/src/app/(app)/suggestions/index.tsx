@@ -1,0 +1,236 @@
+import { useMemo } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import type { SessionType } from "@ssp/api/client";
+
+import { SESSION_TYPES_DISPLAY } from "~/constants/session";
+import { trpc } from "~/utils/api";
+import {
+  formatDateDisplay,
+  formatScore,
+  formatTimeRange,
+} from "~/utils/suggestion-formatting";
+import { addSuggestionIds } from "~/utils/suggestion-id";
+
+/**
+ * Suggestions Screen
+ * Displays all available time slot suggestions for a session type
+ */
+export default function SuggestionsScreen() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{
+    type: SessionType;
+    durationMinutes: string;
+    priority: string;
+  }>();
+
+  const sessionType: SessionType =
+    (params.type as SessionType | undefined) ?? "DEEP_WORK";
+  const durationMinutes = Number.parseInt(params.durationMinutes || "60", 10);
+  const priority = Number.parseInt(params.priority || "3", 10);
+
+  // Fetch suggestions
+  const { data: rawSuggestions, isLoading } = useQuery(
+    trpc.session.suggest.queryOptions({
+      type: sessionType,
+      durationMinutes,
+      priority,
+      lookAheadDays: 14,
+    }),
+  );
+
+  // Add idempotency IDs to suggestions for React Query tracking
+  const suggestions = useMemo(() => {
+    if (!rawSuggestions) return undefined;
+    return addSuggestionIds(rawSuggestions);
+  }, [rawSuggestions]);
+
+  // Create session mutation
+  const createSessionMutation = useMutation(
+    trpc.session.create.mutationOptions({
+      onSuccess: () => {
+        // Invalidate relevant queries
+        void queryClient.invalidateQueries(trpc.session.all.queryFilter());
+        void queryClient.invalidateQueries(trpc.session.today.queryFilter());
+        void queryClient.invalidateQueries(trpc.session.upcoming.queryFilter());
+        void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+        // Navigate back after successful creation
+        router.back();
+      },
+    }),
+  );
+
+  const sessionTypeDisplay = SESSION_TYPES_DISPLAY[sessionType];
+  const cardColor = sessionTypeDisplay.color;
+
+  const handleAccept = (suggestion: {
+    startTime: Date;
+    endTime: Date;
+    score: number;
+    reasons: string[];
+  }) => {
+    createSessionMutation.mutate({
+      title: sessionTypeDisplay.label,
+      type: sessionType,
+      startTime: suggestion.startTime,
+      endTime: suggestion.endTime,
+      priority,
+      allowConflicts: false,
+    });
+  };
+
+  const handleAdjust = (suggestion: { startTime: Date; endTime: Date }) => {
+    router.push({
+      pathname: "/session/create",
+      params: {
+        type: sessionType,
+        durationMinutes: durationMinutes.toString(),
+        priority: priority.toString(),
+        suggestedStartTime: suggestion.startTime.toISOString(),
+        suggestedEndTime: suggestion.endTime.toISOString(),
+      },
+    });
+  };
+
+  return (
+    <SafeAreaView className="bg-background flex-1">
+      <View className="h-full w-full">
+        <View className="border-b-border flex flex-row items-center justify-between border-b p-4">
+          <Pressable onPress={() => router.back()}>
+            <Text className="text-primary text-base">← Back</Text>
+          </Pressable>
+          <Text className="text-foreground text-lg font-semibold">
+            Smart Suggestions
+          </Text>
+          <View className="w-12" />
+        </View>
+
+        <View className="border-b-border bg-muted border-b p-4">
+          <View className="flex flex-row items-center gap-3">
+            <View
+              className="h-12 w-12 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${cardColor}20` }}
+            >
+              <Text className="text-2xl font-bold" style={{ color: cardColor }}>
+                {sessionTypeDisplay.label.charAt(0)}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-foreground text-lg font-semibold">
+                {sessionTypeDisplay.label}
+              </Text>
+              <Text className="text-muted-foreground text-sm">
+                {durationMinutes} min · Priority {priority}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" />
+            <Text className="text-muted-foreground mt-4 text-sm">
+              Finding the best times for you...
+            </Text>
+          </View>
+        ) : !suggestions || suggestions.length === 0 ? (
+          <View className="flex-1 items-center justify-center p-8">
+            <Text className="text-muted-foreground text-center text-base">
+              No suggestions available. Make sure you have availability windows
+              set up.
+            </Text>
+            <Pressable
+              onPress={() => router.push("/settings/availability")}
+              className="mt-4"
+            >
+              <Text className="text-primary text-sm font-medium">
+                Set up availability →
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ padding: 16 }}
+          >
+            <Text className="text-muted-foreground mb-4 text-sm">
+              {suggestions.length} suggestion
+              {suggestions.length !== 1 ? "s" : ""} found
+            </Text>
+
+            {suggestions.map((suggestion) => (
+              <View
+                key={suggestion.id}
+                className="mb-4 rounded-xl p-5"
+                style={{ backgroundColor: `${cardColor}15` }}
+              >
+                <View className="mb-3 flex flex-row items-center justify-between">
+                  <View
+                    className="rounded-full px-3 py-1"
+                    style={{ backgroundColor: `${cardColor}30` }}
+                  >
+                    <Text
+                      className="text-xs font-semibold"
+                      style={{ color: cardColor }}
+                    >
+                      {formatScore(suggestion.score)} ({suggestion.score}/100)
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 flex flex-row items-center gap-2">
+                  <Text className="text-muted-foreground text-sm">🕐</Text>
+                  <Text className="text-foreground text-base font-medium">
+                    {formatDateDisplay(suggestion.startTime)} ·{" "}
+                    {formatTimeRange(suggestion.startTime, suggestion.endTime)}
+                  </Text>
+                </View>
+
+                {/* Rationale */}
+                {suggestion.reasons.length > 0 && (
+                  <View className="mb-4">
+                    <Text className="text-muted-foreground text-sm leading-5">
+                      {suggestion.reasons.join(". ")}.
+                    </Text>
+                  </View>
+                )}
+
+                <View className="flex flex-row gap-3">
+                  <Pressable
+                    onPress={() => handleAccept(suggestion)}
+                    disabled={createSessionMutation.isPending}
+                    className="bg-foreground flex-1 rounded-lg px-4 py-3"
+                  >
+                    <Text className="text-background text-center text-sm font-semibold">
+                      {createSessionMutation.isPending
+                        ? "Accepting..."
+                        : "Accept"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleAdjust(suggestion)}
+                    className="border-foreground/20 bg-background flex-1 rounded-lg border px-4 py-3"
+                  >
+                    <Text className="text-foreground text-center text-sm font-semibold">
+                      Adjust
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}

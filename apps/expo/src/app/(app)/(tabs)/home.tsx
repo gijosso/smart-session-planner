@@ -5,6 +5,7 @@ import { ProgressCard } from "~/features/progress/progress-card";
 import { SessionAddButton } from "~/features/session/session-add-button";
 import { SessionRecap } from "~/features/session/session-recap";
 import { SessionTodaysList } from "~/features/session/session-todays-list";
+import { SuggestionsCard } from "~/features/suggestions/suggestions-card";
 
 export default function Home() {
   return (
@@ -13,6 +14,12 @@ export default function Home() {
         <Text className="text-foreground text-2xl font-bold">Dashboard</Text>
 
         <SessionRecap />
+
+        <SuggestionsCard
+          sessionType="DEEP_WORK"
+          durationMinutes={60}
+          priority={3}
+        />
 
         <View className="flex flex-col gap-2">
           <View className="flex flex-row items-center justify-between">

@@ -30,6 +30,13 @@ export interface SuggestionOptions {
   };
 }
 
+// TODO: FIXME: suggestions can overlap with each other, we need to prevent this
+// Establish a window of available slots then, generate a suggestion then remove the slots from the windo, reeat
+// Prevent too many suggestions of the same type, making the suggestions irrelevant
+// Could use a priority queue to keep track of the best suggestions
+// Generate suggestion on event (e.g. user accepts a suggestion, user creates a session, user adjusts a session)
+// Generate suggestions periodically and use an actual table to store the suggestions (scale issues?)
+
 /**
  * Calculate spacing/fatigue score for a time slot
  * Penalizes clustering of high-priority sessions
