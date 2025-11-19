@@ -84,6 +84,20 @@ export const ProgressCard: React.FC = () => {
         </View>
       </View>
 
+      {/* Average Spacing */}
+      {stats.averageSpacingHours !== null && (
+        <View className="bg-background mb-4 rounded-lg p-3">
+          <View className="flex flex-row items-center gap-2">
+            <Text className="text-foreground text-2xl font-bold">
+              {stats.averageSpacingHours} days
+            </Text>
+          </View>
+          <Text className="text-muted-foreground text-sm">
+            Average spacing between sessions
+          </Text>
+        </View>
+      )}
+
       {/* Sessions by Type */}
       {activeTypes.length > 0 && (
         <View>
@@ -120,6 +134,44 @@ export const ProgressCard: React.FC = () => {
               </View>
             ))}
           </View>
+        </View>
+      )}
+
+      {/* Streaks */}
+      {stats.currentStreakDays > 0 && (
+        <View className="mb-4 gap-2">
+          <View className="bg-background rounded-lg p-3">
+            <View className="flex flex-row items-center gap-2">
+              <Text className="text-foreground text-2xl font-bold">
+                {stats.currentStreakDays} day
+                {stats.currentStreakDays > 1 ? "s" : ""}
+              </Text>
+              {stats.currentStreakDays === stats.longestStreakDays && (
+                <View className="bg-primary rounded-full px-2 py-1">
+                  <Text className="text-primary-foreground text-xs font-medium">
+                    Best
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text className="text-muted-foreground text-sm">
+              Current streak
+            </Text>
+          </View>
+          {stats.longestStreakDays > stats.currentStreakDays &&
+            stats.longestStreakDays > 0 && (
+              <View className="bg-background rounded-lg p-3">
+                <View className="flex flex-row items-center gap-2">
+                  <Text className="text-foreground text-2xl font-bold">
+                    {stats.longestStreakDays} day
+                    {stats.longestStreakDays > 1 ? "s" : ""}
+                  </Text>
+                </View>
+                <Text className="text-muted-foreground text-sm">
+                  Longest streak
+                </Text>
+              </View>
+            )}
         </View>
       )}
     </View>
