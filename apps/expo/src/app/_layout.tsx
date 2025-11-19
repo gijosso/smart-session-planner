@@ -8,8 +8,8 @@ import "../styles.css";
 function RootLayout() {
   return (
     <Providers>
+      <StatusBar translucent backgroundColor="transparent" style="dark" />
       <Slot />
-      <StatusBar style="dark" />
     </Providers>
   );
 }

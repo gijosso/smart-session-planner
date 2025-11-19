@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { Screen } from "~/components";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -22,7 +22,7 @@ export default function Settings() {
   }, [signOutMutation]);
 
   return (
-    <SafeAreaView className="bg-background flex-1">
+    <Screen>
       <View className="flex flex-col gap-4 p-4">
         <Text className="text-foreground text-2xl font-bold">Settings</Text>
 
@@ -46,6 +46,6 @@ export default function Settings() {
           </Pressable>
         </View>
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }

@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import { Link } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
 import { Card } from "~/components";
@@ -8,63 +9,43 @@ import { formatTimeRange } from "~/utils/date";
 
 interface SessionItemProps {
   session: RouterOutputs["session"]["today"][number];
-  onToggleComplete: () => void;
 }
 
-export const SessionItem: React.FC<SessionItemProps> = ({
-  session,
-  onToggleComplete,
-}) => {
+export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
   return (
-    <Card variant="outline">
-      <Link
-        asChild
-        href={{
-          pathname: "/session/[id]",
-          params: { id: session.id },
-        }}
-      >
-        <Pressable className="grow">
-          <View className="flex flex-row items-center gap-2">
-            <Text className="text-foreground text-lg font-semibold">
-              {session.title}
-            </Text>
-            {session.completed && (
-              <Text className="text-primary text-sm">✓</Text>
-            )}
+    <Link
+      asChild
+      href={{
+        pathname: "/session/[id]",
+        params: { id: session.id },
+      }}
+    >
+      <Pressable className="grow">
+        <Card variant="outline" className="flex flex-row items-center gap-4">
+          <View className="bg-muted rounded-lg p-2">
+            <Ionicons
+              name={SESSION_TYPES_DISPLAY[session.type].icon}
+              size={22}
+              color={SESSION_TYPES_DISPLAY[session.type].iconColor}
+            />
           </View>
-          <Text className="text-muted-foreground mt-1 text-sm">
-            {SESSION_TYPES_DISPLAY[session.type].label}
-          </Text>
-          <Text className="text-foreground mt-1 text-sm">
-            {formatTimeRange(session.startTime, session.endTime)}
-          </Text>
-          {session.description && (
-            <Text className="text-muted-foreground mt-1 text-sm">
-              {session.description}
+
+          <View className="flex flex-1 flex-col">
+            <Text className="text-foreground text-lg font-semibold">
+              {SESSION_TYPES_DISPLAY[session.type].label}
             </Text>
+            <Text className="text-muted-foreground mt-1 text-sm">
+              {formatTimeRange(session.startTime, session.endTime)}
+            </Text>
+          </View>
+
+          {session.completed && (
+            <View className="bg-foreground items-center justify-center rounded-full p-1">
+              <Ionicons name="checkmark-outline" size={12} color="white" />
+            </View>
           )}
-        </Pressable>
-      </Link>
-      <Pressable
-        onPress={(e) => {
-          e.stopPropagation();
-          onToggleComplete();
-        }}
-        className={`rounded-md border px-3 py-2 ${
-          session.completed
-            ? "bg-primary border-primary"
-            : "border-input bg-background"
-        }`}
-      >
-        <Text
-          className={
-            session.completed ? "text-primary-foreground" : "text-foreground"
-          }
-        >
-          {session.completed ? "Done" : "Mark Done"}
-        </Text>
+        </Card>
       </Pressable>
-    </Card>
+    </Link>
   );
 };

@@ -1,17 +1,23 @@
 import type React from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { LegendList } from "@legendapp/list";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import type { RouterOutputs } from "~/utils/api";
 import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import { SessionItem } from "./session-item";
 
-export const SessionTodaysList: React.FC = () => {
-  const queryClient = useQueryClient();
-  const sessionsQuery = useQuery(trpc.session.today.queryOptions());
+type Session = RouterOutputs["session"]["today"][number];
 
-  const sessions = sessionsQuery.data ?? [];
+interface SessionTodaysListProps {
+  sessions?: Session[];
+}
+
+export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
+  sessions = [],
+}) => {
+  const queryClient = useQueryClient();
 
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
@@ -28,34 +34,6 @@ export const SessionTodaysList: React.FC = () => {
     }),
   );
 
-  if (sessionsQuery.isLoading) {
-    return (
-      <View className="py-4">
-        <ActivityIndicator size="small" />
-      </View>
-    );
-  }
-
-  if (sessionsQuery.error) {
-    return (
-      <View className="py-4">
-        <Text className="text-destructive">
-          Error loading sessions: {sessionsQuery.error.message}
-        </Text>
-      </View>
-    );
-  }
-
-  if (sessions.length === 0) {
-    return (
-      <View className="py-4">
-        <Text className="text-muted-foreground text-center">
-          No sessions scheduled for today
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <LegendList
       data={sessions}
@@ -69,6 +47,13 @@ export const SessionTodaysList: React.FC = () => {
             toggleCompleteMutation.mutate({ id: p.item.id })
           }
         />
+      )}
+      ListEmptyComponent={() => (
+        <View className="py-4">
+          <Text className="text-muted-foreground text-center">
+            No sessions scheduled for today
+          </Text>
+        </View>
       )}
     />
   );

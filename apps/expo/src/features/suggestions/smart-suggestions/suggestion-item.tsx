@@ -1,11 +1,16 @@
 import type React from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { SessionType } from "@ssp/api/client";
-
-import { SESSION_TYPES_DISPLAY } from "~/constants/session";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components";
 import { trpc } from "~/utils/api";
 import {
   formatDateDisplay,
@@ -20,11 +25,6 @@ interface SuggestionItemProps {
     score: number;
     reasons: string[];
   };
-  sessionType: SessionType;
-  durationMinutes: number;
-  priority: number;
-  onAccepted?: () => void;
-  cardWidth?: number;
 }
 
 /**
@@ -33,17 +33,9 @@ interface SuggestionItemProps {
  */
 export const SuggestionItem: React.FC<SuggestionItemProps> = ({
   suggestion,
-  sessionType,
-  durationMinutes,
-  priority,
-  onAccepted,
-  cardWidth = 320,
 }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  const sessionTypeDisplay = SESSION_TYPES_DISPLAY[sessionType];
-  const cardColor = sessionTypeDisplay.color;
 
   // Create session mutation
   const createSessionMutation = useMutation(
@@ -54,19 +46,17 @@ export const SuggestionItem: React.FC<SuggestionItemProps> = ({
         void queryClient.invalidateQueries(trpc.session.today.queryFilter());
         void queryClient.invalidateQueries(trpc.session.upcoming.queryFilter());
         void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
-        // Call onAccepted callback to remove this suggestion from the list
-        onAccepted?.();
       },
     }),
   );
 
   const handleAccept = () => {
     createSessionMutation.mutate({
-      title: sessionTypeDisplay.label,
-      type: sessionType,
+      title: "Smart Suggestion",
+      type: "DEEP_WORK",
       startTime: suggestion.startTime,
       endTime: suggestion.endTime,
-      priority,
+      priority: 3,
       allowConflicts: false,
     });
   };
@@ -75,9 +65,6 @@ export const SuggestionItem: React.FC<SuggestionItemProps> = ({
     router.push({
       pathname: "/session/create",
       params: {
-        type: sessionType,
-        durationMinutes: durationMinutes.toString(),
-        priority: priority.toString(),
         suggestedStartTime: suggestion.startTime.toISOString(),
         suggestedEndTime: suggestion.endTime.toISOString(),
       },
@@ -85,40 +72,33 @@ export const SuggestionItem: React.FC<SuggestionItemProps> = ({
   };
 
   return (
-    <View
-      className="mr-4 rounded-xl p-5"
-      style={{
-        width: cardWidth,
-        backgroundColor: `${cardColor}15`,
-      }}
-    >
-      {/* Title */}
-      <View className="mb-4">
-        <Text className="text-2xl font-bold" style={{ color: cardColor }}>
-          {sessionTypeDisplay.label}
-        </Text>
-      </View>
+    <Card variant="muted">
+      <CardHeader>
+        <CardTitle>FIXME</CardTitle>
+      </CardHeader>
 
-      {/* Time Slot */}
-      <View className="mb-3 flex flex-row items-center gap-2">
-        <Text className="text-muted-foreground text-sm">🕐</Text>
-        <Text className="text-foreground text-sm">
-          {formatDateDisplay(suggestion.startTime)} ·{" "}
-          {formatTimeRange(suggestion.startTime, suggestion.endTime)}
-        </Text>
-      </View>
+      <CardContent>
+        <View style={{ width: 300 }}>
+          <View className="mb-3 flex flex-row items-center gap-2">
+            <Text className="text-muted-foreground text-sm">
+              <Ionicons name="time-outline" size={22} color="#71717A" />
+            </Text>
+            <Text className="text-foreground text-sm">
+              {formatDateDisplay(suggestion.startTime)} ·{" "}
+              {formatTimeRange(suggestion.startTime, suggestion.endTime)}
+            </Text>
+          </View>
 
-      {/* Rationale */}
-      {suggestion.reasons.length > 0 && (
-        <View className="mb-4">
-          <Text className="text-muted-foreground text-sm leading-5">
-            {suggestion.reasons.join(". ")}.
-          </Text>
+          {suggestion.reasons.length > 0 && (
+            <View className="mb-4">
+              <Text className="text-muted-foreground text-sm leading-5">
+                {suggestion.reasons.join(". ")}.
+              </Text>
+            </View>
+          )}
         </View>
-      )}
-
-      {/* Action Buttons */}
-      <View className="flex flex-row gap-3">
+      </CardContent>
+      <CardFooter>
         <Pressable
           onPress={handleAccept}
           disabled={createSessionMutation.isPending}
@@ -130,13 +110,13 @@ export const SuggestionItem: React.FC<SuggestionItemProps> = ({
         </Pressable>
         <Pressable
           onPress={handleAdjust}
-          className="border-foreground/20 bg-background flex-1 rounded-lg border px-4 py-3"
+          className="border-foreground/20 bg-background rounded-lg border px-4 py-2"
         >
           <Text className="text-foreground text-center text-sm font-semibold">
             Adjust
           </Text>
         </Pressable>
-      </View>
-    </View>
+      </CardFooter>
+    </Card>
   );
 };

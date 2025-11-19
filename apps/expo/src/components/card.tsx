@@ -7,6 +7,7 @@ import { cn } from "~/utils/cn";
 export interface CardProps extends ViewProps {
   variant?: "default" | "outline" | "muted";
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export const Card: React.FC<CardProps> = ({
 
 export interface CardHeaderProps extends ViewProps {
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
@@ -100,6 +102,7 @@ export const CardDescription: React.FC<CardDescriptionProps> = ({
 
 export interface CardContentProps extends ViewProps {
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
@@ -119,6 +122,7 @@ export const CardContent: React.FC<CardContentProps> = ({
 
 export interface CardFooterProps extends ViewProps {
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
