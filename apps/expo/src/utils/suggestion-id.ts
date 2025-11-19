@@ -14,6 +14,7 @@ export function generateSuggestionId(suggestion: {
 }): string {
   // Use timestamp combination as idempotent ID
   // Same time slot will always generate the same ID
+  // No collisions
   return `${suggestion.startTime.getTime()}-${suggestion.endTime.getTime()}`;
 }
 
@@ -34,21 +35,15 @@ export function addSuggestionIds<T extends { startTime: Date; endTime: Date }>(
  * Remove a suggestion from the React Query cache by its idempotency ID
  * This can be called from anywhere to invalidate/remove a specific suggestion
  */
-export function removeSuggestionById(
+export function invalidateSuggestionById(
   queryClient: QueryClient,
   suggestionId: string,
   queryParams: {
-    type: SessionType;
-    durationMinutes: number;
-    priority: number;
     lookAheadDays?: number;
   },
 ): void {
   // Get the query options to access the query key
   const queryOptions = trpc.session.suggest.queryOptions({
-    type: queryParams.type,
-    durationMinutes: queryParams.durationMinutes,
-    priority: queryParams.priority,
     lookAheadDays: queryParams.lookAheadDays ?? 14,
   });
 
@@ -80,9 +75,6 @@ export function invalidateAllSuggestions(
   },
 ): void {
   const queryOptions = trpc.session.suggest.queryOptions({
-    type: queryParams.type,
-    durationMinutes: queryParams.durationMinutes,
-    priority: queryParams.priority,
     lookAheadDays: queryParams.lookAheadDays ?? 14,
   });
 

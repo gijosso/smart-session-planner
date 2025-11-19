@@ -16,10 +16,13 @@ export const AverageSpacing: React.FC<AverageSpacingProps> = ({
     return null;
   }
 
+  // Convert hours to days, rounding to 1 decimal place
+  const averageSpacingDays = Math.round((averageSpacingHours / 24) * 10) / 10;
+
   return (
     <StatCard
       iconName="trending-up-outline"
-      title={`${averageSpacingHours} days`}
+      title={`${averageSpacingDays} days`}
       description="Average spacing between sessions"
     />
   );

@@ -3,51 +3,98 @@ import type { QueryClient } from "@tanstack/react-query";
 import { trpc } from "~/utils/api";
 
 /**
- * Check if a date falls within today
- * Uses local timezone for comparison (matches user's browser timezone)
- * The backend will do proper timezone conversion, but this gives us a good approximation
+ * Get user's timezone (defaults to browser timezone)
+ * In most cases, the browser timezone matches the user's preference
  */
-function isToday(date: Date | string): boolean {
-  const d = typeof date === "string" ? new Date(date) : date;
-  const now = new Date();
-
-  // Compare date components in local timezone
-  const dateYear = d.getFullYear();
-  const dateMonth = d.getMonth();
-  const dateDay = d.getDate();
-
-  const nowYear = now.getFullYear();
-  const nowMonth = now.getMonth();
-  const nowDay = now.getDate();
-
-  return dateYear === nowYear && dateMonth === nowMonth && dateDay === nowDay;
+function getUserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
 }
 
 /**
- * Check if a date falls within the current week (Sunday to Saturday)
- * Uses local timezone for comparison
+ * Check if a date falls within today in a specific timezone
+ * Uses Intl.DateTimeFormat to properly compare dates in the given timezone
  */
-function isThisWeek(date: Date | string): boolean {
+function isTodayInTimezone(date: Date | string, timezone: string): boolean {
   const d = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
 
-  // Get start of week (Sunday) in local timezone
+  // Format both dates in the given timezone and compare date components
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const dateStr = dateFormatter.format(d);
+  const nowStr = dateFormatter.format(now);
+
+  return dateStr === nowStr;
+}
+
+/**
+ * Check if a date falls within the current week (Sunday to Saturday) in a specific timezone
+ * Uses Intl.DateTimeFormat to properly compare dates in the given timezone
+ */
+function isThisWeekInTimezone(date: Date | string, timezone: string): boolean {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+
+  // Get current date components in the timezone
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "long",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const nowParts = formatter.formatToParts(now);
+  const weekday = nowParts.find((p) => p.type === "weekday")?.value ?? "Sunday";
+  const weekdayMap: Record<string, number> = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
+  const dayOfWeek = weekdayMap[weekday] ?? 0;
+
+  // Calculate start of week (Sunday) in the timezone
   const startOfWeek = new Date(now);
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
   startOfWeek.setDate(now.getDate() - dayOfWeek);
   startOfWeek.setHours(0, 0, 0, 0);
 
-  // Get end of week (Saturday) in local timezone
+  // Calculate end of week (Saturday) in the timezone
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  return d >= startOfWeek && d <= endOfWeek;
+  // Format dates to compare in the timezone
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const dateStr = dateFormatter.format(d);
+  const startStr = dateFormatter.format(startOfWeek);
+  const endStr = dateFormatter.format(endOfWeek);
+
+  // Compare as strings (YYYY-MM-DD format)
+  return dateStr >= startStr && dateStr <= endStr;
 }
 
 /**
  * Invalidate session queries based on the session's date
- * Only invalidates "today" and "week" if the session actually falls within those ranges
+ * Uses timezone-aware checking to only invalidate relevant queries
  * Also invalidates stats queries since they depend on session data
  */
 export function invalidateSessionQueries(
@@ -62,6 +109,9 @@ export function invalidateSessionQueries(
       ? new Date(session.startTime)
       : session.startTime;
 
+  // Get user's timezone (defaults to browser timezone)
+  const timezone = getUserTimezone();
+
   // Always invalidate all sessions (for lists that show all sessions)
   void queryClient.invalidateQueries(trpc.session.all.queryFilter());
 
@@ -75,12 +125,12 @@ export function invalidateSessionQueries(
     );
   }
 
-  // Only invalidate today/week if the session is actually in those ranges
-  if (isToday(startTime)) {
+  // Only invalidate today/week if the session is actually in those ranges (timezone-aware)
+  if (isTodayInTimezone(startTime, timezone)) {
     void queryClient.invalidateQueries(trpc.session.today.queryFilter());
   }
 
-  if (isThisWeek(startTime)) {
+  if (isThisWeekInTimezone(startTime, timezone)) {
     void queryClient.invalidateQueries(trpc.session.week.queryFilter());
   }
 }
@@ -88,6 +138,7 @@ export function invalidateSessionQueries(
 /**
  * Invalidate session queries for both old and new session states
  * Useful for updates where the date might have changed
+ * Uses timezone-aware checking to only invalidate relevant queries
  * Also invalidates stats queries since they depend on session data
  */
 export function invalidateSessionQueriesForUpdate(
@@ -110,6 +161,9 @@ export function invalidateSessionQueriesForUpdate(
       ? new Date(newSession.startTime)
       : newSession.startTime;
 
+  // Get user's timezone (defaults to browser timezone)
+  const timezone = getUserTimezone();
+
   // Always invalidate all sessions
   void queryClient.invalidateQueries(trpc.session.all.queryFilter());
 
@@ -124,12 +178,18 @@ export function invalidateSessionQueriesForUpdate(
     }
   }
 
-  // Invalidate today/week if EITHER old or new session is in those ranges
-  if (isToday(oldStartTime) || isToday(newStartTime)) {
+  // Invalidate today/week if EITHER old or new session is in those ranges (timezone-aware)
+  if (
+    isTodayInTimezone(oldStartTime, timezone) ||
+    isTodayInTimezone(newStartTime, timezone)
+  ) {
     void queryClient.invalidateQueries(trpc.session.today.queryFilter());
   }
 
-  if (isThisWeek(oldStartTime) || isThisWeek(newStartTime)) {
+  if (
+    isThisWeekInTimezone(oldStartTime, timezone) ||
+    isThisWeekInTimezone(newStartTime, timezone)
+  ) {
     void queryClient.invalidateQueries(trpc.session.week.queryFilter());
   }
 }

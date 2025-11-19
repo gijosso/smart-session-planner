@@ -13,10 +13,12 @@ import {
   CardTitle,
 } from "~/components";
 import { trpc } from "~/utils/api";
+import { invalidateSessionQueries } from "~/utils/session-cache";
 import {
   formatDateDisplay,
   formatTimeRange,
 } from "~/utils/suggestion-formatting";
+import { invalidateSuggestionById } from "~/utils/suggestion-id";
 
 interface SuggestionItemProps {
   suggestion: SuggestionWithId;
@@ -36,14 +38,24 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
     // Create session mutation
     const createSessionMutation = useMutation(
       trpc.session.create.mutationOptions({
-        onSuccess: () => {
-          // Invalidate relevant queries
-          void queryClient.invalidateQueries(trpc.session.all.queryFilter());
-          void queryClient.invalidateQueries(trpc.session.today.queryFilter());
+        onSuccess: (data, variables) => {
+          // Invalidate queries based on session date (granular invalidation)
+          invalidateSessionQueries(queryClient, {
+            startTime: data.startTime,
+            id: data.id,
+          });
+
+          // Also invalidate upcoming sessions
           void queryClient.invalidateQueries(
             trpc.session.upcoming.queryFilter(),
           );
-          void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+
+          // Invalidate the specific suggestion if it was created from one
+          if (variables.fromSuggestionId) {
+            invalidateSuggestionById(queryClient, variables.fromSuggestionId, {
+              lookAheadDays: 14,
+            });
+          }
         },
       }),
     );

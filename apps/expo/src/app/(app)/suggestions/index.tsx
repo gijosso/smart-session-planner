@@ -14,12 +14,16 @@ import type { SessionType } from "@ssp/api/client";
 
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { trpc } from "~/utils/api";
+import { invalidateSessionQueries } from "~/utils/session-cache";
 import {
   formatDateDisplay,
   formatScore,
   formatTimeRange,
 } from "~/utils/suggestion-formatting";
-import { addSuggestionIds } from "~/utils/suggestion-id";
+import {
+  addSuggestionIds,
+  invalidateSuggestionById,
+} from "~/utils/suggestion-id";
 
 /**
  * Suggestions Screen
@@ -44,23 +48,28 @@ export default function SuggestionsScreen() {
   // Create session mutation
   const createSessionMutation = useMutation(
     trpc.session.create.mutationOptions({
-      onSuccess: () => {
-        // Invalidate relevant queries
-        void queryClient.invalidateQueries(trpc.session.all.queryFilter());
-        void queryClient.invalidateQueries(trpc.session.today.queryFilter());
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on session date (granular invalidation)
+        invalidateSessionQueries(queryClient, {
+          startTime: data.startTime,
+          id: data.id,
+        });
+
+        // Also invalidate upcoming sessions
         void queryClient.invalidateQueries(trpc.session.upcoming.queryFilter());
-        void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+
+        // Invalidate the specific suggestion if it was created from one
+        if (variables.fromSuggestionId) {
+          invalidateSuggestionById(queryClient, variables.fromSuggestionId, {
+            lookAheadDays: 14,
+          });
+        }
+
         // Navigate back after successful creation
         router.back();
       },
     }),
   );
-
-  // Get the most common session type from suggestions for display
-  const mostCommonType =
-    suggestions && suggestions.length > 0 ? suggestions[0].type : "DEEP_WORK";
-  const sessionTypeDisplay = SESSION_TYPES_DISPLAY[mostCommonType];
-  const cardColor = sessionTypeDisplay.color;
 
   const handleAccept = (suggestion: {
     id: string;
@@ -123,14 +132,6 @@ export default function SuggestionsScreen() {
 
         <View className="border-b-border bg-muted border-b p-4">
           <View className="flex flex-row items-center gap-3">
-            <View
-              className="h-12 w-12 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${cardColor}20` }}
-            >
-              <Text className="text-2xl font-bold" style={{ color: cardColor }}>
-                {sessionTypeDisplay.label.charAt(0)}
-              </Text>
-            </View>
             <View className="flex-1">
               <Text className="text-foreground text-lg font-semibold">
                 Smart Suggestions

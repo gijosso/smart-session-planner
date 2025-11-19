@@ -3,7 +3,11 @@ import type { DayOfWeek, SessionType } from "@ssp/db/schema";
 import { eq, getUserTimezone } from "@ssp/db";
 import { Availability, Profile, Session } from "@ssp/db/schema";
 
-import { convertLocalTimeToUTC, getDateForDayOfWeek } from "../utils/date";
+import {
+  convertLocalTimeToUTC,
+  getDateForDayOfWeek,
+  timeToMinutes,
+} from "../utils/date";
 import { checkSessionConflicts } from "./session";
 
 /**
@@ -306,53 +310,65 @@ async function generateDefaultSuggestions(
   const defaultPriority = 3;
   const suggestions: SuggestedSession[] = [];
 
+  // Helper to get day of week name from a date in user's timezone
+  const getDayOfWeekFromDate = (date: Date): DayOfWeek => {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: userTimezone,
+      weekday: "long",
+    });
+    const weekday = formatter.format(date);
+    const dayMap: Record<string, DayOfWeek> = {
+      Monday: "MONDAY",
+      Tuesday: "TUESDAY",
+      Wednesday: "WEDNESDAY",
+      Thursday: "THURSDAY",
+      Friday: "FRIDAY",
+      Saturday: "SATURDAY",
+      Sunday: "SUNDAY",
+    };
+    return dayMap[weekday] ?? "MONDAY";
+  };
+
   // Generate 3 default suggestions, one for each type
   for (let i = 0; i < Math.min(3, defaultTypes.length); i++) {
     const type = defaultTypes[i];
     if (!type) continue;
     const title = sessionTypeLabels[type];
 
-    // Try to find a slot in the next few days
+    // Start from today and iterate through days
     let found = false;
-    for (
-      let dayOffset = 0;
-      dayOffset < Math.min(lookAheadDays, 7);
-      dayOffset++
-    ) {
+    const today = new Date(startDate);
+    today.setHours(0, 0, 0, 0);
+
+    for (let dayOffset = 0; dayOffset < lookAheadDays; dayOffset++) {
       if (found) break;
 
-      // Try each availability window
-      for (const window of availabilityWindows) {
+      const candidateDate = new Date(today);
+      candidateDate.setDate(candidateDate.getDate() + dayOffset);
+
+      // Get the day of week for this date
+      const candidateDayOfWeek = getDayOfWeekFromDate(candidateDate);
+
+      // Find availability windows for this day of week
+      const windowsForDay = availabilityWindows.filter(
+        (w) => w.dayOfWeek === candidateDayOfWeek,
+      );
+
+      // Try each availability window for this day
+      for (const window of windowsForDay) {
         if (found) break;
 
-        // Get the date for this day of week
-        const windowDate = getDateForDayOfWeek(
-          startDate,
-          window.dayOfWeek,
-          userTimezone,
-        );
+        // Parse window times
+        const windowStartMinutes = timeToMinutes(window.startTime);
+        const windowEndMinutes = timeToMinutes(window.endTime);
 
-        // Calculate the actual date (accounting for day offset)
-        const candidateDate = new Date(windowDate);
-        candidateDate.setDate(candidateDate.getDate() + dayOffset);
-
-        // Skip if beyond look-ahead period
-        const daysFromStart = Math.floor(
-          (candidateDate.getTime() - startDate.getTime()) /
-            (1000 * 60 * 60 * 24),
-        );
-        if (daysFromStart < 0 || daysFromStart > lookAheadDays) {
+        // Check if window is long enough
+        if (windowEndMinutes - windowStartMinutes < defaultDurationMinutes) {
           continue;
         }
 
-        // Parse window times
-        const [startHour, startMin] = window.startTime.split(":").map(Number);
-        const [endHour, endMin] = window.endTime.split(":").map(Number);
-
-        const windowStartMinutes = (startHour ?? 0) * 60 + (startMin ?? 0);
-        const windowEndMinutes = (endHour ?? 0) * 60 + (endMin ?? 0);
-
         // Try different times within the window (morning, afternoon, evening)
+        // Distribute suggestions across different times
         const timeSlots = [
           windowStartMinutes + 60, // 1 hour after window start
           windowStartMinutes +
@@ -404,7 +420,7 @@ async function generateDefaultSuggestions(
             continue;
           }
 
-          // Check spacing from other suggestions
+          // Check spacing from other suggestions (prevent consecutive slots)
           const tooClose = suggestions.some((existing) => {
             const hoursDiff = Math.abs(
               (slotStart.getTime() - existing.startTime.getTime()) /
@@ -477,13 +493,6 @@ export async function suggestTimeSlots(
     (s) => s.completed && s.type !== "CLIENT_MEETING",
   );
 
-  // Get existing sessions for conflict checking
-  const activeSessions = allSessions.filter((s) => !s.completed);
-
-  // Set defaults
-  const startDate = options.startDate ?? new Date();
-  const lookAheadDays = options.lookAheadDays ?? 14;
-
   // Detect repeating patterns from past sessions
   const patterns = detectPatterns(
     completedSessions.map((s) => ({
@@ -496,6 +505,13 @@ export async function suggestTimeSlots(
     userTimezone,
   );
 
+  // Get existing sessions for conflict checking
+  const activeSessions = allSessions.filter((s) => !s.completed);
+
+  // Set defaults
+  const startDate = options.startDate ?? new Date();
+  const lookAheadDays = options.lookAheadDays ?? 14;
+
   // If no patterns detected, generate default suggestions
   if (patterns.length === 0) {
     return generateDefaultSuggestions(
@@ -503,7 +519,10 @@ export async function suggestTimeSlots(
       userId,
       availability.weeklyAvailability,
       userTimezone,
-      activeSessions,
+      activeSessions.map((s) => ({
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
       startDate,
       lookAheadDays,
     );

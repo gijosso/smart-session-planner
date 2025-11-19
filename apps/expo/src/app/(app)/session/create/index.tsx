@@ -15,6 +15,7 @@ import {
 } from "~/utils/date";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueries } from "~/utils/session-cache";
+import { invalidateSuggestionById } from "~/utils/suggestion-id";
 
 export default function CreateSession() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function CreateSession() {
     isPending,
   } = useMutation(
     trpc.session.create.mutationOptions({
-      onSuccess(data) {
+      onSuccess(data, variables) {
         // Trigger form reset
         setResetKey((prev) => prev + 1);
 
@@ -46,6 +47,13 @@ export default function CreateSession() {
           startTime: data.startTime,
           id: data.id,
         });
+
+        // Invalidate the specific suggestion if it was created from one
+        if (variables.fromSuggestionId) {
+          invalidateSuggestionById(queryClient, variables.fromSuggestionId, {
+            lookAheadDays: 14,
+          });
+        }
 
         // Navigate to the created session
         const sessionId = (data as { id?: string }).id;
