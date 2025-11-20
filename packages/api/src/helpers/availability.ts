@@ -4,6 +4,14 @@ import { eq } from "@ssp/db";
 import { Availability } from "@ssp/db/schema";
 
 /**
+ * Type that accepts both database and transaction objects
+ * Used for functions that need to work within transactions
+ */
+type DatabaseOrTransaction = Parameters<
+  Parameters<typeof db.transaction>[0]
+>[0];
+
+/**
  * Default weekly availability structure
  */
 const DEFAULT_WEEKLY_AVAILABILITY: WeeklyAvailability = {
@@ -21,9 +29,12 @@ const DEFAULT_WEEKLY_AVAILABILITY: WeeklyAvailability = {
  * Monday-Friday: 7am-9am
  * Saturday-Sunday: 10am-2pm
  * Only creates if the user doesn't already have availability entries
+ *
+ * @param database - Database instance (can be transaction object from db.transaction)
+ * @param userId - User ID to create availability for
  */
 export async function createDefaultAvailability(
-  database: typeof db,
+  database: DatabaseOrTransaction,
   userId: string,
 ) {
   // Check if user already has availability entries
@@ -53,43 +64,49 @@ export async function getAvailability(database: typeof db, userId: string) {
 
 /**
  * Set/update weekly availability for a user
+ * Uses transaction to ensure atomicity - check and update/create happen atomically
  */
 export async function setWeeklyAvailability(
   database: typeof db,
   userId: string,
   weeklyAvailability: WeeklyAvailability,
 ) {
-  // Get existing availability or create new
-  const existing = await getAvailability(database, userId);
+  // Use transaction to ensure atomicity - check and update/create happen atomically
+  return await database.transaction(async (tx) => {
+    // Get existing availability within transaction
+    const existing = await tx.query.Availability.findFirst({
+      where: eq(Availability.userId, userId),
+    });
 
-  if (existing) {
-    const [updated] = await database
-      .update(Availability)
-      .set({
-        weeklyAvailability,
-        updatedAt: new Date(),
-      })
-      .where(eq(Availability.userId, userId))
-      .returning();
+    if (existing) {
+      const [updated] = await tx
+        .update(Availability)
+        .set({
+          weeklyAvailability,
+          updatedAt: new Date(),
+        })
+        .where(eq(Availability.userId, userId))
+        .returning();
 
-    if (!updated) {
-      throw new Error("Failed to update availability");
+      if (!updated) {
+        throw new Error("Failed to update availability");
+      }
+
+      return updated;
     }
 
-    return updated;
-  }
+    const [created] = await tx
+      .insert(Availability)
+      .values({
+        userId,
+        weeklyAvailability,
+      })
+      .returning();
 
-  const [created] = await database
-    .insert(Availability)
-    .values({
-      userId,
-      weeklyAvailability,
-    })
-    .returning();
+    if (!created) {
+      throw new Error("Failed to create availability");
+    }
 
-  if (!created) {
-    throw new Error("Failed to create availability");
-  }
-
-  return created;
+    return created;
+  });
 }

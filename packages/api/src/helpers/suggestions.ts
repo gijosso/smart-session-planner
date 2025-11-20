@@ -57,21 +57,6 @@ export interface SuggestionOptions {
 }
 
 /**
- * Pattern detected from past sessions
- */
-interface SessionPattern {
-  type: SessionType;
-  dayOfWeek: DayOfWeek;
-  hour: number; // Hour in user's timezone (0-23)
-  minute: number; // Minute (0-59)
-  durationMinutes: number; // Average duration
-  priority: number; // Average priority
-  frequency: number; // How many times this pattern occurred
-  title: string; // Most common title for this pattern
-  successRate: number; // Completion rate for this pattern (0-1)
-}
-
-/**
  * Session type display labels
  */
 

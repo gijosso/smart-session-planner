@@ -4,7 +4,6 @@ import type { db } from "@ssp/db/client";
 import type { CreateSessionSchema, SESSION_TYPES } from "@ssp/db/schema";
 import {
   and,
-  desc,
   eq,
   getEndOfDayInTimezone,
   getStartOfDayInTimezone,
@@ -16,6 +15,14 @@ import {
   sql,
 } from "@ssp/db";
 import { Profile, Session } from "@ssp/db/schema";
+
+/**
+ * Type that accepts both database and transaction objects
+ * Used for functions that need to work within transactions
+ */
+type DatabaseOrTransaction =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Get sessions for today (timezone-aware)
@@ -335,9 +342,11 @@ export async function deleteSession(
  * Two sessions overlap if: start1 < end2 AND start2 < end1
  *
  * Performance: Uses database indexes efficiently and filters in SQL
+ *
+ * @param database - Database instance (can be transaction object from db.transaction)
  */
 export async function checkSessionConflicts(
-  database: typeof db,
+  database: DatabaseOrTransaction,
   userId: string,
   startTime: Date,
   endTime: Date,
@@ -365,4 +374,3 @@ export async function checkSessionConflicts(
     .from(Session)
     .where(and(...conditions));
 }
-
