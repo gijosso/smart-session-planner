@@ -4,27 +4,39 @@ import type { AppRouter } from "./root";
 
 /**
  * Inference helpers for input types
- * @example
- * type PostByIdInput = RouterInputs['post']['byId']
- *      ^? { id: number }
+ * These types can be safely imported in client applications
  */
-type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterInputs = inferRouterInputs<AppRouter>;
 
 /**
  * Inference helpers for output types
- * @example
- * type AllPostsOutput = RouterOutputs['post']['all']
- *      ^? Post[]
+ * These types can be safely imported in client applications
  */
-type RouterOutputs = inferRouterOutputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-// Server-only exports (should not be imported in client apps)
+// ============================================================================
+// SERVER-ONLY EXPORTS
+// These should NOT be imported in client applications
+// ============================================================================
+
+/**
+ * Main application router (server-only)
+ */
 export { type AppRouter, appRouter } from "./root";
+
+/**
+ * tRPC context creator (server-only)
+ */
 export { createTRPCContext } from "./trpc";
 
-// Client-safe type exports (safe to import in frontend apps)
-// Note: For runtime values like SESSION_TYPES, import from "@ssp/api/client" instead
-export type { RouterInputs, RouterOutputs };
+// ============================================================================
+// CLIENT-SAFE EXPORTS
+// These can be safely imported in frontend applications
+// ============================================================================
 
-// Date utilities (server-side only - uses Node.js APIs)
+/**
+ * Date utility functions
+ * Note: These use Node.js APIs and should only be used server-side
+ * For client-side date handling, use a library like date-fns
+ */
 export * from "./utils/date";

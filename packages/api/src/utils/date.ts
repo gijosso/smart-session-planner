@@ -74,11 +74,6 @@ export function getDateForDayOfWeek(
 
 /**
  * Convert a local time (in a specific timezone) to UTC Date
- * @param date - The date part (in the target timezone)
- * @param hours - Hours (0-23) in the target timezone
- * @param minutes - Minutes (0-59) in the target timezone
- * @param timezone - IANA timezone string (e.g., "America/New_York")
- * @returns UTC Date object
  */
 export function convertLocalTimeToUTC(
   date: Date,
@@ -203,4 +198,35 @@ export function isSameDay(date1: Date, date2: Date): boolean {
     date1.getUTCMonth() === date2.getUTCMonth() &&
     date1.getUTCDate() === date2.getUTCDate()
   );
+}
+
+/**
+ * Validate that a timezone string is a valid IANA timezone identifier
+ * Uses Intl.supportedValuesOf if available, otherwise falls back to try-catch
+ * @param timezone - IANA timezone string (e.g., "America/New_York")
+ * @returns true if valid, false otherwise
+ */
+export function isValidTimezone(timezone: string | null | undefined): boolean {
+  if (!timezone || typeof timezone !== "string") {
+    return false;
+  }
+
+  // Use Intl.supportedValuesOf if available (modern browsers/Node.js 20+)
+  try {
+    if (typeof Intl.supportedValuesOf === "function") {
+      const supportedTimezones = Intl.supportedValuesOf("timeZone");
+      return supportedTimezones.includes(timezone);
+    }
+  } catch {
+    // Fallback to try-catch if supportedValuesOf is not available
+  }
+
+  // Fallback: Try to create a date formatter with the timezone
+  // If it throws, the timezone is invalid
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
 }
