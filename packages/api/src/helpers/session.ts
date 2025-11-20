@@ -32,13 +32,14 @@ type DatabaseOrTransaction =
 
 /**
  * Get sessions for today (timezone-aware)
+ * @param timezone - User's timezone (required, should come from request context)
  * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
  * @param offset - Number of sessions to skip (default: 0)
  */
 export async function getSessionsToday(
   database: typeof db,
   userId: string,
-  timezone?: string,
+  timezone: string,
   limit = 100,
   offset = 0,
 ) {
@@ -46,13 +47,6 @@ export async function getSessionsToday(
   const validatedLimit = Math.min(Math.max(1, limit), 1000);
   const validatedOffset = Math.max(0, offset);
 
-  // Get user's timezone (must be provided - should come from context)
-  if (!timezone) {
-    throw new ValidationError(
-      "Timezone is required. This should be provided from the request context.",
-      { userId, operation: "getSessionsToday" },
-    );
-  }
   const userTimezone = timezone;
 
   const now = new Date();
@@ -76,13 +70,14 @@ export async function getSessionsToday(
 
 /**
  * Get sessions for the current week (timezone-aware)
+ * @param timezone - User's timezone (required, should come from request context)
  * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
  * @param offset - Number of sessions to skip (default: 0)
  */
 export async function getSessionsWeek(
   database: typeof db,
   userId: string,
-  timezone?: string,
+  timezone: string,
   limit = 100,
   offset = 0,
 ) {
@@ -90,13 +85,6 @@ export async function getSessionsWeek(
   const validatedLimit = Math.min(Math.max(1, limit), 1000);
   const validatedOffset = Math.max(0, offset);
 
-  // Get user's timezone (must be provided - should come from context)
-  if (!timezone) {
-    throw new ValidationError(
-      "Timezone is required. This should be provided from the request context.",
-      { userId, operation: "getSessionsToday" },
-    );
-  }
   const userTimezone = timezone;
 
   const now = new Date();

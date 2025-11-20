@@ -22,7 +22,7 @@ import {
 } from "../helpers/session";
 import { suggestTimeSlots } from "../helpers/suggestions";
 import { protectedProcedure } from "../trpc";
-import { getUserId } from "../utils/context";
+import { getTimezone, getUserId } from "../utils/context";
 import { handleAsyncOperation } from "../utils/error";
 
 export const sessionRouter = {
@@ -39,10 +39,10 @@ export const sessionRouter = {
       // Defaults are applied by the schema if input is undefined
       const limit = input?.limit ?? 100;
       const offset = input?.offset ?? 0;
-      // Timezone is already available in context from protectedProcedure middleware
+      // Timezone is guaranteed to be set by protectedProcedure middleware
+      const timezone = getTimezone(ctx);
       return handleAsyncOperation(
-        async () =>
-          getSessionsToday(ctx.db, userId, ctx.timezone, limit, offset),
+        async () => getSessionsToday(ctx.db, userId, timezone, limit, offset),
         "get sessions today",
         { userId, limit, offset },
       );
@@ -61,10 +61,10 @@ export const sessionRouter = {
       // Defaults are applied by the schema if input is undefined
       const limit = input?.limit ?? 100;
       const offset = input?.offset ?? 0;
-      // Timezone is already available in context from protectedProcedure middleware
+      // Timezone is guaranteed to be set by protectedProcedure middleware
+      const timezone = getTimezone(ctx);
       return handleAsyncOperation(
-        async () =>
-          getSessionsWeek(ctx.db, userId, ctx.timezone, limit, offset),
+        async () => getSessionsWeek(ctx.db, userId, timezone, limit, offset),
         "get sessions week",
         { userId, limit, offset },
       );
@@ -185,9 +185,10 @@ export const sessionRouter = {
     .input(suggestTimeSlotsInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
-      // Timezone is already available in context from protectedProcedure middleware
+      // Timezone is guaranteed to be set by protectedProcedure middleware
+      const timezone = getTimezone(ctx);
       return handleAsyncOperation(
-        async () => suggestTimeSlots(ctx.db, userId, input, ctx.timezone),
+        async () => suggestTimeSlots(ctx.db, userId, input, timezone),
         "suggest time slots",
         { userId },
       );
@@ -209,7 +210,7 @@ export const sessionRouter = {
         priority: input.priority,
         description: input.description,
         completed: false, // New sessions are not completed
-        fromSuggestionId: input.suggestionId, // Track which suggestion this came from
+        fromSuggestionId: input.suggestionId, // Optional: Track which suggestion this came from
       };
 
       return handleAsyncOperation(

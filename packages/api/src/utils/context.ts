@@ -12,3 +12,17 @@ export function getUserId(ctx: {
   }
   return ctx.session.user.id;
 }
+
+/**
+ * Extract timezone from tRPC context
+ * protectedProcedure guarantees timezone is set, but this provides type safety
+ */
+export function getTimezone(ctx: { timezone?: string }): string {
+  if (!ctx.timezone) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Timezone not available in context. This should not happen.",
+    });
+  }
+  return ctx.timezone;
+}

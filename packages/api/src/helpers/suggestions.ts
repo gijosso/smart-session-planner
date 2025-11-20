@@ -326,19 +326,16 @@ async function generateDefaultSuggestions(
  * - Improved spacing logic
  * - Better scoring system
  */
+/**
+ * Generate smart time slot suggestions based on repeating task patterns
+ * @param timezone - User's timezone (required, should come from request context)
+ */
 export async function suggestTimeSlots(
   database: typeof db,
   userId: string,
   options: SuggestionOptions = {},
-  timezone?: string,
+  timezone: string,
 ): Promise<SuggestedSession[]> {
-  // Get user's timezone (must be provided - should come from context)
-  if (!timezone) {
-    throw new ValidationError(
-      "Timezone is required. This should be provided from the request context.",
-      { userId, operation: "suggestTimeSlots" },
-    );
-  }
   const userTimezone = timezone;
 
   // Get user's availability

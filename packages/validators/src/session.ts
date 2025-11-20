@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 
 import { CreateSessionSchema, SESSION_TYPES } from "@ssp/db/schema";
+
 import { SESSION_LIMITS, SUGGESTION_INPUT_LIMITS } from "./constants";
 
 /**
@@ -84,7 +85,6 @@ export const sessionFormSchema = z
 
 export type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
-
 /**
  * Session ID input schema
  */
@@ -95,10 +95,13 @@ export const sessionIdInputSchema = z.object({ id: z.string() });
  */
 export const createSessionInputSchema = CreateSessionSchema.extend({
   allowConflicts: z.boolean().optional().default(false),
-}).refine((data: { endTime: Date; startTime: Date }) => data.endTime > data.startTime, {
-  message: "End time must be after start time",
-  path: ["endTime"],
-});
+}).refine(
+  (data: { endTime: Date; startTime: Date }) => data.endTime > data.startTime,
+  {
+    message: "End time must be after start time",
+    path: ["endTime"],
+  },
+);
 
 /**
  * Update session input schema
@@ -198,7 +201,7 @@ export const suggestTimeSlotsInputSchema = z.object({
  */
 export const acceptSuggestionInputSchema = z
   .object({
-    suggestionId: z.string(), // ID for tracking which suggestion was accepted
+    suggestionId: z.string().optional(), // Optional: ID for tracking which suggestion was accepted (client-generated)
     title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH),
     type: z.enum(SESSION_TYPES),
     startTime: z.coerce.date(),
@@ -215,4 +218,3 @@ export const acceptSuggestionInputSchema = z
     message: "End time must be after start time",
     path: ["endTime"],
   });
-
