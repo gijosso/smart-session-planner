@@ -26,13 +26,17 @@ export const authRouter = {
         .optional(),
     )
     .mutation(async ({ ctx, input = {} }) => {
-      try {
-        const anonymousEmail = `${ANONYMOUS_USER.EMAIL_PREFIX}${randomBytes(ANONYMOUS_USER.EMAIL_RANDOM_BYTES).toString("hex")}${ANONYMOUS_USER.EMAIL_DOMAIN}`;
-        const anonymousPassword = randomBytes(
-          ANONYMOUS_USER.PASSWORD_RANDOM_BYTES,
-        ).toString("hex");
+      const anonymousEmail = `${ANONYMOUS_USER.EMAIL_PREFIX}${randomBytes(ANONYMOUS_USER.EMAIL_RANDOM_BYTES).toString("hex")}${ANONYMOUS_USER.EMAIL_DOMAIN}`;
+      const anonymousPassword = randomBytes(
+        ANONYMOUS_USER.PASSWORD_RANDOM_BYTES,
+      ).toString("hex");
 
-        const createdUser = await createSupabaseUser(ctx.auth, {
+      // Create user in Supabase Auth
+      let createdUser: NonNullable<
+        Awaited<ReturnType<typeof createSupabaseUser>>
+      >;
+      try {
+        createdUser = await createSupabaseUser(ctx.auth, {
           email: anonymousEmail,
           password: anonymousPassword,
           emailConfirm: true,
@@ -41,28 +45,30 @@ export const authRouter = {
             anonymous: true,
           },
         });
-
-        try {
-          await createUserInDatabase(ctx.db, createdUser, {
-            timezone: input.timezone ?? null,
-            defaultName: "Anonymous User",
-          });
-        } catch (error) {
-          // Database errors from createUserInDatabase
-          handleDatabaseError(error, "create anonymous user in database", {
-            userId: createdUser.id,
-          });
-        }
-
-        try {
-          return await signInUser(ctx.auth, anonymousEmail, anonymousPassword);
-        } catch (error) {
-          // Auth errors from signInUser
-          handleAuthError(error, "sign in anonymous user");
-        }
       } catch (error) {
-        // Auth errors from createSupabaseUser
+        // Auth errors from createSupabaseUser - handleAuthError throws TRPCError (never returns)
         handleAuthError(error, "sign up anonymously");
+      }
+
+      // Create user in database
+      try {
+        await createUserInDatabase(ctx.db, createdUser, {
+          timezone: input.timezone ?? null,
+          defaultName: "Anonymous User",
+        });
+      } catch (error) {
+        // Database errors from createUserInDatabase - handleDatabaseError throws TRPCError (never returns)
+        handleDatabaseError(error, "create anonymous user in database", {
+          userId: createdUser.id,
+        });
+      }
+
+      // Sign in the user
+      try {
+        return await signInUser(ctx.auth, anonymousEmail, anonymousPassword);
+      } catch (error) {
+        // Auth errors from signInUser - handleAuthError throws TRPCError
+        handleAuthError(error, "sign in anonymous user");
       }
     }),
   refreshToken: publicProcedure

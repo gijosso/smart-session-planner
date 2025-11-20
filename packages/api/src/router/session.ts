@@ -15,7 +15,7 @@ import {
   updateSession,
 } from "../helpers/session";
 import { suggestTimeSlots } from "../helpers/suggestions";
-import { protectedProcedure } from "../trpc";
+import { protectedMutationProcedure, protectedProcedure } from "../trpc";
 import { getUserId } from "../utils/context";
 import { handleAsyncOperation } from "../utils/db-errors";
 
@@ -23,30 +23,56 @@ export const sessionRouter = {
   /**
    * Get sessions for today (timezone-aware)
    * Calculates "today" based on user's timezone preference
+   * Supports pagination with limit and offset
    */
-  today: protectedProcedure.query(async ({ ctx }) => {
-    const userId = getUserId(ctx);
-    // Timezone is already available in context from protectedProcedure middleware
-    return handleAsyncOperation(
-      async () => getSessionsToday(ctx.db, userId, ctx.timezone),
-      "get sessions today",
-      { userId },
-    );
-  }),
+  today: protectedProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(1000).optional().default(100),
+          offset: z.number().int().min(0).optional().default(0),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = getUserId(ctx);
+      const limit = input?.limit ?? 100;
+      const offset = input?.offset ?? 0;
+      // Timezone is already available in context from protectedProcedure middleware
+      return handleAsyncOperation(
+        async () =>
+          getSessionsToday(ctx.db, userId, ctx.timezone, limit, offset),
+        "get sessions today",
+        { userId, limit, offset },
+      );
+    }),
 
   /**
    * Get sessions for the current week (timezone-aware)
    * Calculates the week (Sunday to Saturday) based on user's timezone preference
+   * Supports pagination with limit and offset
    */
-  week: protectedProcedure.query(async ({ ctx }) => {
-    const userId = getUserId(ctx);
-    // Timezone is already available in context from protectedProcedure middleware
-    return handleAsyncOperation(
-      async () => getSessionsWeek(ctx.db, userId, ctx.timezone),
-      "get sessions week",
-      { userId },
-    );
-  }),
+  week: protectedProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(1000).optional().default(100),
+          offset: z.number().int().min(0).optional().default(0),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = getUserId(ctx);
+      const limit = input?.limit ?? 100;
+      const offset = input?.offset ?? 0;
+      // Timezone is already available in context from protectedProcedure middleware
+      return handleAsyncOperation(
+        async () =>
+          getSessionsWeek(ctx.db, userId, ctx.timezone, limit, offset),
+        "get sessions week",
+        { userId, limit, offset },
+      );
+    }),
 
   /**
    * Get a session by ID (only if it belongs to the authenticated user)
@@ -66,7 +92,7 @@ export const sessionRouter = {
    * Create a new session
    * Optionally allows conflicts (default: false - conflicts will throw error)
    */
-  create: protectedProcedure
+  create: protectedMutationProcedure
     .input(
       CreateSessionSchema.extend({
         allowConflicts: z.boolean().optional().default(false),
@@ -92,7 +118,7 @@ export const sessionRouter = {
    * Update a session (only if it belongs to the authenticated user)
    * Optionally allows conflicts (default: false - conflicts will throw error)
    */
-  update: protectedProcedure
+  update: protectedMutationProcedure
     .input(
       z
         .object({
@@ -111,6 +137,24 @@ export const sessionRouter = {
           description: z.string().optional(),
           allowConflicts: z.boolean().optional().default(false),
         })
+        .refine(
+          (data) => {
+            // Validate that at least one field is being updated
+            const hasUpdates =
+              data.title !== undefined ||
+              data.type !== undefined ||
+              data.startTime !== undefined ||
+              data.endTime !== undefined ||
+              data.completed !== undefined ||
+              data.priority !== undefined ||
+              data.description !== undefined;
+            return hasUpdates;
+          },
+          {
+            message: "At least one field must be provided for update",
+            path: ["id"],
+          },
+        )
         .refine(
           (data) => {
             // If both startTime and endTime are provided, validate the range
@@ -142,7 +186,7 @@ export const sessionRouter = {
   /**
    * Toggle completion status of a session
    */
-  toggleComplete: protectedProcedure
+  toggleComplete: protectedMutationProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -156,7 +200,7 @@ export const sessionRouter = {
   /**
    * Delete a session (only if it belongs to the authenticated user)
    */
-  delete: protectedProcedure
+  delete: protectedMutationProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -248,7 +292,7 @@ export const sessionRouter = {
    * Accept a suggestion and create a session from it
    * Takes suggestion details and creates the session, optionally allowing field overrides
    */
-  acceptSuggestion: protectedProcedure
+  acceptSuggestion: protectedMutationProcedure
     .input(
       z
         .object({

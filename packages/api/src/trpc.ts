@@ -18,6 +18,7 @@ import { Profile } from "@ssp/db/schema";
 
 import { TIMING_MIDDLEWARE } from "./constants/trpc";
 import { logger } from "./utils/logger";
+import { checkRateLimit } from "./utils/rate-limit";
 
 /**
  * 1. CONTEXT
@@ -140,6 +141,7 @@ export const protectedProcedure: typeof t.procedure = t.procedure
 
     // Fetch user's timezone once and cache it in context
     // This avoids repeated database queries for timezone lookups
+    // Timezone is guaranteed to be set after this middleware
     let timezone = ctx.timezone;
     if (!timezone) {
       const profile = await db.query.Profile.findFirst({
@@ -152,7 +154,60 @@ export const protectedProcedure: typeof t.procedure = t.procedure
       ctx: {
         // infers the `session` as non-nullable
         session: { ...ctx.session, user: ctx.session.user },
-        // Add timezone to context for quick lookup
+        // Add timezone to context for quick lookup (guaranteed to be set)
+        timezone, // TypeScript now knows this is string, not string | undefined
+      },
+    });
+  });
+
+/**
+ * Rate limiting middleware for mutations
+ * Prevents abuse by limiting the number of mutations per user per time window
+ */
+const rateLimitMiddleware = t.middleware(async ({ ctx, next }) => {
+  // Only apply rate limiting to authenticated users
+  if (ctx.session?.user) {
+    const userId = ctx.session.user.id;
+    const rateLimitResult = checkRateLimit(userId);
+
+    if (rateLimitResult.exceeded) {
+      const resetSeconds = Math.ceil(
+        (rateLimitResult.resetAt - Date.now()) / 1000,
+      );
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: `Rate limit exceeded. Please try again in ${resetSeconds} seconds.`,
+      });
+    }
+  }
+
+  return next();
+});
+
+/**
+ * Protected procedure with rate limiting for mutations
+ * Use this for mutation endpoints to prevent abuse
+ */
+export const protectedMutationProcedure: typeof t.procedure = t.procedure
+  .use(timingMiddleware)
+  .use(rateLimitMiddleware)
+  .use(async ({ ctx, next }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    // Fetch user's timezone once and cache it in context
+    let timezone = ctx.timezone;
+    if (!timezone) {
+      const profile = await db.query.Profile.findFirst({
+        where: eq(Profile.userId, ctx.session.user.id),
+      });
+      timezone = getUserTimezone(profile?.timezone ?? null);
+    }
+
+    return next({
+      ctx: {
+        session: { ...ctx.session, user: ctx.session.user },
         timezone,
       },
     });

@@ -7,9 +7,9 @@ import { Availability } from "@ssp/db/schema";
  * Type that accepts both database and transaction objects
  * Used for functions that need to work within transactions
  */
-type DatabaseOrTransaction = Parameters<
-  Parameters<typeof db.transaction>[0]
->[0];
+type DatabaseOrTransaction =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Default weekly availability structure

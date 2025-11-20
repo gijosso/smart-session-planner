@@ -43,12 +43,20 @@ export async function getUserTimezoneFromDb(
 
 /**
  * Get sessions for today (timezone-aware)
+ * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
+ * @param offset - Number of sessions to skip (default: 0)
  */
 export async function getSessionsToday(
   database: typeof db,
   userId: string,
   timezone?: string,
+  limit = 100,
+  offset = 0,
 ) {
+  // Validate pagination parameters
+  const validatedLimit = Math.min(Math.max(1, limit), 1000);
+  const validatedOffset = Math.max(0, offset);
+
   // Get user's timezone (use provided timezone or fetch from database)
   const userTimezone =
     timezone ?? (await getUserTimezoneFromDb(database, userId));
@@ -58,7 +66,7 @@ export async function getSessionsToday(
   const startOfTodayUTC = getStartOfDayInTimezone(now, userTimezone);
   const endOfTodayUTC = getEndOfDayInTimezone(now, userTimezone);
 
-  // Query database using UTC boundaries
+  // Query database using UTC boundaries with pagination
   return database.query.Session.findMany({
     where: and(
       eq(Session.userId, userId),
@@ -67,17 +75,27 @@ export async function getSessionsToday(
       lt(Session.startTime, endOfTodayUTC), // Use < instead of <= for end boundary
     ),
     orderBy: [Session.startTime],
+    limit: validatedLimit,
+    offset: validatedOffset,
   });
 }
 
 /**
  * Get sessions for the current week (timezone-aware)
+ * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
+ * @param offset - Number of sessions to skip (default: 0)
  */
 export async function getSessionsWeek(
   database: typeof db,
   userId: string,
   timezone?: string,
+  limit = 100,
+  offset = 0,
 ) {
+  // Validate pagination parameters
+  const validatedLimit = Math.min(Math.max(1, limit), 1000);
+  const validatedOffset = Math.max(0, offset);
+
   // Get user's timezone (use provided timezone or fetch from database)
   const userTimezone =
     timezone ?? (await getUserTimezoneFromDb(database, userId));
@@ -118,7 +136,7 @@ export async function getSessionsWeek(
     startOfWeekUTC.getTime() + 7 * 24 * 60 * 60 * 1000,
   );
 
-  // Query database using UTC boundaries
+  // Query database using UTC boundaries with pagination
   return database.query.Session.findMany({
     where: and(
       eq(Session.userId, userId),
@@ -127,6 +145,8 @@ export async function getSessionsWeek(
       lt(Session.startTime, endOfWeekUTC), // Use < instead of <= for end boundary
     ),
     orderBy: [Session.startTime],
+    limit: validatedLimit,
+    offset: validatedOffset,
   });
 }
 
@@ -211,7 +231,6 @@ export async function updateSession(
   },
   allowConflicts = false,
 ) {
-  // Verify the session belongs to the user and is not deleted
   const existingSession = await database.query.Session.findFirst({
     where: and(
       eq(Session.id, id),
@@ -224,18 +243,26 @@ export async function updateSession(
     throw new Error("Session not found or access denied");
   }
 
-  // Check for conflicts if time is being updated and conflicts are not allowed
-  if (!allowConflicts && (updates.startTime || updates.endTime)) {
-    const finalStartTime = updates.startTime ?? existingSession.startTime;
-    const finalEndTime = updates.endTime ?? existingSession.endTime;
+  const finalStartTime = updates.startTime ?? existingSession.startTime;
+  const finalEndTime = updates.endTime ?? existingSession.endTime;
 
+  if (finalEndTime <= finalStartTime) {
+    throw new Error("End time must be after start time");
+  }
+
+  const timesAreChanging =
+    finalStartTime.getTime() !== existingSession.startTime.getTime() ||
+    finalEndTime.getTime() !== existingSession.endTime.getTime();
+
+  if (!allowConflicts && timesAreChanging) {
     const conflicts = await checkSessionConflicts(
       database,
       userId,
       finalStartTime,
       finalEndTime,
-      id, // Exclude current session
+      id, // Exclude current session from conflict check
     );
+
     if (conflicts.length > 0) {
       throw new Error(
         `Updated session conflicts with ${conflicts.length} existing session(s)`,
@@ -243,21 +270,27 @@ export async function updateSession(
     }
   }
 
-  // Handle completedAt when completed status changes
-  // Ensure completedAt is set when completing, cleared when uncompleting
-  const updateData: typeof updates & { completedAt?: Date | null } = {
-    ...updates,
-  };
+  const updateData: {
+    title?: string;
+    type?: (typeof SESSION_TYPES)[number];
+    startTime?: Date;
+    endTime?: Date;
+    completed?: boolean;
+    priority?: number;
+    description?: string;
+    completedAt?: Date | null;
+    updatedAt?: Date;
+  } = { ...updates };
 
   if (updates.completed !== undefined) {
     if (updates.completed) {
-      // Marking as completed: set completedAt if not already set
-      updateData.completedAt = existingSession.completedAt ?? new Date();
+      updateData.completedAt = new Date();
     } else {
-      // Marking as incomplete: clear completedAt
       updateData.completedAt = null;
     }
   }
+
+  updateData.updatedAt = new Date();
 
   const [updated] = await database
     .update(Session)

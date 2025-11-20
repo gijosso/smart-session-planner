@@ -101,14 +101,62 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
         return;
       }
 
-      onSubmit({
-        title: values.title,
-        type: values.type as SessionType | undefined,
-        startTime: startTimeDate,
-        endTime: endTimeDate,
-        priority: values.priority,
-        description: values.description ?? undefined,
-      });
+      // Only send fields that have changed from initial values
+      const updates: {
+        title?: string;
+        type?: SessionType;
+        startTime?: Date;
+        endTime?: Date;
+        priority?: number;
+        description?: string;
+      } = {};
+
+      // Compare with initial values to only send changed fields
+      if (values.title !== formattedInitialValues.title) {
+        updates.title = values.title;
+      }
+      if (values.type !== formattedInitialValues.type) {
+        updates.type = values.type as SessionType;
+      }
+      if (values.priority !== formattedInitialValues.priority) {
+        updates.priority = values.priority;
+      }
+      if (values.description !== formattedInitialValues.description) {
+        // Send the description value directly (empty string clears, non-empty updates)
+        updates.description = values.description;
+      }
+
+      // Check if times have changed by comparing the Date objects
+      const initialStartTime = new Date(
+        `${formattedInitialValues.startDate}T${formattedInitialValues.startTime}:00`,
+      );
+      const initialEndTime = new Date(
+        `${formattedInitialValues.endDate}T${formattedInitialValues.endTime}:00`,
+      );
+
+      if (startTimeDate.getTime() !== initialStartTime.getTime()) {
+        updates.startTime = startTimeDate;
+      }
+      if (endTimeDate.getTime() !== initialEndTime.getTime()) {
+        updates.endTime = endTimeDate;
+      }
+
+      // Validate that if both times are being updated, endTime > startTime
+      // (This matches server-side validation)
+      if (updates.startTime && updates.endTime) {
+        if (updates.endTime <= updates.startTime) {
+          // This should be caught by form validation, but double-check
+          return;
+        }
+      }
+
+      // Only submit if there are actual changes
+      if (Object.keys(updates).length === 0) {
+        // No changes, don't submit
+        return;
+      }
+
+      onSubmit(updates);
     },
     enableReinitialize: true,
   });
