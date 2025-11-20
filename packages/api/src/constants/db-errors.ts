@@ -4,7 +4,6 @@
 
 /**
  * PostgreSQL error codes
- * @see https://www.postgresql.org/docs/current/errcodes-appendix.html
  */
 export const POSTGRES_ERROR_CODES = {
   /** Unique constraint violation */
@@ -27,8 +26,7 @@ export const CONSTRAINT_MESSAGES: Record<string, string> = {
     "Completion status is inconsistent. Please try again.",
   session_completed_at_after_start:
     "Completion time cannot be before session start time",
-  session_completed_at_not_future:
-    "Completion time cannot be in the future",
+  session_completed_at_not_future: "Completion time cannot be in the future",
   session_completed_at_after_created:
     "Completion time cannot be before session creation time",
   profile_timezone_format: "Invalid timezone format",
@@ -43,4 +41,3 @@ export const DEFAULT_CONSTRAINT_MESSAGE = "Invalid data provided";
  * Default unknown constraint name
  */
 export const UNKNOWN_CONSTRAINT_NAME = "unknown";
-

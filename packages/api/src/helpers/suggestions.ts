@@ -22,7 +22,6 @@ import {
   hoursBetween,
   timeToMinutes,
 } from "../utils/date";
-import { ValidationError } from "../utils/error/codes";
 import { logger } from "../utils/logger";
 import { checkSessionConflicts } from "./session";
 import { isWithinAvailability } from "./suggestions/availability";
@@ -328,7 +327,6 @@ async function generateDefaultSuggestions(
  */
 /**
  * Generate smart time slot suggestions based on repeating task patterns
- * @param timezone - User's timezone (required, should come from request context)
  */
 export async function suggestTimeSlots(
   database: typeof db,

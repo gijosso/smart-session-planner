@@ -31,9 +31,6 @@ const DEFAULT_WEEKLY_AVAILABILITY: WeeklyAvailability = {
  * Monday-Friday: 7am-9am
  * Saturday-Sunday: 10am-2pm
  * Only creates if the user doesn't already have availability entries
- *
- * @param database - Database instance (can be transaction object from db.transaction)
- * @param userId - User ID to create availability for
  */
 export async function createDefaultAvailability(
   database: DatabaseOrTransaction,

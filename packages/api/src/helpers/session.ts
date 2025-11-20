@@ -32,9 +32,6 @@ type DatabaseOrTransaction =
 
 /**
  * Get sessions for today (timezone-aware)
- * @param timezone - User's timezone (required, should come from request context)
- * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
- * @param offset - Number of sessions to skip (default: 0)
  */
 export async function getSessionsToday(
   database: typeof db,
@@ -70,9 +67,6 @@ export async function getSessionsToday(
 
 /**
  * Get sessions for the current week (timezone-aware)
- * @param timezone - User's timezone (required, should come from request context)
- * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
- * @param offset - Number of sessions to skip (default: 0)
  */
 export async function getSessionsWeek(
   database: typeof db,
@@ -156,7 +150,6 @@ export async function getSessionById(
 
 /**
  * Create a new session
- * @param allowConflicts - If false, throws error on conflicts. If true, allows conflicts.
  */
 export async function createSession(
   database: typeof db,
@@ -209,7 +202,6 @@ export async function createSession(
 
 /**
  * Update a session (only if it belongs to the user)
- * @param allowConflicts - If false, throws error on conflicts. If true, allows conflicts.
  */
 export async function updateSession(
   database: typeof db,
@@ -435,8 +427,6 @@ export async function deleteSession(
  * Two sessions overlap if: start1 < end2 AND start2 < end1
  *
  * Performance: Uses database indexes efficiently and filters in SQL
- *
- * @param database - Database instance (can be transaction object from db.transaction)
  */
 export async function checkSessionConflicts(
   database: DatabaseOrTransaction,

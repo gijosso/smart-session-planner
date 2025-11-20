@@ -76,11 +76,6 @@ export function getDateForDayOfWeek(
 
 /**
  * Convert a local time (in a specific timezone) to UTC Date
- * @param date - The date part (in the target timezone)
- * @param hours - Hours (0-23) in the target timezone
- * @param minutes - Minutes (0-59) in the target timezone
- * @param timezone - IANA timezone string (e.g., "America/New_York")
- * @returns UTC Date object
  */
 export function convertLocalTimeToUTC(
   date: Date,
@@ -124,18 +119,19 @@ export function convertLocalTimeToUTC(
   });
   const tzParts = tzFormatter.formatToParts(tempDate);
   const tzHour = Number.parseInt(
-    tzParts.find((p) => p.type === "hour")?.value ?? String(TIME_RANGES.MIN_HOUR),
+    tzParts.find((p) => p.type === "hour")?.value ??
+      String(TIME_RANGES.MIN_HOUR),
     10,
   );
   const tzMinute = Number.parseInt(
-    tzParts.find((p) => p.type === "minute")?.value ?? String(TIME_RANGES.MIN_MINUTE),
+    tzParts.find((p) => p.type === "minute")?.value ??
+      String(TIME_RANGES.MIN_MINUTE),
     10,
   );
 
   // Calculate offset: how much to adjust UTC to get the desired local time
   const offsetMinutes =
-    (hours - tzHour) * TIME_CONVERSIONS.MINUTES_PER_HOUR +
-    (minutes - tzMinute);
+    (hours - tzHour) * TIME_CONVERSIONS.MINUTES_PER_HOUR + (minutes - tzMinute);
 
   // Create the final UTC date
   const utcDate = new Date(tempDate);

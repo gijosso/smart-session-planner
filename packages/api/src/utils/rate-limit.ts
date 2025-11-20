@@ -27,8 +27,6 @@ setInterval(
 
 /**
  * Check if a user has exceeded rate limits
- * @param userId - User ID to check rate limit for
- * @returns true if rate limit is exceeded, false otherwise
  */
 export function checkRateLimit(userId: string): {
   exceeded: boolean;
