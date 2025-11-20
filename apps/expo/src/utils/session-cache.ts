@@ -112,9 +112,6 @@ export function invalidateSessionQueries(
   // Get user's timezone (defaults to browser timezone)
   const timezone = getUserTimezone();
 
-  // Always invalidate all sessions (for lists that show all sessions)
-  void queryClient.invalidateQueries(trpc.session.all.queryFilter());
-
   // Invalidate stats (since any session change affects stats)
   void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
 
@@ -163,9 +160,6 @@ export function invalidateSessionQueriesForUpdate(
 
   // Get user's timezone (defaults to browser timezone)
   const timezone = getUserTimezone();
-
-  // Always invalidate all sessions
-  void queryClient.invalidateQueries(trpc.session.all.queryFilter());
 
   // Invalidate stats (since any session change affects stats)
   void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());

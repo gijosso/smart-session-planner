@@ -10,16 +10,7 @@ import {
 } from "../helpers/availability";
 import { protectedProcedure } from "../trpc";
 import { handleAsyncOperation } from "../utils/db-errors";
-
-/**
- * Extract userId from context - protectedProcedure guarantees it exists
- */
-function getUserId(ctx: { session: { user: { id: string } } | null }): string {
-  if (!ctx.session?.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
-  return ctx.session.user.id;
-}
+import { getUserId } from "../utils/context";
 
 export const availabilityRouter = {
   /**

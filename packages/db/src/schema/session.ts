@@ -57,7 +57,7 @@ export const Session = pgTable(
     // All indexes start with userId since it's in every query (leftmost column rule)
 
     // 1. Partial covering index for non-deleted sessions (userId, startTime)
-    // Covers: getAllSessions, getSessionsByDateRange, getSessionsToday, getSessionsWeek, getUpcomingSessions
+    // Covers: getSessionsToday, getSessionsWeek
     // Also covers userId-only queries (leftmost column)
     index("session_user_id_not_deleted_start_idx")
       .on(table.userId, table.startTime)

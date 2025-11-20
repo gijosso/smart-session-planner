@@ -18,47 +18,6 @@ import {
 import { Profile, Session } from "@ssp/db/schema";
 
 /**
- * Get all sessions for a user (excluding soft-deleted sessions)
- */
-export async function getAllSessions(database: typeof db, userId: string) {
-  return database.query.Session.findMany({
-    where: and(eq(Session.userId, userId), isNull(Session.deletedAt)),
-    orderBy: desc(Session.startTime),
-  });
-}
-
-/**
- * Get sessions for a specific date range (timezone-aware)
- */
-export async function getSessionsByDateRange(
-  database: typeof db,
-  userId: string,
-  startDate: Date,
-  endDate: Date,
-) {
-  // Get user's profile to retrieve timezone preference
-  const profile = await database.query.Profile.findFirst({
-    where: eq(Profile.userId, userId),
-  });
-
-  const userTimezone = getUserTimezone(profile?.timezone ?? null);
-
-  // Convert date boundaries to UTC based on user's timezone
-  const startUTC = getStartOfDayInTimezone(startDate, userTimezone);
-  const endUTC = getEndOfDayInTimezone(endDate, userTimezone);
-
-  return database.query.Session.findMany({
-    where: and(
-      eq(Session.userId, userId),
-      isNull(Session.deletedAt), // Exclude soft-deleted sessions
-      gte(Session.startTime, startUTC),
-      lt(Session.startTime, endUTC), // Use < instead of <= for end boundary
-    ),
-    orderBy: desc(Session.startTime),
-  });
-}
-
-/**
  * Get sessions for today (timezone-aware)
  */
 export async function getSessionsToday(database: typeof db, userId: string) {
@@ -407,27 +366,3 @@ export async function checkSessionConflicts(
     .where(and(...conditions));
 }
 
-/**
- * Get all upcoming (future) sessions for a user (timezone-aware)
- */
-export async function getUpcomingSessions(database: typeof db, userId: string) {
-  // TODO: Add timezone support
-  // Get user's profile to retrieve timezone preference
-  // const profile = await database.query.Profile.findFirst({
-  //   where: eq(Profile.userId, userId),
-  // });
-  // const userTimezone = getUserTimezone(profile?.timezone ?? null);
-
-  // Get current time in UTC
-  const now = new Date();
-
-  // Query for sessions that start in the future
-  return database.query.Session.findMany({
-    where: and(
-      eq(Session.userId, userId),
-      isNull(Session.deletedAt), // Exclude soft-deleted sessions
-      gte(Session.startTime, now), // Only future sessions
-    ),
-    orderBy: [Session.startTime], // Order by start time ascending
-  });
-}

@@ -65,16 +65,20 @@ export async function getSessionStats(
     `,
   );
 
-  const combinedRow = combinedResult.rows[0] as
-    | {
-        total: number;
-        completed: number;
-        by_type: Record<string, number>;
-      }
-    | undefined;
+  // Type guard for query result
+  const combinedRow = combinedResult.rows[0];
+  if (!combinedRow || typeof combinedRow !== "object") {
+    throw new Error("Unexpected database result format");
+  }
 
-  const total = Number(combinedRow?.total ?? 0);
-  const completed = Number(combinedRow?.completed ?? 0);
+  const total =
+    typeof combinedRow.total === "number"
+      ? combinedRow.total
+      : Number(combinedRow.total ?? 0);
+  const completed =
+    typeof combinedRow.completed === "number"
+      ? combinedRow.completed
+      : Number(combinedRow.completed ?? 0);
   const pending = total - completed;
 
   // Initialize all types to 0
@@ -84,10 +88,14 @@ export async function getSessionStats(
   }
 
   // Populate from database results
-  if (combinedRow?.by_type) {
-    for (const [type, count] of Object.entries(combinedRow.by_type)) {
-      if (SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number])) {
-        byType[type as (typeof SESSION_TYPES)[number]] = Number(count);
+  const byTypeData = combinedRow.by_type;
+  if (byTypeData && typeof byTypeData === "object" && !Array.isArray(byTypeData)) {
+    for (const [type, count] of Object.entries(byTypeData)) {
+      if (
+        SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number]) &&
+        typeof count === "number"
+      ) {
+        byType[type as (typeof SESSION_TYPES)[number]] = count;
       }
     }
   }
@@ -122,10 +130,17 @@ export async function getSessionStats(
     `,
   );
 
-  const spacingRow = spacingResult.rows[0] as
-    | { avg_spacing_hours: number | null }
-    | undefined;
-  const averageSpacingHours = spacingRow?.avg_spacing_hours ?? null;
+  const spacingRow = spacingResult.rows[0];
+  const averageSpacingHours =
+    spacingRow &&
+    typeof spacingRow === "object" &&
+    "avg_spacing_hours" in spacingRow
+      ? typeof spacingRow.avg_spacing_hours === "number"
+        ? spacingRow.avg_spacing_hours
+        : spacingRow.avg_spacing_hours === null
+          ? null
+          : Number(spacingRow.avg_spacing_hours) || null
+      : null;
 
   // Calculate streaks using SQL
   // Groups sessions by day, finds consecutive days, calculates current and longest streak
@@ -178,15 +193,31 @@ export async function getSessionStats(
     `,
   );
 
-  const resultRow = streakResult.rows[0] as
-    | {
-        current_streak: number;
-        longest_streak: number;
-      }
-    | undefined;
+  const resultRow = streakResult.rows[0];
+  if (!resultRow || typeof resultRow !== "object") {
+    return {
+      total,
+      completed,
+      pending,
+      completionRate,
+      byType,
+      averageSpacingHours:
+        averageSpacingHours !== null
+          ? Math.round(averageSpacingHours * 10) / 10
+          : null,
+      currentStreakDays: 0,
+      longestStreakDays: 0,
+    };
+  }
 
-  const currentStreakDays = Number(resultRow?.current_streak ?? 0);
-  const longestStreakDays = Number(resultRow?.longest_streak ?? 0);
+  const currentStreakDays =
+    typeof resultRow.current_streak === "number"
+      ? resultRow.current_streak
+      : Number(resultRow.current_streak ?? 0);
+  const longestStreakDays =
+    typeof resultRow.longest_streak === "number"
+      ? resultRow.longest_streak
+      : Number(resultRow.longest_streak ?? 0);
 
   return {
     total,

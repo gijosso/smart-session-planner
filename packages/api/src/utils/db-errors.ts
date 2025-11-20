@@ -6,10 +6,10 @@ import {
   POSTGRES_ERROR_CODES,
   UNKNOWN_CONSTRAINT_NAME,
 } from "../constants/db-errors";
+import { logger } from "./logger";
 
 /**
  * Log error details server-side (sanitized for security)
- * In production, this should use a proper logging service
  */
 function logError(
   error: unknown,
@@ -24,8 +24,7 @@ function logError(
   };
 
   // Log full error details server-side for debugging
-  // In production, integrate with proper logging service (e.g., Sentry, DataDog)
-  console.error(`[ERROR] ${operation} failed:`, errorDetails);
+  logger.error(`${operation} failed`, errorDetails);
 
   // If it's a Postgres error, log the code for debugging
   if (
@@ -34,7 +33,10 @@ function logError(
     "code" in error &&
     typeof (error as { code: unknown }).code === "string"
   ) {
-    console.error(`[ERROR] Database error code:`, (error as { code: string }).code);
+    logger.error("Database error code", {
+      code: (error as { code: string }).code,
+      operation,
+    });
   }
 }
 

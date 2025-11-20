@@ -55,9 +55,6 @@ export default function SuggestionsScreen() {
           id: data.id,
         });
 
-        // Also invalidate upcoming sessions
-        void queryClient.invalidateQueries(trpc.session.upcoming.queryFilter());
-
         // Invalidate the specific suggestion if it was created from one
         if (variables.fromSuggestionId) {
           invalidateSuggestionById(queryClient, variables.fromSuggestionId, {

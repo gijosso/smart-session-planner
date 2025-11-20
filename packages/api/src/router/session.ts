@@ -1,5 +1,4 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod/v4";
 
 import { CreateSessionSchema, SESSION_TYPES } from "@ssp/db/schema";
@@ -9,72 +8,18 @@ import {
   checkSessionConflicts,
   createSession,
   deleteSession,
-  getAllSessions,
   getSessionById,
-  getSessionsByDateRange,
   getSessionsToday,
   getSessionsWeek,
-  getUpcomingSessions,
   toggleSessionComplete,
   updateSession,
 } from "../helpers/session";
 import { suggestTimeSlots } from "../helpers/suggestions";
 import { protectedProcedure } from "../trpc";
+import { getUserId } from "../utils/context";
 import { handleAsyncOperation } from "../utils/db-errors";
 
-/**
- * Extract userId from context - protectedProcedure guarantees it exists
- */
-function getUserId(ctx: { session: { user: { id: string } } | null }): string {
-  if (!ctx.session?.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
-  return ctx.session.user.id;
-}
-
 export const sessionRouter = {
-  /**
-   * Get all sessions for the authenticated user
-   */
-  all: protectedProcedure.query(async ({ ctx }) => {
-    const userId = getUserId(ctx);
-    return handleAsyncOperation(
-      async () => getAllSessions(ctx.db, userId),
-      "get all sessions",
-      { userId },
-    );
-  }),
-
-  /**
-   * Get sessions for a specific date range (timezone-aware)
-   * Accepts dates as ISO strings or Date objects. Dates are interpreted in user's timezone.
-   */
-  byDateRange: protectedProcedure
-    .input(
-      z.object({
-        startDate: z.coerce.date(), // Accepts Date objects or ISO strings
-        endDate: z.coerce.date(), // Accepts Date objects or ISO strings
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const userId = getUserId(ctx);
-      return handleAsyncOperation(
-        async () =>
-          getSessionsByDateRange(
-            ctx.db,
-            userId,
-            input.startDate,
-            input.endDate,
-          ),
-        "get sessions by date range",
-        {
-          userId,
-          startDate: input.startDate.toISOString(),
-          endDate: input.endDate.toISOString(),
-        },
-      );
-    }),
-
   /**
    * Get sessions for today (timezone-aware)
    * Calculates "today" based on user's timezone preference
@@ -97,18 +42,6 @@ export const sessionRouter = {
     return handleAsyncOperation(
       async () => getSessionsWeek(ctx.db, userId),
       "get sessions week",
-      { userId },
-    );
-  }),
-
-  /**
-   * Get all upcoming (future) sessions for the authenticated user
-   */
-  upcoming: protectedProcedure.query(async ({ ctx }) => {
-    const userId = getUserId(ctx);
-    return handleAsyncOperation(
-      async () => getUpcomingSessions(ctx.db, userId),
-      "get upcoming sessions",
       { userId },
     );
   }),
