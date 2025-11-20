@@ -19,17 +19,29 @@ import {
 } from "../helpers/session";
 import { suggestTimeSlots } from "../helpers/suggestions";
 import { protectedProcedure } from "../trpc";
-import { handleDatabaseError } from "../utils/db-errors";
+import { handleAsyncOperation } from "../utils/db-errors";
+
+/**
+ * Extract userId from context - protectedProcedure guarantees it exists
+ */
+function getUserId(ctx: { session: { user: { id: string } } | null }): string {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return ctx.session.user.id;
+}
 
 export const sessionRouter = {
   /**
    * Get all sessions for the authenticated user
    */
   all: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return getAllSessions(ctx.db, ctx.session.user.id);
+    const userId = getUserId(ctx);
+    return handleAsyncOperation(
+      async () => getAllSessions(ctx.db, userId),
+      "get all sessions",
+      { userId },
+    );
   }),
 
   /**
@@ -44,14 +56,21 @@ export const sessionRouter = {
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      return getSessionsByDateRange(
-        ctx.db,
-        ctx.session.user.id,
-        input.startDate,
-        input.endDate,
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () =>
+          getSessionsByDateRange(
+            ctx.db,
+            userId,
+            input.startDate,
+            input.endDate,
+          ),
+        "get sessions by date range",
+        {
+          userId,
+          startDate: input.startDate.toISOString(),
+          endDate: input.endDate.toISOString(),
+        },
       );
     }),
 
@@ -60,10 +79,12 @@ export const sessionRouter = {
    * Calculates "today" based on user's timezone preference
    */
   today: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return getSessionsToday(ctx.db, ctx.session.user.id);
+    const userId = getUserId(ctx);
+    return handleAsyncOperation(
+      async () => getSessionsToday(ctx.db, userId),
+      "get sessions today",
+      { userId },
+    );
   }),
 
   /**
@@ -71,20 +92,24 @@ export const sessionRouter = {
    * Calculates the week (Sunday to Saturday) based on user's timezone preference
    */
   week: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return getSessionsWeek(ctx.db, ctx.session.user.id);
+    const userId = getUserId(ctx);
+    return handleAsyncOperation(
+      async () => getSessionsWeek(ctx.db, userId),
+      "get sessions week",
+      { userId },
+    );
   }),
 
   /**
    * Get all upcoming (future) sessions for the authenticated user
    */
   upcoming: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return getUpcomingSessions(ctx.db, ctx.session.user.id);
+    const userId = getUserId(ctx);
+    return handleAsyncOperation(
+      async () => getUpcomingSessions(ctx.db, userId),
+      "get upcoming sessions",
+      { userId },
+    );
   }),
 
   /**
@@ -93,10 +118,12 @@ export const sessionRouter = {
   byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      return getSessionById(ctx.db, ctx.session.user.id, input.id);
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () => getSessionById(ctx.db, userId, input.id),
+        "get session by id",
+        { userId, sessionId: input.id },
+      );
     }),
 
   /**
@@ -110,20 +137,16 @@ export const sessionRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
+      const userId = getUserId(ctx);
       const { allowConflicts, ...sessionInput } = input;
-      try {
-        return await createSession(
-          ctx.db,
-          ctx.session.user.id,
-          sessionInput,
+      return handleAsyncOperation(
+        async () => createSession(ctx.db, userId, sessionInput, allowConflicts),
+        "create session",
+        {
+          userId,
           allowConflicts,
-        );
-      } catch (error) {
-        handleDatabaseError(error, "create session");
-      }
+        },
+      );
     }),
 
   /**
@@ -145,21 +168,17 @@ export const sessionRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
+      const userId = getUserId(ctx);
       const { id, allowConflicts, ...updates } = input;
-      try {
-        return await updateSession(
-          ctx.db,
-          ctx.session.user.id,
-          id,
-          updates,
+      return handleAsyncOperation(
+        async () => updateSession(ctx.db, userId, id, updates, allowConflicts),
+        "update session",
+        {
+          userId,
+          sessionId: id,
           allowConflicts,
-        );
-      } catch (error) {
-        handleDatabaseError(error, "update session");
-      }
+        },
+      );
     }),
 
   /**
@@ -168,18 +187,12 @@ export const sessionRouter = {
   toggleComplete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      try {
-        return await toggleSessionComplete(
-          ctx.db,
-          ctx.session.user.id,
-          input.id,
-        );
-      } catch (error) {
-        handleDatabaseError(error, "toggle session completion");
-      }
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () => toggleSessionComplete(ctx.db, userId, input.id),
+        "toggle session completion",
+        { userId, sessionId: input.id },
+      );
     }),
 
   /**
@@ -188,14 +201,12 @@ export const sessionRouter = {
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      try {
-        return await deleteSession(ctx.db, ctx.session.user.id, input.id);
-      } catch (error) {
-        handleDatabaseError(error, "delete session");
-      }
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () => deleteSession(ctx.db, userId, input.id),
+        "delete session",
+        { userId, sessionId: input.id },
+      );
     }),
 
   /**
@@ -210,15 +221,22 @@ export const sessionRouter = {
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      return checkSessionConflicts(
-        ctx.db,
-        ctx.session.user.id,
-        input.startTime,
-        input.endTime,
-        input.excludeSessionId,
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () =>
+          checkSessionConflicts(
+            ctx.db,
+            userId,
+            input.startTime,
+            input.endTime,
+            input.excludeSessionId,
+          ),
+        "check session conflicts",
+        {
+          userId,
+          startTime: input.startTime.toISOString(),
+          endTime: input.endTime.toISOString(),
+        },
       );
     }),
 
@@ -238,10 +256,12 @@ export const sessionRouter = {
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      return suggestTimeSlots(ctx.db, ctx.session.user.id, input);
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () => suggestTimeSlots(ctx.db, userId, input),
+        "suggest time slots",
+        { userId },
+      );
     }),
 
   /**
@@ -262,11 +282,7 @@ export const sessionRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
-      // Create session from suggestion details
+      const userId = getUserId(ctx);
       const sessionData = {
         title: input.title,
         type: input.type,
@@ -278,15 +294,15 @@ export const sessionRouter = {
         fromSuggestionId: input.suggestionId, // Track which suggestion this came from
       };
 
-      try {
-        return await createSession(
-          ctx.db,
-          ctx.session.user.id,
-          sessionData,
-          input.allowConflicts,
-        );
-      } catch (error) {
-        handleDatabaseError(error, "accept suggestion");
-      }
+      return handleAsyncOperation(
+        async () =>
+          createSession(ctx.db, userId, sessionData, input.allowConflicts),
+        "accept suggestion",
+        {
+          userId,
+          suggestionId: input.suggestionId,
+          allowConflicts: input.allowConflicts,
+        },
+      );
     }),
 } satisfies TRPCRouterRecord;

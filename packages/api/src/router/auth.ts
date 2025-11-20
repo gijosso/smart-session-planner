@@ -10,6 +10,7 @@ import {
   signInUser,
 } from "../helpers/supabase";
 import { publicProcedure } from "../trpc";
+import { handleAuthError, handleDatabaseError } from "../utils/db-errors";
 
 export const authRouter = {
   getSession: publicProcedure.query(({ ctx }) => {
@@ -24,17 +25,35 @@ export const authRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const createdUser = await createSupabaseUser(ctx.auth, {
-        email: input.email,
-        password: input.password,
-        emailConfirm: true,
-      });
+      try {
+        const createdUser = await createSupabaseUser(ctx.auth, {
+          email: input.email,
+          password: input.password,
+          emailConfirm: true,
+        });
 
-      await createUserInDatabase(ctx.db, createdUser, {
-        timezone: input.timezone ?? null,
-      });
+        try {
+          await createUserInDatabase(ctx.db, createdUser, {
+            timezone: input.timezone ?? null,
+          });
+        } catch (error) {
+          // Database errors from createUserInDatabase
+          handleDatabaseError(error, "create user in database", {
+            userId: createdUser.id,
+            email: input.email,
+          });
+        }
 
-      return await signInUser(ctx.auth, input.email, input.password);
+        try {
+          return await signInUser(ctx.auth, input.email, input.password);
+        } catch (error) {
+          // Auth errors from signInUser
+          handleAuthError(error, "sign in after signup");
+        }
+      } catch (error) {
+        // Auth errors from createSupabaseUser
+        handleAuthError(error, "sign up");
+      }
     }),
   signIn: publicProcedure
     .input(
@@ -44,7 +63,11 @@ export const authRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await signInUser(ctx.auth, input.email, input.password);
+      try {
+        return await signInUser(ctx.auth, input.email, input.password);
+      } catch (error) {
+        handleAuthError(error, "sign in");
+      }
     }),
   signUpAnonymously: publicProcedure
     .input(
@@ -55,25 +78,42 @@ export const authRouter = {
         .optional(),
     )
     .mutation(async ({ ctx, input = {} }) => {
-      const anonymousEmail = `anonymous_${randomBytes(8).toString("hex")}@anonymous.local`;
-      const anonymousPassword = randomBytes(32).toString("hex");
+      try {
+        const anonymousEmail = `anonymous_${randomBytes(8).toString("hex")}@anonymous.local`;
+        const anonymousPassword = randomBytes(32).toString("hex");
 
-      const createdUser = await createSupabaseUser(ctx.auth, {
-        email: anonymousEmail,
-        password: anonymousPassword,
-        emailConfirm: true,
-        userMetadata: {
-          name: "Anonymous User",
-          anonymous: true,
-        },
-      });
+        const createdUser = await createSupabaseUser(ctx.auth, {
+          email: anonymousEmail,
+          password: anonymousPassword,
+          emailConfirm: true,
+          userMetadata: {
+            name: "Anonymous User",
+            anonymous: true,
+          },
+        });
 
-      await createUserInDatabase(ctx.db, createdUser, {
-        timezone: input.timezone ?? null,
-        defaultName: "Anonymous User",
-      });
+        try {
+          await createUserInDatabase(ctx.db, createdUser, {
+            timezone: input.timezone ?? null,
+            defaultName: "Anonymous User",
+          });
+        } catch (error) {
+          // Database errors from createUserInDatabase
+          handleDatabaseError(error, "create anonymous user in database", {
+            userId: createdUser.id,
+          });
+        }
 
-      return await signInUser(ctx.auth, anonymousEmail, anonymousPassword);
+        try {
+          return await signInUser(ctx.auth, anonymousEmail, anonymousPassword);
+        } catch (error) {
+          // Auth errors from signInUser
+          handleAuthError(error, "sign in anonymous user");
+        }
+      } catch (error) {
+        // Auth errors from createSupabaseUser
+        handleAuthError(error, "sign up anonymously");
+      }
     }),
   refreshToken: publicProcedure
     .input(
@@ -82,6 +122,10 @@ export const authRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await refreshUserToken(ctx.auth, input.refreshToken);
+      try {
+        return await refreshUserToken(ctx.auth, input.refreshToken);
+      } catch (error) {
+        handleAuthError(error, "refresh token");
+      }
     }),
 } satisfies TRPCRouterRecord;

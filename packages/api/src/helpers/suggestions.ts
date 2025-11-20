@@ -631,7 +631,13 @@ async function generateDefaultSuggestions(
             slotStart,
             slotEnd,
           );
-        } catch {
+        } catch (error) {
+          // Log error but continue - if conflict check fails, skip this slot
+          // rather than failing entire suggestion generation
+          console.error(
+            `[SUGGESTIONS] Failed to check conflicts for slot:`,
+            error instanceof Error ? error.message : String(error),
+          );
           continue;
         }
 
@@ -842,7 +848,13 @@ export async function suggestTimeSlots(
           slotStart,
           slotEnd,
         );
-      } catch {
+      } catch (error) {
+        // Log error but continue - if conflict check fails, skip this slot
+        // rather than failing entire suggestion generation
+        console.error(
+          `[SUGGESTIONS] Failed to check conflicts for slot:`,
+          error instanceof Error ? error.message : String(error),
+        );
         continue;
       }
 

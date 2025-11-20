@@ -9,6 +9,17 @@ import {
   setWeeklyAvailability,
 } from "../helpers/availability";
 import { protectedProcedure } from "../trpc";
+import { handleAsyncOperation } from "../utils/db-errors";
+
+/**
+ * Extract userId from context - protectedProcedure guarantees it exists
+ */
+function getUserId(ctx: { session: { user: { id: string } } | null }): string {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return ctx.session.user.id;
+}
 
 export const availabilityRouter = {
   /**
@@ -16,16 +27,20 @@ export const availabilityRouter = {
    * Returns: { userId, weeklyAvailability: { MONDAY: [...], ... }, createdAt, updatedAt }
    */
   get: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    const availability = await getAvailability(ctx.db, ctx.session.user.id);
+    const userId = getUserId(ctx);
+    const availability = await handleAsyncOperation(
+      async () => getAvailability(ctx.db, userId),
+      "get availability",
+      { userId },
+    );
+
     if (!availability) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Availability not found",
       });
     }
+
     return availability;
   }),
 
@@ -40,23 +55,12 @@ export const availabilityRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-      try {
-        return await setWeeklyAvailability(
-          ctx.db,
-          ctx.session.user.id,
-          input.weeklyAvailability,
-        );
-      } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to set weekly availability",
-        });
-      }
+      const userId = getUserId(ctx);
+      return handleAsyncOperation(
+        async () =>
+          setWeeklyAvailability(ctx.db, userId, input.weeklyAvailability),
+        "set weekly availability",
+        { userId },
+      );
     }),
 } satisfies TRPCRouterRecord;

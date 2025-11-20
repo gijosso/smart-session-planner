@@ -3,6 +3,17 @@ import { TRPCError } from "@trpc/server";
 
 import { getSessionStats } from "../helpers/stats";
 import { protectedProcedure } from "../trpc";
+import { handleAsyncOperation } from "../utils/db-errors";
+
+/**
+ * Extract userId from context - protectedProcedure guarantees it exists
+ */
+function getUserId(ctx: { session: { user: { id: string } } | null }): string {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return ctx.session.user.id;
+}
 
 export const statsRouter = {
   /**
@@ -10,9 +21,11 @@ export const statsRouter = {
    * Returns total, completed, pending counts and breakdown by type
    */
   sessions: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return getSessionStats(ctx.db, ctx.session.user.id);
+    const userId = getUserId(ctx);
+    return handleAsyncOperation(
+      async () => getSessionStats(ctx.db, userId),
+      "get session stats",
+      { userId },
+    );
   }),
 } satisfies TRPCRouterRecord;
