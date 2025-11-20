@@ -1,36 +1,38 @@
 import type { DayOfWeek } from "@ssp/db/schema";
 
+import {
+  DATE_FORMATTING,
+  DAY_OF_WEEK_NUMBERS,
+  TIME_CONVERSIONS,
+  TIME_RANGES,
+  WEEK_CALCULATIONS,
+} from "../constants/date";
+
 /**
  * Convert time string (HH:MM:SS) to minutes since midnight
  */
 export function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(":").map(Number);
-  return (hours ?? 0) * 60 + (minutes ?? 0);
+  return (
+    (hours ?? TIME_RANGES.MIN_HOUR) * TIME_CONVERSIONS.MINUTES_PER_HOUR +
+    (minutes ?? TIME_RANGES.MIN_MINUTE)
+  );
 }
 
 /**
  * Convert minutes since midnight to time string (HH:MM:SS)
  */
 export function minutesToTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:00`;
+  const hours = Math.floor(minutes / TIME_CONVERSIONS.MINUTES_PER_HOUR);
+  const mins = minutes % TIME_CONVERSIONS.MINUTES_PER_HOUR;
+  return `${hours.toString().padStart(DATE_FORMATTING.TIME_PADDING_WIDTH, DATE_FORMATTING.TIME_PADDING_CHAR)}:${mins.toString().padStart(DATE_FORMATTING.TIME_PADDING_WIDTH, DATE_FORMATTING.TIME_PADDING_CHAR)}${DATE_FORMATTING.TIME_SECONDS_SUFFIX}`;
 }
 
 /**
  * Convert day of week string to number (0 = Sunday, 6 = Saturday)
  */
 export function dayOfWeekToNumber(day: DayOfWeek): number {
-  const map: Record<DayOfWeek, number> = {
-    SUNDAY: 0,
-    MONDAY: 1,
-    TUESDAY: 2,
-    WEDNESDAY: 3,
-    THURSDAY: 4,
-    FRIDAY: 5,
-    SATURDAY: 6,
-  };
-  return map[day];
+  return DAY_OF_WEEK_NUMBERS[day];
 }
 
 /**
@@ -55,7 +57,7 @@ export function getDateForDayOfWeek(
   const targetDayNum = dayOfWeekToNumber(targetDayOfWeek);
   let daysToAdd = targetDayNum - currentDayNum;
   if (daysToAdd < 0) {
-    daysToAdd += 7; // Next week
+    daysToAdd += WEEK_CALCULATIONS.DAYS_IN_WEEK; // Next week
   }
   if (daysToAdd === 0 && startDate > new Date()) {
     // If today and we're past the time, move to next week
@@ -63,7 +65,7 @@ export function getDateForDayOfWeek(
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     if (startDate < startOfToday) {
-      daysToAdd = 7;
+      daysToAdd = WEEK_CALCULATIONS.DAYS_IN_WEEK;
     }
   }
 
@@ -96,12 +98,18 @@ export function convertLocalTimeToUTC(
   const dateStr = dateFormatter.format(date);
 
   // Create time string HH:MM:00
-  const hoursStr = String(hours).padStart(2, "0");
-  const minutesStr = String(minutes).padStart(2, "0");
+  const hoursStr = String(hours).padStart(
+    DATE_FORMATTING.TIME_PADDING_WIDTH,
+    DATE_FORMATTING.TIME_PADDING_CHAR,
+  );
+  const minutesStr = String(minutes).padStart(
+    DATE_FORMATTING.TIME_PADDING_WIDTH,
+    DATE_FORMATTING.TIME_PADDING_CHAR,
+  );
 
   // Create a date representing this local time, then convert to UTC
   // Strategy: Create date as if it's UTC, then calculate offset and adjust
-  const localTimeString = `${dateStr}T${hoursStr}:${minutesStr}:00`;
+  const localTimeString = `${dateStr}T${hoursStr}:${minutesStr}${DATE_FORMATTING.TIME_SECONDS_SUFFIX}`;
   const tempDate = new Date(`${localTimeString}Z`); // Parse as UTC
 
   // Get what this UTC time represents in the target timezone
@@ -116,16 +124,18 @@ export function convertLocalTimeToUTC(
   });
   const tzParts = tzFormatter.formatToParts(tempDate);
   const tzHour = Number.parseInt(
-    tzParts.find((p) => p.type === "hour")?.value ?? "0",
+    tzParts.find((p) => p.type === "hour")?.value ?? String(TIME_RANGES.MIN_HOUR),
     10,
   );
   const tzMinute = Number.parseInt(
-    tzParts.find((p) => p.type === "minute")?.value ?? "0",
+    tzParts.find((p) => p.type === "minute")?.value ?? String(TIME_RANGES.MIN_MINUTE),
     10,
   );
 
   // Calculate offset: how much to adjust UTC to get the desired local time
-  const offsetMinutes = (hours - tzHour) * 60 + (minutes - tzMinute);
+  const offsetMinutes =
+    (hours - tzHour) * TIME_CONVERSIONS.MINUTES_PER_HOUR +
+    (minutes - tzMinute);
 
   // Create the final UTC date
   const utcDate = new Date(tempDate);
@@ -191,7 +201,9 @@ export function dateRangesOverlap(
  * Calculate hours between two dates
  */
 export function hoursBetween(date1: Date, date2: Date): number {
-  return Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60);
+  return (
+    Math.abs(date1.getTime() - date2.getTime()) / TIME_CONVERSIONS.MS_PER_HOUR
+  );
 }
 
 /**

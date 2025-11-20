@@ -1,15 +1,11 @@
 import { TRPCError } from "@trpc/server";
 
-/**
- * PostgreSQL error codes
- * @see https://www.postgresql.org/docs/current/errcodes-appendix.html
- */
-const POSTGRES_ERROR_CODES = {
-  UNIQUE_VIOLATION: "23505",
-  CHECK_VIOLATION: "23514",
-  FOREIGN_KEY_VIOLATION: "23503",
-  NOT_NULL_VIOLATION: "23502",
-} as const;
+import {
+  CONSTRAINT_MESSAGES,
+  DEFAULT_CONSTRAINT_MESSAGE,
+  POSTGRES_ERROR_CODES,
+  UNKNOWN_CONSTRAINT_NAME,
+} from "../constants/db-errors";
 
 /**
  * Log error details server-side (sanitized for security)
@@ -123,25 +119,10 @@ export function handleDatabaseError(
       case POSTGRES_ERROR_CODES.CHECK_VIOLATION: {
         // Extract constraint name from error message if possible
         const constraintMatch = /constraint "([^"]+)"/.exec(error.message);
-        const constraintName = constraintMatch?.[1] ?? "unknown";
-
-        // Provide user-friendly messages for known constraints
-        const constraintMessages: Record<string, string> = {
-          session_end_after_start: "End time must be after start time",
-          session_priority_range: "Priority must be between 1 and 5",
-          session_completed_at_consistency:
-            "Completion status is inconsistent. Please try again.",
-          session_completed_at_after_start:
-            "Completion time cannot be before session start time",
-          session_completed_at_not_future:
-            "Completion time cannot be in the future",
-          session_completed_at_after_created:
-            "Completion time cannot be before session creation time",
-          profile_timezone_format: "Invalid timezone format",
-        };
+        const constraintName = constraintMatch?.[1] ?? UNKNOWN_CONSTRAINT_NAME;
 
         const userMessage =
-          constraintMessages[constraintName] ?? "Invalid data provided";
+          CONSTRAINT_MESSAGES[constraintName] ?? DEFAULT_CONSTRAINT_MESSAGE;
 
         throw new TRPCError({
           code: "BAD_REQUEST",

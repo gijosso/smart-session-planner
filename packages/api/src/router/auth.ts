@@ -2,6 +2,11 @@ import { randomBytes } from "crypto";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
+import {
+  ANONYMOUS_USER,
+  PASSWORD,
+  TIMEZONE,
+} from "../constants/auth";
 import { createUserInDatabase } from "../helpers/auth";
 import {
   createSupabaseUser,
@@ -20,8 +25,8 @@ export const authRouter = {
     .input(
       z.object({
         email: z.email(),
-        password: z.string().min(6),
-        timezone: z.string().max(50).optional(), // IANA timezone string (e.g., "America/New_York")
+        password: z.string().min(PASSWORD.MIN_LENGTH),
+        timezone: z.string().max(TIMEZONE.MAX_LENGTH).optional(), // IANA timezone string (e.g., "America/New_York")
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -73,14 +78,16 @@ export const authRouter = {
     .input(
       z
         .object({
-          timezone: z.string().max(50).optional(), // IANA timezone string (e.g., "America/New_York")
+          timezone: z.string().max(TIMEZONE.MAX_LENGTH).optional(), // IANA timezone string (e.g., "America/New_York")
         })
         .optional(),
     )
     .mutation(async ({ ctx, input = {} }) => {
       try {
-        const anonymousEmail = `anonymous_${randomBytes(8).toString("hex")}@anonymous.local`;
-        const anonymousPassword = randomBytes(32).toString("hex");
+        const anonymousEmail = `${ANONYMOUS_USER.EMAIL_PREFIX}${randomBytes(ANONYMOUS_USER.EMAIL_RANDOM_BYTES).toString("hex")}${ANONYMOUS_USER.EMAIL_DOMAIN}`;
+        const anonymousPassword = randomBytes(
+          ANONYMOUS_USER.PASSWORD_RANDOM_BYTES,
+        ).toString("hex");
 
         const createdUser = await createSupabaseUser(ctx.auth, {
           email: anonymousEmail,

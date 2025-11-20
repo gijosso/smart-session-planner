@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 import { CreateSessionSchema, SESSION_TYPES } from "@ssp/db/schema";
 
+import { SESSION_LIMITS, SUGGESTION_INPUT_LIMITS } from "../constants/session";
 import {
   checkSessionConflicts,
   createSession,
@@ -157,12 +158,17 @@ export const sessionRouter = {
     .input(
       z.object({
         id: z.string(),
-        title: z.string().max(256).optional(),
+        title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH).optional(),
         type: z.enum(SESSION_TYPES).optional(),
         startTime: z.coerce.date().optional(),
         endTime: z.coerce.date().optional(),
         completed: z.boolean().optional(),
-        priority: z.coerce.number().int().min(1).max(5).optional(),
+        priority: z.coerce
+          .number()
+          .int()
+          .min(SESSION_LIMITS.MIN_PRIORITY)
+          .max(SESSION_LIMITS.MAX_PRIORITY)
+          .optional(),
         description: z.string().optional(),
         allowConflicts: z.boolean().optional().default(false),
       }),
@@ -249,10 +255,26 @@ export const sessionRouter = {
     .input(
       z.object({
         startDate: z.coerce.date().optional(),
-        lookAheadDays: z.number().int().min(1).max(30).optional().default(14),
+        lookAheadDays: z
+          .number()
+          .int()
+          .min(SUGGESTION_INPUT_LIMITS.MIN_LOOKAHEAD_DAYS)
+          .max(SUGGESTION_INPUT_LIMITS.MAX_LOOKAHEAD_DAYS)
+          .optional()
+          .default(SUGGESTION_INPUT_LIMITS.DEFAULT_LOOKAHEAD_DAYS),
         preferredTypes: z.array(z.enum(SESSION_TYPES)).optional(),
-        minPriority: z.number().int().min(1).max(5).optional(),
-        maxPriority: z.number().int().min(1).max(5).optional(),
+        minPriority: z
+          .number()
+          .int()
+          .min(SUGGESTION_INPUT_LIMITS.MIN_PRIORITY)
+          .max(SUGGESTION_INPUT_LIMITS.MAX_PRIORITY)
+          .optional(),
+        maxPriority: z
+          .number()
+          .int()
+          .min(SUGGESTION_INPUT_LIMITS.MIN_PRIORITY)
+          .max(SUGGESTION_INPUT_LIMITS.MAX_PRIORITY)
+          .optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -272,11 +294,15 @@ export const sessionRouter = {
     .input(
       z.object({
         suggestionId: z.string(), // ID for tracking which suggestion was accepted
-        title: z.string().max(256),
+        title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH),
         type: z.enum(SESSION_TYPES),
         startTime: z.coerce.date(),
         endTime: z.coerce.date(),
-        priority: z.coerce.number().int().min(1).max(5),
+        priority: z.coerce
+          .number()
+          .int()
+          .min(SESSION_LIMITS.MIN_PRIORITY)
+          .max(SESSION_LIMITS.MAX_PRIORITY),
         description: z.string().optional(),
         allowConflicts: z.boolean().optional().default(false),
       }),

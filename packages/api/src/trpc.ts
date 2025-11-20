@@ -13,6 +13,8 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
+import { TIMING_MIDDLEWARE } from "./constants/trpc";
+
 /**
  * 1. CONTEXT
  *
@@ -90,8 +92,10 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   const start = Date.now();
 
   if (t._config.isDev) {
-    // artificial delay in dev 100-500ms
-    const waitMs = Math.floor(Math.random() * 400) + 100;
+    // artificial delay in dev
+    const waitMs =
+      Math.floor(Math.random() * TIMING_MIDDLEWARE.DELAY_RANGE_MS) +
+      TIMING_MIDDLEWARE.MIN_DELAY_MS;
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
 

@@ -7,6 +7,17 @@ import type {
 import { and, eq, getUserTimezone, sql } from "@ssp/db";
 import { Availability, Profile, Session } from "@ssp/db/schema";
 
+import { TIME_CONVERSIONS } from "../constants/date";
+import {
+  DAILY_SESSION_LIMITS,
+  DAY_ORDER,
+  DEFAULT_SESSION,
+  FATIGUE_SCORING,
+  PATTERN_DETECTION,
+  SCORING,
+  SESSION_SPACING,
+  SUGGESTION_LIMITS,
+} from "../constants/suggestions";
 import {
   convertLocalTimeToUTC,
   getDateForDayOfWeek,
@@ -57,20 +68,8 @@ interface SessionPattern {
 }
 
 /**
- * Configuration constants for the suggestion algorithm
+ * Session type display labels
  */
-const SUGGESTION_CONFIG = {
-  MIN_PATTERN_FREQUENCY: 2, // Minimum occurrences to consider a pattern
-  MIN_SPACING_HOURS: 2, // Minimum hours between sessions
-  IDEAL_SPACING_HOURS: 4, // Ideal spacing between sessions
-  MAX_HIGH_PRIORITY_PER_DAY: 2, // Max high-priority (4-5) sessions per day
-  MAX_TOTAL_SESSIONS_PER_DAY: 4, // Max total sessions per day
-  HIGH_PRIORITY_THRESHOLD: 4, // Priority >= this is considered "high priority"
-  FATIGUE_PENALTY_PER_HIGH_PRIORITY: 15, // Score penalty per high-priority session on same day
-  DEFAULT_DURATION_MINUTES: 60,
-  DEFAULT_PRIORITY: 3,
-  MAX_SUGGESTIONS: 15, // Maximum number of suggestions to return
-} as const;
 
 /**
  * Session type display labels
@@ -147,10 +146,14 @@ function detectPatterns(
 
     // Round to nearest 30 minutes for pattern matching (allows flexibility)
     const roundedHour = hour;
-    const roundedMinute = minute < 30 ? 0 : 30;
+    const roundedMinute =
+      minute < PATTERN_DETECTION.PATTERN_TIME_ROUNDING_MINUTES
+        ? 0
+        : PATTERN_DETECTION.PATTERN_TIME_ROUNDING_MINUTES;
 
     const durationMinutes = Math.round(
-      (session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60),
+      (session.endTime.getTime() - session.startTime.getTime()) /
+        TIME_CONVERSIONS.MS_PER_MINUTE,
     );
 
     const patternKey = `${session.type}-${dayOfWeek}-${roundedHour}-${roundedMinute}`;
@@ -190,11 +193,14 @@ function detectPatterns(
 
   // Return patterns sorted by frequency and success rate
   return Array.from(patternMap.values())
-    .filter((p) => p.frequency >= SUGGESTION_CONFIG.MIN_PATTERN_FREQUENCY)
-    .map(({ completedCount, ...pattern }) => pattern) // Remove completedCount from output
+    .filter((p) => p.frequency >= PATTERN_DETECTION.MIN_PATTERN_FREQUENCY)
+    .map(({ completedCount: _completedCount, ...pattern }) => pattern) // Remove completedCount from output
     .sort((a, b) => {
       // Sort by success rate first (higher is better), then frequency
-      if (Math.abs(a.successRate - b.successRate) > 0.1) {
+      if (
+        Math.abs(a.successRate - b.successRate) >
+        PATTERN_DETECTION.SUCCESS_RATE_DIFFERENCE_THRESHOLD
+      ) {
         return b.successRate - a.successRate;
       }
       return b.frequency - a.frequency;
@@ -255,6 +261,8 @@ function isWithinAvailability(
   }
 
   const availabilityWindows = weeklyAvailability[dayOfWeek];
+  // Type system guarantees availabilityWindows exists, but check length at runtime
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!availabilityWindows || availabilityWindows.length === 0) {
     return { valid: false, reason: `No availability set for ${weekday}` };
   }
@@ -298,7 +306,7 @@ function calculateDayFatigue(
     endTime: Date;
     priority: number;
   }[],
-  userTimezone: string,
+  _userTimezone: string,
 ): { fatigueScore: number; reasons: string[] } {
   const reasons: string[] = [];
   let fatigueScore = 0;
@@ -314,25 +322,24 @@ function calculateDayFatigue(
 
   // Count high-priority sessions
   const highPriorityCount = daySessions.filter(
-    (s) => s.priority >= SUGGESTION_CONFIG.HIGH_PRIORITY_THRESHOLD,
+    (s) => s.priority >= DAILY_SESSION_LIMITS.HIGH_PRIORITY_THRESHOLD,
   ).length;
 
   // Penalty for too many high-priority sessions
-  if (highPriorityCount > SUGGESTION_CONFIG.MAX_HIGH_PRIORITY_PER_DAY) {
+  if (highPriorityCount > DAILY_SESSION_LIMITS.MAX_HIGH_PRIORITY_PER_DAY) {
     const excess =
-      highPriorityCount - SUGGESTION_CONFIG.MAX_HIGH_PRIORITY_PER_DAY;
-    fatigueScore +=
-      excess * SUGGESTION_CONFIG.FATIGUE_PENALTY_PER_HIGH_PRIORITY;
+      highPriorityCount - DAILY_SESSION_LIMITS.MAX_HIGH_PRIORITY_PER_DAY;
+    fatigueScore += excess * FATIGUE_SCORING.PENALTY_PER_HIGH_PRIORITY;
     reasons.push(
-      `${highPriorityCount} high-priority sessions already scheduled (max ${SUGGESTION_CONFIG.MAX_HIGH_PRIORITY_PER_DAY})`,
+      `${highPriorityCount} high-priority sessions already scheduled (max ${DAILY_SESSION_LIMITS.MAX_HIGH_PRIORITY_PER_DAY})`,
     );
   }
 
   // Penalty for too many total sessions
-  if (daySessions.length >= SUGGESTION_CONFIG.MAX_TOTAL_SESSIONS_PER_DAY) {
-    fatigueScore += 30;
+  if (daySessions.length >= DAILY_SESSION_LIMITS.MAX_TOTAL_SESSIONS_PER_DAY) {
+    fatigueScore += FATIGUE_SCORING.TOO_MANY_SESSIONS_PENALTY;
     reasons.push(
-      `${daySessions.length} sessions already scheduled (max ${SUGGESTION_CONFIG.MAX_TOTAL_SESSIONS_PER_DAY})`,
+      `${daySessions.length} sessions already scheduled (max ${DAILY_SESSION_LIMITS.MAX_TOTAL_SESSIONS_PER_DAY})`,
     );
   }
 
@@ -353,10 +360,10 @@ function calculateSpacingScore(
     priority: number;
   }[],
   otherSuggestions: SuggestedSession[],
-  userTimezone: string,
+  _userTimezone: string,
 ): { score: number; reasons: string[] } {
   const reasons: string[] = [];
-  let score = 100;
+  let score = SCORING.BASE_SPACING_SCORE;
 
   // Check sessions on the same day
   const sameDaySessions = existingSessions.filter((session) =>
@@ -370,24 +377,26 @@ function calculateSpacingScore(
 
     // Check if sessions overlap (shouldn't happen, but safety check)
     if (hoursBefore < 0 && hoursAfter < 0) {
-      score -= 100; // Overlap penalty
+      score -= SCORING.OVERLAP_PENALTY;
       reasons.push("Overlaps with existing session");
       continue;
     }
 
     // Penalty for too close spacing
-    if (hoursBefore >= 0 && hoursBefore < SUGGESTION_CONFIG.MIN_SPACING_HOURS) {
+    if (hoursBefore >= 0 && hoursBefore < SESSION_SPACING.MIN_SPACING_HOURS) {
       const penalty = Math.round(
-        (1 - hoursBefore / SUGGESTION_CONFIG.MIN_SPACING_HOURS) * 25,
+        (1 - hoursBefore / SESSION_SPACING.MIN_SPACING_HOURS) *
+          SCORING.SPACING_PENALTY_MULTIPLIER,
       );
       score -= penalty;
       reasons.push(
         `Only ${Math.round(hoursBefore * 10) / 10}h after previous session`,
       );
     }
-    if (hoursAfter >= 0 && hoursAfter < SUGGESTION_CONFIG.MIN_SPACING_HOURS) {
+    if (hoursAfter >= 0 && hoursAfter < SESSION_SPACING.MIN_SPACING_HOURS) {
       const penalty = Math.round(
-        (1 - hoursAfter / SUGGESTION_CONFIG.MIN_SPACING_HOURS) * 25,
+        (1 - hoursAfter / SESSION_SPACING.MIN_SPACING_HOURS) *
+          SCORING.SPACING_PENALTY_MULTIPLIER,
       );
       score -= penalty;
       reasons.push(
@@ -397,28 +406,32 @@ function calculateSpacingScore(
 
     // Bonus for ideal spacing
     if (
-      hoursBefore >= SUGGESTION_CONFIG.IDEAL_SPACING_HOURS &&
-      hoursBefore < SUGGESTION_CONFIG.IDEAL_SPACING_HOURS + 2
+      hoursBefore >= SESSION_SPACING.IDEAL_SPACING_HOURS &&
+      hoursBefore <
+        SESSION_SPACING.IDEAL_SPACING_HOURS +
+          SESSION_SPACING.IDEAL_SPACING_BONUS_RANGE_HOURS
     ) {
-      score += 5;
+      score += SCORING.IDEAL_SPACING_BONUS;
       reasons.push("Good spacing from previous session");
     }
     if (
-      hoursAfter >= SUGGESTION_CONFIG.IDEAL_SPACING_HOURS &&
-      hoursAfter < SUGGESTION_CONFIG.IDEAL_SPACING_HOURS + 2
+      hoursAfter >= SESSION_SPACING.IDEAL_SPACING_HOURS &&
+      hoursAfter <
+        SESSION_SPACING.IDEAL_SPACING_HOURS +
+          SESSION_SPACING.IDEAL_SPACING_BONUS_RANGE_HOURS
     ) {
-      score += 5;
+      score += SCORING.IDEAL_SPACING_BONUS;
       reasons.push("Good spacing before next session");
     }
 
     // Extra penalty if both sessions are high priority and too close
     if (
-      proposedPriority >= SUGGESTION_CONFIG.HIGH_PRIORITY_THRESHOLD &&
-      session.priority >= SUGGESTION_CONFIG.HIGH_PRIORITY_THRESHOLD &&
-      (hoursBefore < SUGGESTION_CONFIG.IDEAL_SPACING_HOURS ||
-        hoursAfter < SUGGESTION_CONFIG.IDEAL_SPACING_HOURS)
+      proposedPriority >= DAILY_SESSION_LIMITS.HIGH_PRIORITY_THRESHOLD &&
+      session.priority >= DAILY_SESSION_LIMITS.HIGH_PRIORITY_THRESHOLD &&
+      (hoursBefore < SESSION_SPACING.IDEAL_SPACING_HOURS ||
+        hoursAfter < SESSION_SPACING.IDEAL_SPACING_HOURS)
     ) {
-      score -= 15;
+      score -= SCORING.HIGH_PRIORITY_CLOSE_PENALTY;
       reasons.push("High-priority sessions too close together");
     }
   }
@@ -428,17 +441,26 @@ function calculateSpacingScore(
     const hoursBefore = hoursBetween(proposedStart, suggestion.endTime);
     const hoursAfter = hoursBetween(suggestion.startTime, proposedEnd);
 
-    if (hoursBefore >= 0 && hoursBefore < 1) {
-      score -= 40; // Heavy penalty for consecutive suggestions
+    if (
+      hoursBefore >= 0 &&
+      hoursBefore < SESSION_SPACING.MIN_SUGGESTION_SPACING_HOURS
+    ) {
+      score -= SCORING.CONSECUTIVE_SUGGESTION_PENALTY;
       reasons.push("Too close to another suggestion");
     }
-    if (hoursAfter >= 0 && hoursAfter < 1) {
-      score -= 40;
+    if (
+      hoursAfter >= 0 &&
+      hoursAfter < SESSION_SPACING.MIN_SUGGESTION_SPACING_HOURS
+    ) {
+      score -= SCORING.CONSECUTIVE_SUGGESTION_PENALTY;
       reasons.push("Too close to another suggestion");
     }
   }
 
-  return { score: Math.max(0, Math.min(100, score)), reasons };
+  return {
+    score: Math.max(SCORING.MIN_SCORE, Math.min(SCORING.MAX_SCORE, score)),
+    reasons,
+  };
 }
 
 /**
@@ -480,15 +502,7 @@ async function generateDefaultSuggestions(
     endTime: string;
   }[] = [];
 
-  const dayOrder: Record<string, number> = {
-    MONDAY: 0,
-    TUESDAY: 1,
-    WEDNESDAY: 2,
-    THURSDAY: 3,
-    FRIDAY: 4,
-    SATURDAY: 5,
-    SUNDAY: 6,
-  };
+  const dayOrder: Record<string, number> = DAY_ORDER;
 
   for (const [dayOfWeek, windows] of Object.entries(weeklyAvailability)) {
     if (!Array.isArray(windows)) continue;
@@ -509,7 +523,10 @@ async function generateDefaultSuggestions(
 
   // Sort by day of week
   availabilityWindows.sort((a, b) => {
-    return (dayOrder[a.dayOfWeek] ?? 99) - (dayOrder[b.dayOfWeek] ?? 99);
+    return (
+      (dayOrder[a.dayOfWeek] ?? DAY_ORDER.UNDEFINED_FALLBACK) -
+      (dayOrder[b.dayOfWeek] ?? DAY_ORDER.UNDEFINED_FALLBACK)
+    );
   });
 
   if (availabilityWindows.length === 0) {
@@ -544,7 +561,7 @@ async function generateDefaultSuggestions(
     const title = SESSION_TYPE_LABELS[type];
 
     // Check priority filter
-    const defaultPriority = SUGGESTION_CONFIG.DEFAULT_PRIORITY;
+    const defaultPriority = DEFAULT_SESSION.PRIORITY;
     if (options.minPriority && defaultPriority < options.minPriority) continue;
     if (options.maxPriority && defaultPriority > options.maxPriority) continue;
 
@@ -553,7 +570,11 @@ async function generateDefaultSuggestions(
     today.setHours(0, 0, 0, 0);
 
     // Try to distribute suggestions across different days
-    for (let dayOffset = typeIndex; dayOffset < lookAheadDays; dayOffset += 3) {
+    for (
+      let dayOffset = typeIndex;
+      dayOffset < lookAheadDays;
+      dayOffset += SUGGESTION_LIMITS.DEFAULT_SUGGESTION_DAY_OFFSET
+    ) {
       if (found) break;
 
       const candidateDate = new Date(today);
@@ -573,14 +594,14 @@ async function generateDefaultSuggestions(
         activeSessions,
         userTimezone,
       );
-      if (fatigue.fatigueScore > 50) continue; // Skip days with high fatigue
+      if (fatigue.fatigueScore > FATIGUE_SCORING.SKIP_DAY_THRESHOLD) continue;
 
       for (const window of windowsForDay) {
         if (found) break;
 
         const windowStartMinutes = timeToMinutes(window.startTime);
         const windowEndMinutes = timeToMinutes(window.endTime);
-        const durationMinutes = SUGGESTION_CONFIG.DEFAULT_DURATION_MINUTES;
+        const durationMinutes = DEFAULT_SESSION.DURATION_MINUTES;
 
         if (windowEndMinutes - windowStartMinutes < durationMinutes) {
           continue;
@@ -593,8 +614,11 @@ async function generateDefaultSuggestions(
             (windowEndMinutes - windowStartMinutes - durationMinutes) / 2,
           );
 
-        const slotStartHours = Math.floor(slotStartMinutes / 60);
-        const slotStartMins = slotStartMinutes % 60;
+        const slotStartHours = Math.floor(
+          slotStartMinutes / TIME_CONVERSIONS.MINUTES_PER_HOUR,
+        );
+        const slotStartMins =
+          slotStartMinutes % TIME_CONVERSIONS.MINUTES_PER_HOUR;
 
         const slotStart = convertLocalTimeToUTC(
           candidateDate,
@@ -604,7 +628,9 @@ async function generateDefaultSuggestions(
         );
 
         const slotEnd = new Date(slotStart);
-        slotEnd.setTime(slotEnd.getTime() + durationMinutes * 60 * 1000);
+        slotEnd.setTime(
+          slotEnd.getTime() + durationMinutes * TIME_CONVERSIONS.MS_PER_MINUTE,
+        );
 
         // Skip if in the past
         if (slotStart < new Date()) {
@@ -648,7 +674,7 @@ async function generateDefaultSuggestions(
         // Check spacing from other suggestions
         const tooClose = suggestions.some((existing) => {
           const hoursDiff = hoursBetween(slotStart, existing.startTime);
-          return hoursDiff < SUGGESTION_CONFIG.MIN_SPACING_HOURS;
+          return hoursDiff < SESSION_SPACING.MIN_SPACING_HOURS;
         });
 
         if (tooClose) {
@@ -674,7 +700,8 @@ async function generateDefaultSuggestions(
           endTime: slotEnd,
           priority: defaultPriority,
           description: undefined,
-          score: 50 + Math.floor(spacingResult.score / 2), // Base score + spacing
+          score:
+            SCORING.BASE_DEFAULT_SCORE + Math.floor(spacingResult.score / 2), // Base score + spacing
           reasons: [
             "Default suggestion to get you started",
             ...spacingResult.reasons,
@@ -751,7 +778,8 @@ export async function suggestTimeSlots(
 
   // Set defaults
   const startDate = options.startDate ?? new Date();
-  const lookAheadDays = options.lookAheadDays ?? 14;
+  const lookAheadDays =
+    options.lookAheadDays ?? SUGGESTION_LIMITS.DEFAULT_LOOKAHEAD_DAYS;
 
   // If no patterns detected, generate default suggestions
   if (patterns.length === 0) {
@@ -793,15 +821,18 @@ export async function suggestTimeSlots(
     // Generate suggestions for each week in the look-ahead period
     for (
       let weekOffset = 0;
-      weekOffset < Math.ceil(lookAheadDays / 7);
+      weekOffset < Math.ceil(lookAheadDays / SUGGESTION_LIMITS.DAYS_IN_WEEK);
       weekOffset++
     ) {
       const candidateDate = new Date(windowDate);
-      candidateDate.setDate(candidateDate.getDate() + weekOffset * 7);
+      candidateDate.setDate(
+        candidateDate.getDate() + weekOffset * SUGGESTION_LIMITS.DAYS_IN_WEEK,
+      );
 
       // Skip if beyond look-ahead period
       const daysFromStart = Math.floor(
-        (candidateDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        (candidateDate.getTime() - startDate.getTime()) /
+          TIME_CONVERSIONS.MS_PER_DAY,
       );
       if (daysFromStart < 0 || daysFromStart > lookAheadDays) {
         continue;
@@ -821,7 +852,10 @@ export async function suggestTimeSlots(
       );
 
       const slotEnd = new Date(slotStart);
-      slotEnd.setTime(slotEnd.getTime() + pattern.durationMinutes * 60 * 1000);
+      slotEnd.setTime(
+        slotEnd.getTime() +
+          pattern.durationMinutes * TIME_CONVERSIONS.MS_PER_MINUTE,
+      );
 
       // Skip if in the past
       if (slotStart < new Date()) {
@@ -881,24 +915,29 @@ export async function suggestTimeSlots(
 
       // Calculate overall score
       const reasons: string[] = [];
-      let score = 40; // Base score
+      let score: number = SCORING.BASE_PATTERN_SCORE;
 
       // Pattern frequency bonus (more frequent patterns score higher)
-      const frequencyBonus = Math.min(pattern.frequency * 4, 25);
+      const frequencyBonus = Math.min(
+        pattern.frequency * SCORING.FREQUENCY_BONUS_MULTIPLIER,
+        SCORING.MAX_FREQUENCY_BONUS,
+      );
       score += frequencyBonus;
       reasons.push(
         `Based on ${pattern.frequency} previous ${SESSION_TYPE_LABELS[pattern.type]} session${pattern.frequency > 1 ? "s" : ""}`,
       );
 
       // Success rate bonus (patterns with high completion rate score higher)
-      const successBonus = Math.round(pattern.successRate * 15);
+      const successBonus = Math.round(
+        pattern.successRate * SCORING.SUCCESS_RATE_BONUS_MULTIPLIER,
+      );
       score += successBonus;
-      if (pattern.successRate > 0.8) {
+      if (pattern.successRate > PATTERN_DETECTION.HIGH_SUCCESS_RATE_THRESHOLD) {
         reasons.push("High completion rate for this pattern");
       }
 
       // Spacing score (weighted)
-      score += Math.floor(spacingResult.score * 0.3); // 30% weight
+      score += Math.floor(spacingResult.score * SCORING.SPACING_SCORE_WEIGHT);
       reasons.push(...spacingResult.reasons);
 
       // Fatigue penalty
@@ -907,20 +946,21 @@ export async function suggestTimeSlots(
 
       // Bonus for earlier dates (sooner is better, but not too much)
       const daysFromNow = Math.floor(
-        (slotStart.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+        (slotStart.getTime() - new Date().getTime()) /
+          TIME_CONVERSIONS.MS_PER_DAY,
       );
-      if (daysFromNow <= 3) {
-        score += 5; // Small bonus for near-term slots
+      if (daysFromNow <= SUGGESTION_LIMITS.NEAR_TERM_BONUS_DAYS) {
+        score += SCORING.NEAR_TERM_BONUS;
         reasons.push("Available soon");
       }
 
       // Priority bonus (higher priority patterns get slight bonus, but fatigue already penalizes clustering)
-      if (pattern.priority >= SUGGESTION_CONFIG.HIGH_PRIORITY_THRESHOLD) {
-        score += 3;
+      if (pattern.priority >= DAILY_SESSION_LIMITS.HIGH_PRIORITY_THRESHOLD) {
+        score += SCORING.HIGH_PRIORITY_BONUS;
       }
 
       // Ensure score is within bounds
-      score = Math.max(0, Math.min(100, score));
+      score = Math.max(SCORING.MIN_SCORE, Math.min(SCORING.MAX_SCORE, score));
 
       suggestions.push({
         id: generateSuggestionId(),
@@ -947,7 +987,7 @@ export async function suggestTimeSlots(
     // Check if this suggestion is too close to any already selected suggestion
     const tooClose = filteredSuggestions.some((existing) => {
       const hoursDiff = hoursBetween(suggestion.startTime, existing.startTime);
-      return hoursDiff < SUGGESTION_CONFIG.MIN_SPACING_HOURS;
+      return hoursDiff < SESSION_SPACING.MIN_SPACING_HOURS;
     });
 
     if (!tooClose) {
@@ -955,7 +995,7 @@ export async function suggestTimeSlots(
     }
 
     // Limit total suggestions
-    if (filteredSuggestions.length >= SUGGESTION_CONFIG.MAX_SUGGESTIONS) {
+    if (filteredSuggestions.length >= SUGGESTION_LIMITS.MAX_SUGGESTIONS) {
       break;
     }
   }
