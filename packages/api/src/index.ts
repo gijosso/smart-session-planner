@@ -4,39 +4,27 @@ import type { AppRouter } from "./root";
 
 /**
  * Inference helpers for input types
- * These types can be safely imported in client applications
+ * @example
+ * type PostByIdInput = RouterInputs['post']['byId']
+ *      ^? { id: number }
  */
-export type RouterInputs = inferRouterInputs<AppRouter>;
+type RouterInputs = inferRouterInputs<AppRouter>;
 
 /**
  * Inference helpers for output types
- * These types can be safely imported in client applications
+ * @example
+ * type AllPostsOutput = RouterOutputs['post']['all']
+ *      ^? Post[]
  */
-export type RouterOutputs = inferRouterOutputs<AppRouter>;
+type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-// ============================================================================
-// SERVER-ONLY EXPORTS
-// These should NOT be imported in client applications
-// ============================================================================
-
-/**
- * Main application router (server-only)
- */
+// Server-only exports (should not be imported in client apps)
 export { type AppRouter, appRouter } from "./root";
-
-/**
- * tRPC context creator (server-only)
- */
 export { createTRPCContext } from "./trpc";
 
-// ============================================================================
-// CLIENT-SAFE EXPORTS
-// These can be safely imported in frontend applications
-// ============================================================================
+// Client-safe type exports (safe to import in frontend apps)
+// Note: For runtime values like SESSION_TYPES, import from "@ssp/api/client" instead
+export type { RouterInputs, RouterOutputs };
 
-/**
- * Date utility functions
- * Note: These use Node.js APIs and should only be used server-side
- * For client-side date handling, use a library like date-fns
- */
+// Date utilities (server-side only - uses Node.js APIs)
 export * from "./utils/date";

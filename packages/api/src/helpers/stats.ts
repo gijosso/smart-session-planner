@@ -2,8 +2,6 @@ import type { db } from "@ssp/db/client";
 import { sql } from "@ssp/db";
 import { SESSION_TYPES } from "@ssp/db/schema";
 
-import { withErrorHandling } from "../utils/error";
-
 export interface SessionStats {
   total: number;
   completed: number;
@@ -19,22 +17,26 @@ export interface SessionStats {
  * Get session statistics for a user
  * Optimized: Uses SQL aggregations (COUNT, GROUP BY) instead of fetching all sessions
  *
+ * Performance benefits:
+ * - Runs entirely in database (no data transfer)
+ * - Uses database indexes efficiently (indexes on user_id, user_id+completed, user_id+type, etc.)
+ * - Scales well as session count grows (O(1) data transfer vs O(n))
+ * - Combined query for summary and type breakdown (reduces round trips)
+ *
  * This is server-side optimized and pre-computed on each request.
  * For even better performance, consider:
  * - Caching results with TTL (e.g., Redis) if needed
  * - Materialized views for very large datasets
  */
-export const getSessionStats = async (
+export async function getSessionStats(
   database: typeof db,
   userId: string,
-): Promise<SessionStats> =>
-  withErrorHandling(
-    async () => {
-      // Combined query: Get summary stats and type breakdown in a single query
-      // This reduces database round trips from 2 to 1
-      // Excludes soft-deleted sessions (deleted_at IS NULL)
-      const combinedResult = await database.execute(
-        sql`
+): Promise<SessionStats> {
+  // Combined query: Get summary stats and type breakdown in a single query
+  // This reduces database round trips from 2 to 1
+  // Excludes soft-deleted sessions (deleted_at IS NULL)
+  const combinedResult = await database.execute(
+    sql`
       WITH summary AS (
         SELECT 
           COUNT(*)::integer as total,
@@ -61,59 +63,44 @@ export const getSessionStats = async (
         ) as by_type
       FROM summary s
     `,
-      );
+  );
 
-      // Validate result structure before type assertion
-      if (!combinedResult.rows[0]) {
-        return {
-          total: 0,
-          completed: 0,
-          pending: 0,
-          completionRate: 0,
-          byType: {} as Record<(typeof SESSION_TYPES)[number], number>,
-          averageSpacingHours: null,
-          currentStreakDays: 0,
-          longestStreakDays: 0,
-        };
+  const combinedRow = combinedResult.rows[0] as
+    | {
+        total: number;
+        completed: number;
+        by_type: Record<string, number>;
       }
+    | undefined;
 
-      const row = combinedResult.rows[0];
-      const total = Number(row.total ?? 0);
-      const completed = Number(row.completed ?? 0);
-      const pending = total - completed;
+  const total = Number(combinedRow?.total ?? 0);
+  const completed = Number(combinedRow?.completed ?? 0);
+  const pending = total - completed;
 
-      // Validate by_type is an object
-      const byTypeRaw = row.by_type;
-      const byType =
-        typeof byTypeRaw === "object" &&
-        byTypeRaw !== null &&
-        !Array.isArray(byTypeRaw)
-          ? (byTypeRaw as Record<string, number>)
-          : {};
+  // Initialize all types to 0
+  const byType = {} as Record<(typeof SESSION_TYPES)[number], number>;
+  for (const type of SESSION_TYPES) {
+    byType[type] = 0;
+  }
 
-      // Initialize all types to 0
-      const byTypeResult = {} as Record<(typeof SESSION_TYPES)[number], number>;
-      for (const type of SESSION_TYPES) {
-        byTypeResult[type] = 0;
+  // Populate from database results
+  if (combinedRow?.by_type) {
+    for (const [type, count] of Object.entries(combinedRow.by_type)) {
+      if (SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number])) {
+        byType[type as (typeof SESSION_TYPES)[number]] = Number(count);
       }
+    }
+  }
 
-      // Populate from database results
-      for (const [type, count] of Object.entries(byType)) {
-        if (SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number])) {
-          byTypeResult[type as (typeof SESSION_TYPES)[number]] = Number(count);
-        }
-      }
+  // Calculate completion rate
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-      // Calculate completion rate
-      const completionRate =
-        total > 0 ? Math.round((completed / total) * 100) : 0;
-
-      // Calculate average spacing between consecutive sessions using SQL window functions
-      // This is efficient: runs entirely in database, uses LAG to get previous session
-      // Includes all sessions (not just completed) to show spacing in your schedule
-      // Excludes soft-deleted sessions
-      const spacingResult = await database.execute(
-        sql`
+  // Calculate average spacing between consecutive sessions using SQL window functions
+  // This is efficient: runs entirely in database, uses LAG to get previous session
+  // Includes all sessions (not just completed) to show spacing in your schedule
+  // Excludes soft-deleted sessions
+  const spacingResult = await database.execute(
+    sql`
       WITH ordered_sessions AS (
         SELECT 
           start_time,
@@ -133,34 +120,19 @@ export const getSessionStats = async (
         AVG(spacing_hours)::numeric as avg_spacing_hours
       FROM spacing_calculations
     `,
-      );
+  );
 
-      // Validate spacing result structure before type assertion
-      const spacingRowRaw = spacingResult.rows[0];
-      let averageSpacingHours: number | null = null;
+  const spacingRow = spacingResult.rows[0] as
+    | { avg_spacing_hours: number | null }
+    | undefined;
+  const averageSpacingHours = spacingRow?.avg_spacing_hours ?? null;
 
-      if (spacingRowRaw && typeof spacingRowRaw === "object") {
-        const spacingRow = spacingRowRaw;
-        const avgSpacingRaw = spacingRow.avg_spacing_hours;
-
-        if (avgSpacingRaw !== null && avgSpacingRaw !== undefined) {
-          if (typeof avgSpacingRaw === "number") {
-            averageSpacingHours = avgSpacingRaw;
-          } else if (typeof avgSpacingRaw === "string") {
-            const parsed = Number.parseFloat(avgSpacingRaw);
-            if (!Number.isNaN(parsed)) {
-              averageSpacingHours = parsed;
-            }
-          }
-        }
-      }
-
-      // Calculate streaks using SQL
-      // Groups sessions by day, finds consecutive days, calculates current and longest streak
-      // Uses the "islands" technique: consecutive dates have the same (date - row_number) value
-      // Excludes soft-deleted sessions
-      const streakResult = await database.execute(
-        sql`
+  // Calculate streaks using SQL
+  // Groups sessions by day, finds consecutive days, calculates current and longest streak
+  // Uses the "islands" technique: consecutive dates have the same (date - row_number) value
+  // Excludes soft-deleted sessions
+  const streakResult = await database.execute(
+    sql`
       WITH daily_sessions AS (
         SELECT DISTINCT
           DATE(start_time AT TIME ZONE 'UTC') as session_date
@@ -204,47 +176,29 @@ export const getSessionStats = async (
         COALESCE((SELECT streak_length FROM current_streak_calc WHERE is_current > 0), 0)::integer as current_streak,
         COALESCE((SELECT longest_streak FROM longest_streak_calc), 0)::integer as longest_streak
     `,
-      );
-
-      // Validate streak result structure before type assertion
-      const resultRowRaw = streakResult.rows[0];
-      let currentStreakDays = 0;
-      let longestStreakDays = 0;
-
-      if (resultRowRaw && typeof resultRowRaw === "object") {
-        const resultRow = resultRowRaw;
-
-        const currentStreakRaw = resultRow.current_streak;
-        if (currentStreakRaw !== null && currentStreakRaw !== undefined) {
-          const parsed = Number(currentStreakRaw);
-          if (!Number.isNaN(parsed)) {
-            currentStreakDays = parsed;
-          }
-        }
-
-        const longestStreakRaw = resultRow.longest_streak;
-        if (longestStreakRaw !== null && longestStreakRaw !== undefined) {
-          const parsed = Number(longestStreakRaw);
-          if (!Number.isNaN(parsed)) {
-            longestStreakDays = parsed;
-          }
-        }
-      }
-
-      return {
-        total,
-        completed,
-        pending,
-        completionRate,
-        byType: byTypeResult,
-        averageSpacingHours:
-          averageSpacingHours !== null
-            ? Math.round(averageSpacingHours * 10) / 10
-            : null, // Round to 1 decimal
-        currentStreakDays,
-        longestStreakDays,
-      };
-    },
-    "get session stats",
-    { userId },
   );
+
+  const resultRow = streakResult.rows[0] as
+    | {
+        current_streak: number;
+        longest_streak: number;
+      }
+    | undefined;
+
+  const currentStreakDays = Number(resultRow?.current_streak ?? 0);
+  const longestStreakDays = Number(resultRow?.longest_streak ?? 0);
+
+  return {
+    total,
+    completed,
+    pending,
+    completionRate,
+    byType,
+    averageSpacingHours:
+      averageSpacingHours !== null
+        ? Math.round(averageSpacingHours * 10) / 10
+        : null, // Round to 1 decimal
+    currentStreakDays,
+    longestStreakDays,
+  };
+}

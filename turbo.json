@@ -50,8 +50,7 @@
     "SUPABASE_URL",
     "SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
-    "PORT",
-    "LOG_FORMAT"
+    "PORT"
   ],
   "globalPassThroughEnv": [
     "NODE_ENV",

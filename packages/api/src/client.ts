@@ -13,4 +13,4 @@ export type { DayOfWeek } from "@ssp/db/schema";
 
 export type { WeeklyAvailability } from "@ssp/db/schema";
 
-export type { SuggestedSession } from "./helpers/suggestions/queries";
+export type { SuggestedSession } from "./helpers/suggestions";

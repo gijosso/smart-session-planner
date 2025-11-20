@@ -91,9 +91,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   const windows =
                     day in weeklyAvailability ? weeklyAvailability[day] : [];
                   const slotMinutes = timeToMinutes(slotTime);
-                  const nextSlotMinutes = nextSlotTime
-                    ? timeToMinutes(nextSlotTime)
-                    : 0;
+                  const nextSlotMinutes = timeToMinutes(nextSlotTime);
 
                   // Find windows that overlap with this hour slot
                   const overlappingWindows = windows.filter((window) => {

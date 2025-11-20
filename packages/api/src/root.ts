@@ -4,10 +4,8 @@ import { sessionRouter } from "./router/session";
 import { statsRouter } from "./router/stats";
 import { createTRPCRouter } from "./trpc";
 
-/**
- * Main application router combining all sub-routers
- * This is the root of the tRPC API
- */
+// Explicitly type to avoid portability issues with inferred types
+// Using ReturnType to get the router type without referencing internal tRPC types
 const appRouter: ReturnType<
   typeof createTRPCRouter<{
     auth: typeof authRouter;
@@ -22,6 +20,6 @@ const appRouter: ReturnType<
   stats: statsRouter,
 });
 
-// Export type definition of API for client-side type inference
+// export type definition of API
 export type AppRouter = typeof appRouter;
 export { appRouter };
