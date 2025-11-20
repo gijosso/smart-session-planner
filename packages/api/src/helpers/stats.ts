@@ -1,8 +1,18 @@
 import type { db } from "@ssp/db/client";
-import { sql } from "@ssp/db";
+import { getEndOfDayInTimezone, getStartOfDayInTimezone, sql } from "@ssp/db";
 import { SESSION_TYPES } from "@ssp/db/schema";
 
 import { DatabaseError } from "../utils/error/codes";
+
+export interface TodayStats {
+  total: number;
+  completed: number;
+}
+
+export interface WeekStats {
+  total: number;
+  completed: number;
+}
 
 export interface SessionStats {
   total: number;
@@ -13,6 +23,8 @@ export interface SessionStats {
   averageSpacingHours: number | null; // Average hours between consecutive sessions (null if < 2 sessions)
   currentStreakDays: number; // Current consecutive days with sessions
   longestStreakDays: number; // Longest consecutive days streak
+  today: TodayStats;
+  week: WeekStats;
 }
 
 /**
@@ -33,6 +45,7 @@ export interface SessionStats {
 export async function getSessionStats(
   database: typeof db,
   userId: string,
+  timezone: string,
 ): Promise<SessionStats> {
   // Combined query: Get summary stats and type breakdown in a single query
   // This reduces database round trips from 2 to 1
@@ -95,7 +108,11 @@ export async function getSessionStats(
 
   // Populate from database results
   const byTypeData = combinedRow.by_type;
-  if (byTypeData && typeof byTypeData === "object" && !Array.isArray(byTypeData)) {
+  if (
+    byTypeData &&
+    typeof byTypeData === "object" &&
+    !Array.isArray(byTypeData)
+  ) {
     for (const [type, count] of Object.entries(byTypeData)) {
       if (
         SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number]) &&
@@ -108,6 +125,95 @@ export async function getSessionStats(
 
   // Calculate completion rate
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // Calculate today and week stats (timezone-aware)
+  const now = new Date();
+  const startOfTodayUTC = getStartOfDayInTimezone(now, timezone);
+  const endOfTodayUTC = getEndOfDayInTimezone(now, timezone);
+
+  // Calculate week boundaries (Sunday to Saturday)
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "long",
+  });
+  const parts = formatter.formatToParts(now);
+  const weekday = parts.find((p) => p.type === "weekday")?.value ?? "Sunday";
+  const weekdayMap: Record<string, number> = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
+  const dayOfWeek = weekdayMap[weekday] ?? 0;
+  const todayStart = getStartOfDayInTimezone(now, timezone);
+  const startOfWeekUTC = new Date(
+    todayStart.getTime() - dayOfWeek * 24 * 60 * 60 * 1000,
+  );
+  const endOfWeekUTC = new Date(
+    startOfWeekUTC.getTime() + 7 * 24 * 60 * 60 * 1000,
+  );
+
+  // Get today stats
+  const todayResult = await database.execute(
+    sql`
+      SELECT 
+        COUNT(*)::integer as total,
+        COUNT(*) FILTER (WHERE completed = true)::integer as completed
+      FROM session
+      WHERE user_id = ${userId}
+        AND deleted_at IS NULL
+        AND start_time >= ${startOfTodayUTC}
+        AND start_time < ${endOfTodayUTC}
+    `,
+  );
+
+  const todayRow = todayResult.rows[0];
+  const todayTotal =
+    todayRow && typeof todayRow === "object" && "total" in todayRow
+      ? typeof todayRow.total === "number"
+        ? todayRow.total
+        : Number(todayRow.total ?? 0)
+      : 0;
+  const todayCompleted =
+    todayRow && typeof todayRow === "object" && "completed" in todayRow
+      ? typeof todayRow.completed === "number"
+        ? todayRow.completed
+        : Number(todayRow.completed ?? 0)
+      : 0;
+
+  // Get week stats
+  const weekResult = await database.execute(
+    sql`
+      SELECT 
+        COUNT(*)::integer as total,
+        COUNT(*) FILTER (WHERE completed = true)::integer as completed
+      FROM session
+      WHERE user_id = ${userId}
+        AND deleted_at IS NULL
+        AND start_time >= ${startOfWeekUTC}
+        AND start_time < ${endOfWeekUTC}
+    `,
+  );
+
+  const weekRow = weekResult.rows[0];
+  const weekTotal =
+    weekRow && typeof weekRow === "object" && "total" in weekRow
+      ? typeof weekRow.total === "number"
+        ? weekRow.total
+        : Number(weekRow.total ?? 0)
+      : 0;
+  const weekCompleted =
+    weekRow && typeof weekRow === "object" && "completed" in weekRow
+      ? typeof weekRow.completed === "number"
+        ? weekRow.completed
+        : Number(weekRow.completed ?? 0)
+      : 0;
 
   // Calculate average spacing between consecutive sessions using SQL window functions
   // This is efficient: runs entirely in database, uses LAG to get previous session
@@ -213,6 +319,14 @@ export async function getSessionStats(
           : null,
       currentStreakDays: 0,
       longestStreakDays: 0,
+      today: {
+        total: todayTotal,
+        completed: todayCompleted,
+      },
+      week: {
+        total: weekTotal,
+        completed: weekCompleted,
+      },
     };
   }
 
@@ -237,5 +351,13 @@ export async function getSessionStats(
         : null, // Round to 1 decimal
     currentStreakDays,
     longestStreakDays,
+    today: {
+      total: todayTotal,
+      completed: todayCompleted,
+    },
+    week: {
+      total: weekTotal,
+      completed: weekCompleted,
+    },
   };
 }

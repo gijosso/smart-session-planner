@@ -30,8 +30,10 @@ const SuggestionsHeaderButton = () => {
 export default function Home() {
   // Fetch all shared data at route level
   const statsQuery = useQuery(trpc.stats.sessions.queryOptions());
-  const todaySessionsQuery = useQuery(trpc.session.today.queryOptions());
-  const weekSessionsQuery = useQuery(trpc.session.week.queryOptions());
+  // Limited data for list display (limit: 3)
+  const todaySessionsForListQuery = useQuery(
+    trpc.session.today.queryOptions({ limit: 3 }),
+  );
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
       lookAheadDays: 14,
@@ -46,10 +48,7 @@ export default function Home() {
   }, [suggestionsQuery.data]);
 
   // Show unified loading state
-  const isLoading =
-    statsQuery.isLoading ||
-    todaySessionsQuery.isLoading ||
-    weekSessionsQuery.isLoading;
+  const isLoading = statsQuery.isLoading || todaySessionsForListQuery.isLoading;
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -62,10 +61,7 @@ export default function Home() {
       </Content>
 
       <Content>
-        <SessionRecap
-          todaySessions={todaySessionsQuery.data}
-          weekSessions={weekSessionsQuery.data}
-        />
+        <SessionRecap stats={statsQuery.data} />
       </Content>
 
       <Content>
@@ -85,7 +81,7 @@ export default function Home() {
           </Text>
           <SessionAddButton />
         </View>
-        <SessionTodaysList sessions={todaySessionsQuery.data} />
+        <SessionTodaysList sessions={todaySessionsForListQuery.data} />
       </Content>
 
       <Content>

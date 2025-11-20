@@ -13,28 +13,26 @@ const FILTER_DISPLAY: Record<FilterType, string> = {
   week: "Your schedule this week",
 };
 
-type Session = RouterOutputs["session"]["today"][number];
+type SessionStats = RouterOutputs["stats"]["sessions"];
 
 interface SessionRecapProps {
-  todaySessions?: Session[];
-  weekSessions?: Session[];
+  stats?: SessionStats;
 }
 
-export const SessionRecap: React.FC<SessionRecapProps> = ({
-  todaySessions,
-  weekSessions,
-}) => {
+export const SessionRecap: React.FC<SessionRecapProps> = ({ stats }) => {
   const [filter, setFilter] = useState<FilterType>("today");
-  const sessions = filter === "today" ? todaySessions : weekSessions;
-
   const today = useMemo(() => formatDateShort(new Date()), []);
-  const { totalSessions, completedSessions } = useMemo(
-    () => ({
-      totalSessions: sessions?.length ?? 0,
-      completedSessions: sessions?.filter((s) => s.completed).length ?? 0,
-    }),
-    [sessions],
-  );
+
+  const { totalSessions, completedSessions } = useMemo(() => {
+    if (!stats) {
+      return { totalSessions: 0, completedSessions: 0 };
+    }
+    const periodStats = filter === "today" ? stats.today : stats.week;
+    return {
+      totalSessions: periodStats.total,
+      completedSessions: periodStats.completed,
+    };
+  }, [stats, filter]);
 
   return (
     <View className="flex flex-col">
