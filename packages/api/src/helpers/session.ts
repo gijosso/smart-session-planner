@@ -7,14 +7,13 @@ import {
   eq,
   getEndOfDayInTimezone,
   getStartOfDayInTimezone,
-  getUserTimezone,
   gte,
   isNull,
   lt,
   ne,
   sql,
 } from "@ssp/db";
-import { Profile, Session } from "@ssp/db/schema";
+import { Session } from "@ssp/db/schema";
 
 import {
   ConflictError,
@@ -32,23 +31,6 @@ type DatabaseOrTransaction =
   | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * Get user's timezone from database (defaults to UTC if not set)
- * This helper reduces duplication by centralizing timezone fetching logic
- *
- * @deprecated Use getUserTimezoneFromContext instead for better performance
- * This function is kept for backward compatibility and for cases where context is not available
- */
-export async function getUserTimezoneFromDb(
-  database: typeof db,
-  userId: string,
-): Promise<string> {
-  const profile = await database.query.Profile.findFirst({
-    where: eq(Profile.userId, userId),
-  });
-  return getUserTimezone(profile?.timezone ?? null);
-}
-
-/**
  * Get sessions for today (timezone-aware)
  * @param limit - Maximum number of sessions to return (default: 100, max: 1000)
  * @param offset - Number of sessions to skip (default: 0)
@@ -64,9 +46,14 @@ export async function getSessionsToday(
   const validatedLimit = Math.min(Math.max(1, limit), 1000);
   const validatedOffset = Math.max(0, offset);
 
-  // Get user's timezone (use provided timezone or fetch from database)
-  const userTimezone =
-    timezone ?? (await getUserTimezoneFromDb(database, userId));
+  // Get user's timezone (must be provided - should come from context)
+  if (!timezone) {
+    throw new ValidationError(
+      "Timezone is required. This should be provided from the request context.",
+      { userId, operation: "getSessionsToday" },
+    );
+  }
+  const userTimezone = timezone;
 
   const now = new Date();
   // Calculate start and end of "today" in user's timezone, converted to UTC
@@ -103,9 +90,14 @@ export async function getSessionsWeek(
   const validatedLimit = Math.min(Math.max(1, limit), 1000);
   const validatedOffset = Math.max(0, offset);
 
-  // Get user's timezone (use provided timezone or fetch from database)
-  const userTimezone =
-    timezone ?? (await getUserTimezoneFromDb(database, userId));
+  // Get user's timezone (must be provided - should come from context)
+  if (!timezone) {
+    throw new ValidationError(
+      "Timezone is required. This should be provided from the request context.",
+      { userId, operation: "getSessionsToday" },
+    );
+  }
+  const userTimezone = timezone;
 
   const now = new Date();
 
@@ -193,10 +185,10 @@ export async function createSession(
       input.endTime,
     );
     if (conflicts.length > 0) {
-      throw new ConflictError(
-        `Session conflicts with ${conflicts.length} existing session(s)`,
-        { userId, conflictCount: conflicts.length },
-      );
+      throw new ConflictError("Session conflicts with existing sessions", {
+        userId,
+        conflictCount: conflicts.length,
+      });
     }
   }
 
@@ -214,10 +206,14 @@ export async function createSession(
     .returning();
 
   if (!result) {
-    throw new DatabaseError("Failed to create session", undefined, {
-      userId,
-      operation: "createSession",
-    });
+    throw new DatabaseError(
+      "Failed to create session. Please try again.",
+      undefined,
+      {
+        userId,
+        operation: "createSession",
+      },
+    );
   }
 
   return result;
@@ -251,10 +247,13 @@ export async function updateSession(
   });
 
   if (!existingSession) {
-    throw new NotFoundError("Session not found or access denied", {
-      userId,
-      sessionId: id,
-    });
+    throw new NotFoundError(
+      "Session not found or you do not have access to this session",
+      {
+        userId,
+        sessionId: id,
+      },
+    );
   }
 
   const finalStartTime = updates.startTime ?? existingSession.startTime;
@@ -284,7 +283,7 @@ export async function updateSession(
 
     if (conflicts.length > 0) {
       throw new ConflictError(
-        `Updated session conflicts with ${conflicts.length} existing session(s)`,
+        "Updated session conflicts with existing sessions",
         { userId, sessionId: id, conflictCount: conflicts.length },
       );
     }
@@ -319,11 +318,15 @@ export async function updateSession(
     .returning();
 
   if (!updated) {
-    throw new DatabaseError("Failed to update session", undefined, {
-      userId,
-      sessionId: id,
-      operation: "updateSession",
-    });
+    throw new DatabaseError(
+      "Failed to update session. Please try again.",
+      undefined,
+      {
+        userId,
+        sessionId: id,
+        operation: "updateSession",
+      },
+    );
   }
 
   return updated;
@@ -348,10 +351,13 @@ export async function toggleSessionComplete(
   });
 
   if (!existingSession) {
-    throw new NotFoundError("Session not found or access denied", {
-      userId,
-      sessionId: id,
-    });
+    throw new NotFoundError(
+      "Session not found or you do not have access to this session",
+      {
+        userId,
+        sessionId: id,
+      },
+    );
   }
 
   const newCompletedStatus = !existingSession.completed;
@@ -367,11 +373,15 @@ export async function toggleSessionComplete(
     .returning();
 
   if (!updated) {
-    throw new DatabaseError("Failed to toggle session completion", undefined, {
-      userId,
-      sessionId: id,
-      operation: "toggleSessionComplete",
-    });
+    throw new DatabaseError(
+      "Failed to toggle session completion. Please try again.",
+      undefined,
+      {
+        userId,
+        sessionId: id,
+        operation: "toggleSessionComplete",
+      },
+    );
   }
 
   return updated;
@@ -396,10 +406,13 @@ export async function deleteSession(
   });
 
   if (!existingSession) {
-    throw new NotFoundError("Session not found or access denied", {
-      userId,
-      sessionId: id,
-    });
+    throw new NotFoundError(
+      "Session not found or you do not have access to this session",
+      {
+        userId,
+        sessionId: id,
+      },
+    );
   }
 
   const [deleted] = await database
@@ -412,11 +425,15 @@ export async function deleteSession(
     .returning();
 
   if (!deleted) {
-    throw new DatabaseError("Failed to delete session", undefined, {
-      userId,
-      sessionId: id,
-      operation: "deleteSession",
-    });
+    throw new DatabaseError(
+      "Failed to delete session. Please try again.",
+      undefined,
+      {
+        userId,
+        sessionId: id,
+        operation: "deleteSession",
+      },
+    );
   }
 
   return deleted;

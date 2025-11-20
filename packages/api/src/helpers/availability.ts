@@ -3,6 +3,8 @@ import type { WeeklyAvailability } from "@ssp/db/schema";
 import { eq } from "@ssp/db";
 import { Availability } from "@ssp/db/schema";
 
+import { DatabaseError } from "../utils/error/codes";
+
 /**
  * Type that accepts both database and transaction objects
  * Used for functions that need to work within transactions
@@ -89,7 +91,14 @@ export async function setWeeklyAvailability(
         .returning();
 
       if (!updated) {
-        throw new Error("Failed to update availability");
+        throw new DatabaseError(
+          "Failed to update availability. Please try again.",
+          undefined,
+          {
+            userId,
+            operation: "setWeeklyAvailability",
+          },
+        );
       }
 
       return updated;
@@ -104,7 +113,14 @@ export async function setWeeklyAvailability(
       .returning();
 
     if (!created) {
-      throw new Error("Failed to create availability");
+      throw new DatabaseError(
+        "Failed to create availability. Please try again.",
+        undefined,
+        {
+          userId,
+          operation: "setWeeklyAvailability",
+        },
+      );
     }
 
     return created;

@@ -35,6 +35,8 @@ export const sessionRouter = {
     .input(paginationInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
+      // Input validation is handled by Zod schema (min 1, max 1000 for limit, min 0 for offset)
+      // Defaults are applied by the schema if input is undefined
       const limit = input?.limit ?? 100;
       const offset = input?.offset ?? 0;
       // Timezone is already available in context from protectedProcedure middleware
@@ -55,6 +57,8 @@ export const sessionRouter = {
     .input(paginationInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
+      // Input validation is handled by Zod schema (min 1, max 1000 for limit, min 0 for offset)
+      // Defaults are applied by the schema if input is undefined
       const limit = input?.limit ?? 100;
       const offset = input?.offset ?? 0;
       // Timezone is already available in context from protectedProcedure middleware

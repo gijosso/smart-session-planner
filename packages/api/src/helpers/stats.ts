@@ -2,6 +2,8 @@ import type { db } from "@ssp/db/client";
 import { sql } from "@ssp/db";
 import { SESSION_TYPES } from "@ssp/db/schema";
 
+import { DatabaseError } from "../utils/error/codes";
+
 export interface SessionStats {
   total: number;
   completed: number;
@@ -68,7 +70,11 @@ export async function getSessionStats(
   // Type guard for query result
   const combinedRow = combinedResult.rows[0];
   if (!combinedRow || typeof combinedRow !== "object") {
-    throw new Error("Unexpected database result format");
+    throw new DatabaseError(
+      "Unexpected database result format when fetching session statistics",
+      undefined,
+      { userId, operation: "getSessionStats" },
+    );
   }
 
   const total =

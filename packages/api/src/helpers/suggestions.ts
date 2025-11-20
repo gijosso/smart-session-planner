@@ -22,8 +22,9 @@ import {
   hoursBetween,
   timeToMinutes,
 } from "../utils/date";
+import { ValidationError } from "../utils/error/codes";
 import { logger } from "../utils/logger";
-import { checkSessionConflicts, getUserTimezoneFromDb } from "./session";
+import { checkSessionConflicts } from "./session";
 import { isWithinAvailability } from "./suggestions/availability";
 import { detectPatterns } from "./suggestions/pattern-detection";
 import {
@@ -37,7 +38,6 @@ import {
  * This can be directly used to prefill a session creation form
  */
 export interface SuggestedSession {
-  id: string; // Unique ID for this suggestion (for accepting it later)
   title: string;
   type: SessionType;
   startTime: Date;
@@ -73,13 +73,6 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   READING: "Reading",
   OTHER: "Other",
 };
-
-/**
- * Generate a unique suggestion ID
- */
-function generateSuggestionId(): string {
-  return `suggestion_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
 
 /**
  * Generate default suggestions when no patterns are detected
@@ -303,7 +296,6 @@ async function generateDefaultSuggestions(
 
         // Found a valid slot
         suggestions.push({
-          id: generateSuggestionId(),
           title,
           type,
           startTime: slotStart,
@@ -340,9 +332,14 @@ export async function suggestTimeSlots(
   options: SuggestionOptions = {},
   timezone?: string,
 ): Promise<SuggestedSession[]> {
-  // Get user's timezone (use provided timezone or fetch from database)
-  const userTimezone =
-    timezone ?? (await getUserTimezoneFromDb(database, userId));
+  // Get user's timezone (must be provided - should come from context)
+  if (!timezone) {
+    throw new ValidationError(
+      "Timezone is required. This should be provided from the request context.",
+      { userId, operation: "suggestTimeSlots" },
+    );
+  }
+  const userTimezone = timezone;
 
   // Get user's availability
   const availability = await database.query.Availability.findFirst({
@@ -551,7 +548,6 @@ export async function suggestTimeSlots(
       const score = scoreResult.score;
 
       suggestions.push({
-        id: generateSuggestionId(),
         title: pattern.title,
         type: pattern.type,
         startTime: slotStart,

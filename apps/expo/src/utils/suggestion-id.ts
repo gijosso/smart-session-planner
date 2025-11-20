@@ -1,17 +1,15 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import type { SessionType } from "@ssp/api/client";
+import type { SessionType, SuggestedSession } from "@ssp/api/client";
 
+import type { SuggestionWithId } from "~/types";
 import { trpc } from "~/utils/api";
 
 /**
  * Generate a unique ID for a suggestion based on its time range
  * This creates an idempotent ID that will be the same for the same time slot
  */
-export function generateSuggestionId(suggestion: {
-  startTime: Date;
-  endTime: Date;
-}): string {
+export function generateSuggestionId(suggestion: SuggestedSession): string {
   // Use timestamp combination as idempotent ID
   // Same time slot will always generate the same ID
   // No collisions
@@ -22,9 +20,9 @@ export function generateSuggestionId(suggestion: {
  * Add idempotency IDs to suggestions array
  * Transforms suggestions to include a unique ID for React Query tracking
  */
-export function addSuggestionIds<T extends { startTime: Date; endTime: Date }>(
-  suggestions: T[],
-): (T & { id: string })[] {
+export function addSuggestionIds(
+  suggestions: SuggestedSession[],
+): SuggestionWithId[] {
   return suggestions.map((suggestion) => ({
     ...suggestion,
     id: generateSuggestionId(suggestion),

@@ -28,7 +28,7 @@ export const availabilityRouter = {
     if (!availability) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Availability not found",
+        message: "Availability not found for this user",
       });
     }
 
