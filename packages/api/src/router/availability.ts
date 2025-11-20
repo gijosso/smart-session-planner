@@ -9,8 +9,8 @@ import {
   setWeeklyAvailability,
 } from "../helpers/availability";
 import { protectedProcedure } from "../trpc";
-import { handleAsyncOperation } from "../utils/db-errors";
 import { getUserId } from "../utils/context";
+import { handleAsyncOperation } from "../utils/error";
 
 export const availabilityRouter = {
   /**

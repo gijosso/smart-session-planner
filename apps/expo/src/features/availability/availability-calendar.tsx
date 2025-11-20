@@ -71,7 +71,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           {timeSlots.map((slotTime, slotIndex) => {
             const nextSlotTime =
               slotIndex < timeSlots.length - 1
-                ? timeSlots[slotIndex + 1]
+                ? (timeSlots[slotIndex + 1] ?? "24:00:00")
                 : "24:00:00";
 
             return (

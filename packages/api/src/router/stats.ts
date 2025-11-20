@@ -3,7 +3,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { getSessionStats } from "../helpers/stats";
 import { protectedProcedure } from "../trpc";
 import { getUserId } from "../utils/context";
-import { handleAsyncOperation } from "../utils/db-errors";
+import { handleAsyncOperation } from "../utils/error";
 
 export const statsRouter = {
   /**

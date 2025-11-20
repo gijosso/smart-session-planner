@@ -17,6 +17,7 @@ import { db } from "@ssp/db/client";
 import { Profile } from "@ssp/db/schema";
 
 import { TIMING_MIDDLEWARE } from "./constants/trpc";
+import { isDevelopment } from "./utils/error/codes";
 import { logger } from "./utils/logger";
 import { checkRateLimit } from "./utils/rate-limit";
 
@@ -62,16 +63,27 @@ export async function createTRPCContext(opts: {
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-  errorFormatter: ({ shape, error }) => ({
-    ...shape,
-    data: {
-      ...shape.data,
-      zodError:
-        error.cause instanceof ZodError
-          ? z.flattenError(error.cause as ZodError<Record<string, unknown>>)
-          : null,
-    },
-  }),
+  errorFormatter: ({ shape, error }) => {
+    const isDev = isDevelopment();
+
+    // In production, remove stack traces and sanitize error details
+    const sanitizedShape = {
+      ...shape,
+      // Remove stack trace in production
+      stack: isDev ? (shape as { stack?: string }).stack : undefined,
+      data: {
+        ...shape.data,
+        zodError:
+          error.cause instanceof ZodError
+            ? z.flattenError(error.cause as ZodError<Record<string, unknown>>)
+            : null,
+        // Remove nested error details in production
+        ...(isDev ? {} : { cause: undefined }),
+      },
+    };
+
+    return sanitizedShape;
+  },
 });
 
 /**
@@ -124,41 +136,35 @@ export const publicProcedure: typeof t.procedure =
   t.procedure.use(timingMiddleware);
 
 /**
- * Protected (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- * Also fetches and caches the user's timezone in context for quick lookup.
- *
- * @see https://trpc.io/docs/procedures
+ * Middleware to ensure user is authenticated and add timezone to context
+ * This combines authentication check with timezone fetching
+ * Fetches and caches the user's timezone in context to avoid repeated database queries
  */
-export const protectedProcedure: typeof t.procedure = t.procedure
-  .use(timingMiddleware)
-  .use(async ({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
+const authAndTimezoneMiddleware = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
 
-    // Fetch user's timezone once and cache it in context
-    // This avoids repeated database queries for timezone lookups
-    // Timezone is guaranteed to be set after this middleware
-    let timezone = ctx.timezone;
-    if (!timezone) {
-      const profile = await db.query.Profile.findFirst({
-        where: eq(Profile.userId, ctx.session.user.id),
-      });
-      timezone = getUserTimezone(profile?.timezone ?? null);
-    }
-
-    return next({
-      ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-        // Add timezone to context for quick lookup (guaranteed to be set)
-        timezone, // TypeScript now knows this is string, not string | undefined
-      },
+  // Fetch user's timezone once and cache it in context
+  // This avoids repeated database queries for timezone lookups
+  // Timezone is guaranteed to be set after this middleware
+  let timezone = ctx.timezone;
+  if (!timezone) {
+    const profile = await db.query.Profile.findFirst({
+      where: eq(Profile.userId, ctx.session.user.id),
     });
+    timezone = getUserTimezone(profile?.timezone ?? null);
+  }
+
+  return next({
+    ctx: {
+      // infers the `session` as non-nullable
+      session: { ...ctx.session, user: ctx.session.user },
+      // Add timezone to context for quick lookup (guaranteed to be set)
+      timezone, // TypeScript now knows this is string, not string | undefined
+    },
   });
+});
 
 /**
  * Rate limiting middleware for mutations
@@ -188,27 +194,7 @@ const rateLimitMiddleware = t.middleware(async ({ ctx, next }) => {
  * Protected procedure with rate limiting for mutations
  * Use this for mutation endpoints to prevent abuse
  */
-export const protectedMutationProcedure: typeof t.procedure = t.procedure
+export const protectedProcedure: typeof t.procedure = t.procedure
   .use(timingMiddleware)
   .use(rateLimitMiddleware)
-  .use(async ({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-
-    // Fetch user's timezone once and cache it in context
-    let timezone = ctx.timezone;
-    if (!timezone) {
-      const profile = await db.query.Profile.findFirst({
-        where: eq(Profile.userId, ctx.session.user.id),
-      });
-      timezone = getUserTimezone(profile?.timezone ?? null);
-    }
-
-    return next({
-      ctx: {
-        session: { ...ctx.session, user: ctx.session.user },
-        timezone,
-      },
-    });
-  });
+  .use(authAndTimezoneMiddleware);

@@ -51,13 +51,14 @@ export function invalidateSuggestionById(
   queryClient.setQueryData(queryOptions.queryKey, (oldData) => {
     if (!oldData) return oldData;
 
-    // Add IDs to old data if they don't have them
+    // Add IDs to old data if they don't have them (for React Query tracking)
     const oldDataWithIds = addSuggestionIds(oldData);
 
-    // Filter out the suggestion by ID and remove IDs before returning
-    return oldDataWithIds
-      .filter((suggestion) => suggestion.id !== suggestionId)
-      .map(({ id: _id, ...suggestion }) => suggestion); // Remove ID before returning to match API format
+    // Filter out the suggestion by ID
+    // Keep IDs as they're part of the SuggestedSession type from the API
+    return oldDataWithIds.filter(
+      (suggestion) => suggestion.id !== suggestionId,
+    );
   });
 }
 

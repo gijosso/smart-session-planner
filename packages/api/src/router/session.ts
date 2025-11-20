@@ -21,9 +21,9 @@ import {
   updateSession,
 } from "../helpers/session";
 import { suggestTimeSlots } from "../helpers/suggestions";
-import { protectedMutationProcedure, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 import { getUserId } from "../utils/context";
-import { handleAsyncOperation } from "../utils/db-errors";
+import { handleAsyncOperation } from "../utils/error";
 
 export const sessionRouter = {
   /**
@@ -84,7 +84,7 @@ export const sessionRouter = {
    * Create a new session
    * Optionally allows conflicts (default: false - conflicts will throw error)
    */
-  create: protectedMutationProcedure
+  create: protectedProcedure
     .input(createSessionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -103,7 +103,7 @@ export const sessionRouter = {
    * Update a session (only if it belongs to the authenticated user)
    * Optionally allows conflicts (default: false - conflicts will throw error)
    */
-  update: protectedMutationProcedure
+  update: protectedProcedure
     .input(updateSessionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -122,7 +122,7 @@ export const sessionRouter = {
   /**
    * Toggle completion status of a session
    */
-  toggleComplete: protectedMutationProcedure
+  toggleComplete: protectedProcedure
     .input(sessionIdInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -136,7 +136,7 @@ export const sessionRouter = {
   /**
    * Delete a session (only if it belongs to the authenticated user)
    */
-  delete: protectedMutationProcedure
+  delete: protectedProcedure
     .input(sessionIdInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -193,7 +193,7 @@ export const sessionRouter = {
    * Accept a suggestion and create a session from it
    * Takes suggestion details and creates the session, optionally allowing field overrides
    */
-  acceptSuggestion: protectedMutationProcedure
+  acceptSuggestion: protectedProcedure
     .input(acceptSuggestionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);

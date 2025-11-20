@@ -1,11 +1,12 @@
 import { randomBytes } from "crypto";
 import type { TRPCRouterRecord } from "@trpc/server";
 
-import { ANONYMOUS_USER } from "../constants/auth";
 import {
-  signUpAnonymouslyInputSchema,
   refreshTokenInputSchema,
+  signUpAnonymouslyInputSchema,
 } from "@ssp/validators";
+
+import { ANONYMOUS_USER } from "../constants/auth";
 import { createUserInDatabase } from "../helpers/auth";
 import {
   createSupabaseUser,
@@ -14,13 +15,14 @@ import {
   signInUser,
 } from "../helpers/supabase";
 import { publicProcedure } from "../trpc";
-import { handleAuthError, handleDatabaseError } from "../utils/db-errors";
+import { handleAuthError, handleDatabaseError } from "../utils/error";
 
 export const authRouter = {
   getSession: publicProcedure.query(({ ctx }) => {
     return getUserSession(ctx.session);
   }),
-  signUpAnonymously: publicProcedure.input(signUpAnonymouslyInputSchema)
+  signUpAnonymously: publicProcedure
+    .input(signUpAnonymouslyInputSchema)
     .mutation(async ({ ctx, input = {} }) => {
       const anonymousEmail = `${ANONYMOUS_USER.EMAIL_PREFIX}${randomBytes(ANONYMOUS_USER.EMAIL_RANDOM_BYTES).toString("hex")}${ANONYMOUS_USER.EMAIL_DOMAIN}`;
       const anonymousPassword = randomBytes(
@@ -67,7 +69,8 @@ export const authRouter = {
         handleAuthError(error, "sign in anonymous user");
       }
     }),
-  refreshToken: publicProcedure.input(refreshTokenInputSchema)
+  refreshToken: publicProcedure
+    .input(refreshTokenInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
         return await refreshUserToken(ctx.auth, input.refreshToken);

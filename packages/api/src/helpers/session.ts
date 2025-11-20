@@ -16,6 +16,13 @@ import {
 } from "@ssp/db";
 import { Profile, Session } from "@ssp/db/schema";
 
+import {
+  ConflictError,
+  DatabaseError,
+  NotFoundError,
+  ValidationError,
+} from "../utils/error/codes";
+
 /**
  * Type that accepts both database and transaction objects
  * Used for functions that need to work within transactions
@@ -186,8 +193,9 @@ export async function createSession(
       input.endTime,
     );
     if (conflicts.length > 0) {
-      throw new Error(
+      throw new ConflictError(
         `Session conflicts with ${conflicts.length} existing session(s)`,
+        { userId, conflictCount: conflicts.length },
       );
     }
   }
@@ -206,7 +214,10 @@ export async function createSession(
     .returning();
 
   if (!result) {
-    throw new Error("Failed to create session");
+    throw new DatabaseError("Failed to create session", undefined, {
+      userId,
+      operation: "createSession",
+    });
   }
 
   return result;
@@ -240,14 +251,22 @@ export async function updateSession(
   });
 
   if (!existingSession) {
-    throw new Error("Session not found or access denied");
+    throw new NotFoundError("Session not found or access denied", {
+      userId,
+      sessionId: id,
+    });
   }
 
   const finalStartTime = updates.startTime ?? existingSession.startTime;
   const finalEndTime = updates.endTime ?? existingSession.endTime;
 
   if (finalEndTime <= finalStartTime) {
-    throw new Error("End time must be after start time");
+    throw new ValidationError("End time must be after start time", {
+      userId,
+      sessionId: id,
+      startTime: finalStartTime.toISOString(),
+      endTime: finalEndTime.toISOString(),
+    });
   }
 
   const timesAreChanging =
@@ -264,8 +283,9 @@ export async function updateSession(
     );
 
     if (conflicts.length > 0) {
-      throw new Error(
+      throw new ConflictError(
         `Updated session conflicts with ${conflicts.length} existing session(s)`,
+        { userId, sessionId: id, conflictCount: conflicts.length },
       );
     }
   }
@@ -299,7 +319,11 @@ export async function updateSession(
     .returning();
 
   if (!updated) {
-    throw new Error("Failed to update session");
+    throw new DatabaseError("Failed to update session", undefined, {
+      userId,
+      sessionId: id,
+      operation: "updateSession",
+    });
   }
 
   return updated;
@@ -324,7 +348,10 @@ export async function toggleSessionComplete(
   });
 
   if (!existingSession) {
-    throw new Error("Session not found or access denied");
+    throw new NotFoundError("Session not found or access denied", {
+      userId,
+      sessionId: id,
+    });
   }
 
   const newCompletedStatus = !existingSession.completed;
@@ -340,7 +367,11 @@ export async function toggleSessionComplete(
     .returning();
 
   if (!updated) {
-    throw new Error("Failed to toggle session completion");
+    throw new DatabaseError("Failed to toggle session completion", undefined, {
+      userId,
+      sessionId: id,
+      operation: "toggleSessionComplete",
+    });
   }
 
   return updated;
@@ -365,7 +396,10 @@ export async function deleteSession(
   });
 
   if (!existingSession) {
-    throw new Error("Session not found or access denied");
+    throw new NotFoundError("Session not found or access denied", {
+      userId,
+      sessionId: id,
+    });
   }
 
   const [deleted] = await database
@@ -378,7 +412,11 @@ export async function deleteSession(
     .returning();
 
   if (!deleted) {
-    throw new Error("Failed to delete session");
+    throw new DatabaseError("Failed to delete session", undefined, {
+      userId,
+      sessionId: id,
+      operation: "deleteSession",
+    });
   }
 
   return deleted;
