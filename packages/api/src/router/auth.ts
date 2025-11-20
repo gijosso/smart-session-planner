@@ -1,8 +1,11 @@
 import { randomBytes } from "crypto";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { z } from "zod/v4";
 
-import { ANONYMOUS_USER, TIMEZONE } from "../constants/auth";
+import { ANONYMOUS_USER } from "../constants/auth";
+import {
+  signUpAnonymouslyInputSchema,
+  refreshTokenInputSchema,
+} from "@ssp/validators";
 import { createUserInDatabase } from "../helpers/auth";
 import {
   createSupabaseUser,
@@ -17,14 +20,7 @@ export const authRouter = {
   getSession: publicProcedure.query(({ ctx }) => {
     return getUserSession(ctx.session);
   }),
-  signUpAnonymously: publicProcedure
-    .input(
-      z
-        .object({
-          timezone: z.string().max(TIMEZONE.MAX_LENGTH).optional(), // IANA timezone string (e.g., "America/New_York")
-        })
-        .optional(),
-    )
+  signUpAnonymously: publicProcedure.input(signUpAnonymouslyInputSchema)
     .mutation(async ({ ctx, input = {} }) => {
       const anonymousEmail = `${ANONYMOUS_USER.EMAIL_PREFIX}${randomBytes(ANONYMOUS_USER.EMAIL_RANDOM_BYTES).toString("hex")}${ANONYMOUS_USER.EMAIL_DOMAIN}`;
       const anonymousPassword = randomBytes(
@@ -71,12 +67,7 @@ export const authRouter = {
         handleAuthError(error, "sign in anonymous user");
       }
     }),
-  refreshToken: publicProcedure
-    .input(
-      z.object({
-        refreshToken: z.string(),
-      }),
-    )
+  refreshToken: publicProcedure.input(refreshTokenInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
         return await refreshUserToken(ctx.auth, input.refreshToken);

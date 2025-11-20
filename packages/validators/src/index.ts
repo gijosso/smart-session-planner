@@ -1,8 +1,34 @@
-import { z } from "zod/v4";
+/**
+ * Validators package - Shared validation schemas for frontend and backend
+ */
 
-export const unused = z.string().describe(
-  `This lib is currently not used as we use drizzle-zod for simple schemas
-   But as your application grows and you need other validators to share
-   with back and frontend, you can put them in here
-  `,
-);
+// Constants
+export {
+  SESSION_LIMITS,
+  SUGGESTION_INPUT_LIMITS,
+  TIMEZONE,
+} from "./constants";
+
+// Session validators
+export {
+  sessionFormSchema,
+  sessionIdInputSchema,
+  createSessionInputSchema,
+  updateSessionInputSchema,
+  checkConflictsInputSchema,
+  suggestTimeSlotsInputSchema,
+  acceptSuggestionInputSchema,
+  type SessionFormValues,
+} from "./session";
+
+// Availability validators
+export { availabilityFormSchema } from "./availability";
+
+// Auth validators
+export {
+  signUpAnonymouslyInputSchema,
+  refreshTokenInputSchema,
+} from "./auth";
+
+// Common validators
+export { paginationInputSchema } from "./common";

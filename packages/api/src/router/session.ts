@@ -1,9 +1,15 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { z } from "zod/v4";
 
-import { CreateSessionSchema, SESSION_TYPES } from "@ssp/db/schema";
+import {
+  acceptSuggestionInputSchema,
+  checkConflictsInputSchema,
+  createSessionInputSchema,
+  paginationInputSchema,
+  sessionIdInputSchema,
+  suggestTimeSlotsInputSchema,
+  updateSessionInputSchema,
+} from "@ssp/validators";
 
-import { SESSION_LIMITS, SUGGESTION_INPUT_LIMITS } from "../constants/session";
 import {
   checkSessionConflicts,
   createSession,
@@ -26,14 +32,7 @@ export const sessionRouter = {
    * Supports pagination with limit and offset
    */
   today: protectedProcedure
-    .input(
-      z
-        .object({
-          limit: z.number().int().min(1).max(1000).optional().default(100),
-          offset: z.number().int().min(0).optional().default(0),
-        })
-        .optional(),
-    )
+    .input(paginationInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       const limit = input?.limit ?? 100;
@@ -53,14 +52,7 @@ export const sessionRouter = {
    * Supports pagination with limit and offset
    */
   week: protectedProcedure
-    .input(
-      z
-        .object({
-          limit: z.number().int().min(1).max(1000).optional().default(100),
-          offset: z.number().int().min(0).optional().default(0),
-        })
-        .optional(),
-    )
+    .input(paginationInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       const limit = input?.limit ?? 100;
@@ -78,7 +70,7 @@ export const sessionRouter = {
    * Get a session by ID (only if it belongs to the authenticated user)
    */
   byId: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(sessionIdInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       return handleAsyncOperation(
@@ -93,14 +85,7 @@ export const sessionRouter = {
    * Optionally allows conflicts (default: false - conflicts will throw error)
    */
   create: protectedMutationProcedure
-    .input(
-      CreateSessionSchema.extend({
-        allowConflicts: z.boolean().optional().default(false),
-      }).refine((data) => data.endTime > data.startTime, {
-        message: "End time must be after start time",
-        path: ["endTime"],
-      }),
-    )
+    .input(createSessionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       const { allowConflicts, ...sessionInput } = input;
@@ -119,56 +104,7 @@ export const sessionRouter = {
    * Optionally allows conflicts (default: false - conflicts will throw error)
    */
   update: protectedMutationProcedure
-    .input(
-      z
-        .object({
-          id: z.string(),
-          title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH).optional(),
-          type: z.enum(SESSION_TYPES).optional(),
-          startTime: z.coerce.date().optional(),
-          endTime: z.coerce.date().optional(),
-          completed: z.boolean().optional(),
-          priority: z.coerce
-            .number()
-            .int()
-            .min(SESSION_LIMITS.MIN_PRIORITY)
-            .max(SESSION_LIMITS.MAX_PRIORITY)
-            .optional(),
-          description: z.string().optional(),
-          allowConflicts: z.boolean().optional().default(false),
-        })
-        .refine(
-          (data) => {
-            // Validate that at least one field is being updated
-            const hasUpdates =
-              data.title !== undefined ||
-              data.type !== undefined ||
-              data.startTime !== undefined ||
-              data.endTime !== undefined ||
-              data.completed !== undefined ||
-              data.priority !== undefined ||
-              data.description !== undefined;
-            return hasUpdates;
-          },
-          {
-            message: "At least one field must be provided for update",
-            path: ["id"],
-          },
-        )
-        .refine(
-          (data) => {
-            // If both startTime and endTime are provided, validate the range
-            if (data.startTime && data.endTime) {
-              return data.endTime > data.startTime;
-            }
-            return true;
-          },
-          {
-            message: "End time must be after start time",
-            path: ["endTime"],
-          },
-        ),
-    )
+    .input(updateSessionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       const { id, allowConflicts, ...updates } = input;
@@ -187,7 +123,7 @@ export const sessionRouter = {
    * Toggle completion status of a session
    */
   toggleComplete: protectedMutationProcedure
-    .input(z.object({ id: z.string() }))
+    .input(sessionIdInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       return handleAsyncOperation(
@@ -201,7 +137,7 @@ export const sessionRouter = {
    * Delete a session (only if it belongs to the authenticated user)
    */
   delete: protectedMutationProcedure
-    .input(z.object({ id: z.string() }))
+    .input(sessionIdInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       return handleAsyncOperation(
@@ -215,18 +151,7 @@ export const sessionRouter = {
    * Check if a time range conflicts with existing sessions
    */
   checkConflicts: protectedProcedure
-    .input(
-      z
-        .object({
-          startTime: z.coerce.date(),
-          endTime: z.coerce.date(),
-          excludeSessionId: z.string().optional(),
-        })
-        .refine((data) => data.endTime > data.startTime, {
-          message: "End time must be after start time",
-          path: ["endTime"],
-        }),
-    )
+    .input(checkConflictsInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       return handleAsyncOperation(
@@ -253,31 +178,7 @@ export const sessionRouter = {
    * Improved algorithm considers availability, priority, and fatigue heuristics
    */
   suggest: protectedProcedure
-    .input(
-      z.object({
-        startDate: z.coerce.date().optional(),
-        lookAheadDays: z
-          .number()
-          .int()
-          .min(SUGGESTION_INPUT_LIMITS.MIN_LOOKAHEAD_DAYS)
-          .max(SUGGESTION_INPUT_LIMITS.MAX_LOOKAHEAD_DAYS)
-          .optional()
-          .default(SUGGESTION_INPUT_LIMITS.DEFAULT_LOOKAHEAD_DAYS),
-        preferredTypes: z.array(z.enum(SESSION_TYPES)).optional(),
-        minPriority: z
-          .number()
-          .int()
-          .min(SUGGESTION_INPUT_LIMITS.MIN_PRIORITY)
-          .max(SUGGESTION_INPUT_LIMITS.MAX_PRIORITY)
-          .optional(),
-        maxPriority: z
-          .number()
-          .int()
-          .min(SUGGESTION_INPUT_LIMITS.MIN_PRIORITY)
-          .max(SUGGESTION_INPUT_LIMITS.MAX_PRIORITY)
-          .optional(),
-      }),
-    )
+    .input(suggestTimeSlotsInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       // Timezone is already available in context from protectedProcedure middleware
@@ -293,27 +194,7 @@ export const sessionRouter = {
    * Takes suggestion details and creates the session, optionally allowing field overrides
    */
   acceptSuggestion: protectedMutationProcedure
-    .input(
-      z
-        .object({
-          suggestionId: z.string(), // ID for tracking which suggestion was accepted
-          title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH),
-          type: z.enum(SESSION_TYPES),
-          startTime: z.coerce.date(),
-          endTime: z.coerce.date(),
-          priority: z.coerce
-            .number()
-            .int()
-            .min(SESSION_LIMITS.MIN_PRIORITY)
-            .max(SESSION_LIMITS.MAX_PRIORITY),
-          description: z.string().optional(),
-          allowConflicts: z.boolean().optional().default(false),
-        })
-        .refine((data) => data.endTime > data.startTime, {
-          message: "End time must be after start time",
-          path: ["endTime"],
-        }),
-    )
+    .input(acceptSuggestionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
       const sessionData = {

@@ -5,19 +5,11 @@
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
-interface LogContext {
-  [key: string]: unknown;
-}
+type LogContext = Record<string, unknown>;
 
 class Logger {
   private log(level: LogLevel, message: string, context?: LogContext): void {
     const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      level,
-      message,
-      ...context,
-    };
 
     // In production, send to logging service
     // For now, use console with structured output
@@ -45,4 +37,3 @@ class Logger {
 }
 
 export const logger = new Logger();
-

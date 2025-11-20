@@ -4,7 +4,7 @@ import type {
   SessionType,
   WeeklyAvailability,
 } from "@ssp/db/schema";
-import { and, eq, getUserTimezone, sql } from "@ssp/db";
+import { and, eq, sql } from "@ssp/db";
 import { Availability, Session } from "@ssp/db/schema";
 
 import { TIME_CONVERSIONS } from "../constants/date";

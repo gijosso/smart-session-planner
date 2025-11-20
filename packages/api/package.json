@@ -10,6 +10,10 @@
     "./client": {
       "types": "./dist/client.d.ts",
       "default": "./src/client.ts"
+    },
+    "./constants/*": {
+      "types": "./dist/constants/*.d.ts",
+      "default": "./src/constants/*.ts"
     }
   },
   "license": "MIT",

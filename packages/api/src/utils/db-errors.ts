@@ -56,21 +56,6 @@ function isPostgresError(
 }
 
 /**
- * Sanitize error message to prevent information leakage
- * Removes database-specific details that shouldn't be exposed to clients
- */
-function sanitizeErrorMessage(message: string): string {
-  // Remove common database-specific patterns
-  return message
-    .replace(/relation "([^"]+)"/gi, "table")
-    .replace(/column "([^"]+)"/gi, "field")
-    .replace(/constraint "([^"]+)"/gi, "constraint")
-    .replace(/index "([^"]+)"/gi, "index")
-    .replace(/\(SQLSTATE [0-9A-Z]+\)/gi, "")
-    .trim();
-}
-
-/**
  * Handle database constraint violations and convert to user-friendly TRPC errors
  * This function sanitizes error messages to prevent information leakage
  */
@@ -146,10 +131,10 @@ export function handleDatabaseError(
 
       default:
         // Unknown PostgreSQL error - sanitize message
-        const sanitizedMessage = sanitizeErrorMessage(error.message);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "An unexpected database error occurred. Please try again later.",
+          message:
+            "An unexpected database error occurred. Please try again later.",
         });
     }
   }
@@ -165,10 +150,7 @@ export function handleDatabaseError(
  * Handle authentication-related errors
  * Converts auth errors to appropriate TRPC errors
  */
-export function handleAuthError(
-  error: unknown,
-  operation: string,
-): never {
+export function handleAuthError(error: unknown, operation: string): never {
   logError(error, operation, { type: "auth" });
 
   if (error instanceof Error) {

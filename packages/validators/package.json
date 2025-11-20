@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@ssp/db": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

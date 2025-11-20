@@ -4,8 +4,9 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFormik } from "formik";
 
 import type { SessionType } from "@ssp/api/client";
+import type { SessionFormValues } from "@ssp/validators";
+import { sessionFormSchema } from "@ssp/validators";
 
-import type { SessionFormValues } from "../session-form-schema";
 import type { ServerError } from "~/utils/formik";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatDateForInput, formatTimeForInput } from "~/utils/date";
@@ -14,7 +15,6 @@ import {
   getFieldErrorClassName,
   isUnauthorizedError,
 } from "~/utils/formik";
-import { sessionFormSchema } from "../session-form-schema";
 
 interface UpdateSessionFormProps {
   initialValues: {
@@ -116,7 +116,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
         updates.title = values.title;
       }
       if (values.type !== formattedInitialValues.type) {
-        updates.type = values.type as SessionType;
+        updates.type = values.type;
       }
       if (values.priority !== formattedInitialValues.priority) {
         updates.priority = values.priority;

@@ -1,5 +1,4 @@
 import type { SuggestedSession } from "../suggestions";
-
 import {
   DAILY_SESSION_LIMITS,
   FATIGUE_SCORING,
@@ -8,7 +7,6 @@ import {
   SESSION_SPACING,
   SUGGESTION_LIMITS,
 } from "../../constants/suggestions";
-import { TIME_CONVERSIONS } from "../../constants/date";
 import { hoursBetween, isSameDay } from "../../utils/date";
 
 /**
@@ -233,4 +231,3 @@ export function calculatePatternScore(
 
   return { score, reasons };
 }
-

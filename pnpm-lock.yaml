@@ -98,6 +98,12 @@ importers:
       '@legendapp/list':
         specifier: ^2.0.14
         version: 2.0.14(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.12)(bufferutil@4.0.8)(react@19.1.1))(react@19.1.1)
+      '@ssp/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@ssp/validators':
+        specifier: workspace:*
+        version: link:../../packages/validators
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.90.8(react@19.1.1)
@@ -189,9 +195,6 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12
     devDependencies:
-      '@ssp/api':
-        specifier: workspace:*
-        version: link:../../packages/api
       '@ssp/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
@@ -479,6 +482,9 @@ importers:
 
   packages/validators:
     dependencies:
+      '@ssp/db':
+        specifier: workspace:*
+        version: link:../db
       zod:
         specifier: 'catalog:'
         version: 4.1.12

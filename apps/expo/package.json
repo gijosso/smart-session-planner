@@ -16,6 +16,8 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@legendapp/list": "^2.0.14",
+    "@ssp/api": "workspace:*",
+    "@ssp/validators": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
@@ -48,7 +50,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ssp/api": "workspace:*",
     "@ssp/eslint-config": "workspace:*",
     "@ssp/prettier-config": "workspace:*",
     "@ssp/tailwind-config": "workspace:*",
