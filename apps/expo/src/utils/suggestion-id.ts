@@ -31,7 +31,44 @@ export function addSuggestionIds(
 
 /**
  * Remove a suggestion from the React Query cache by its idempotency ID
+ * Uses React Query's setQueryData internally for cache updates
+ */
+function removeSuggestionFromCache(
+  queryClient: QueryClient,
+  suggestionId: string,
+  queryParams: {
+    lookAheadDays?: number;
+  },
+): SuggestedSession[] | undefined {
+  const queryOptions = trpc.session.suggest.queryOptions({
+    lookAheadDays: queryParams.lookAheadDays ?? 14,
+  });
+
+  // Get current data
+  const oldData = queryClient.getQueryData<SuggestedSession[]>(
+    queryOptions.queryKey,
+  );
+
+  if (!oldData) return undefined;
+
+  // Add IDs to old data if they don't have them (for React Query tracking)
+  const oldDataWithIds = addSuggestionIds(oldData);
+
+  // Filter out the suggestion by ID
+  const newData = oldDataWithIds.filter(
+    (suggestion) => suggestion.id !== suggestionId,
+  );
+
+  // Update cache using React Query's setQueryData
+  queryClient.setQueryData(queryOptions.queryKey, newData);
+
+  return oldDataWithIds; // Return previous data for rollback
+}
+
+/**
+ * Remove a suggestion from the React Query cache by its idempotency ID
  * This can be called from anywhere to invalidate/remove a specific suggestion
+ * @deprecated Use getSuggestionMutationOptions instead for React Query-native approach
  */
 export function invalidateSuggestionById(
   queryClient: QueryClient,
@@ -40,24 +77,70 @@ export function invalidateSuggestionById(
     lookAheadDays?: number;
   },
 ): void {
-  // Get the query options to access the query key
-  const queryOptions = trpc.session.suggest.queryOptions({
-    lookAheadDays: queryParams.lookAheadDays ?? 14,
-  });
+  removeSuggestionFromCache(queryClient, suggestionId, queryParams);
+}
 
-  // Update the cache to remove the suggestion by ID
-  queryClient.setQueryData(queryOptions.queryKey, (oldData) => {
-    if (!oldData) return oldData;
+/**
+ * Get React Query mutation options with optimistic updates for suggestion removal
+ * Uses React Query's onMutate/onError/onSettled lifecycle hooks
+ */
+export function getSuggestionMutationOptions<
+  TVariables extends { fromSuggestionId?: string },
+>(
+  queryClient: QueryClient,
+  queryParams: {
+    lookAheadDays?: number;
+  } = {},
+) {
+  return {
+    onMutate: async (variables: TVariables) => {
+      if (!variables.fromSuggestionId) {
+        return { previousData: undefined as SuggestedSession[] | undefined };
+      }
 
-    // Add IDs to old data if they don't have them (for React Query tracking)
-    const oldDataWithIds = addSuggestionIds(oldData);
+      const queryOptions = trpc.session.suggest.queryOptions({
+        lookAheadDays: queryParams.lookAheadDays ?? 14,
+      });
 
-    // Filter out the suggestion by ID
-    // Keep IDs as they're part of the SuggestedSession type from the API
-    return oldDataWithIds.filter(
-      (suggestion) => suggestion.id !== suggestionId,
-    );
-  });
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: queryOptions.queryKey });
+
+      // Snapshot the previous value for rollback
+      const previousData = queryClient.getQueryData<SuggestedSession[]>(
+        queryOptions.queryKey,
+      );
+
+      // Optimistically remove the suggestion
+      removeSuggestionFromCache(
+        queryClient,
+        variables.fromSuggestionId,
+        queryParams,
+      );
+
+      // Return a context object with the snapshotted value for rollback
+      return { previousData };
+    },
+    onError: (
+      _err: unknown,
+      _variables: TVariables,
+      context: { previousData?: SuggestedSession[] } | undefined,
+    ) => {
+      // If the mutation fails, rollback to the previous value
+      if (context?.previousData) {
+        const queryOptions = trpc.session.suggest.queryOptions({
+          lookAheadDays: queryParams.lookAheadDays ?? 14,
+        });
+        queryClient.setQueryData(queryOptions.queryKey, context.previousData);
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      const queryOptions = trpc.session.suggest.queryOptions({
+        lookAheadDays: queryParams.lookAheadDays ?? 14,
+      });
+      void queryClient.invalidateQueries({ queryKey: queryOptions.queryKey });
+    },
+  };
 }
 
 /**

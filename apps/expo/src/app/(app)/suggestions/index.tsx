@@ -22,7 +22,7 @@ import {
 } from "~/utils/suggestion-formatting";
 import {
   addSuggestionIds,
-  invalidateSuggestionById,
+  getSuggestionMutationOptions,
 } from "~/utils/suggestion-id";
 
 /**
@@ -45,22 +45,16 @@ export default function SuggestionsScreen() {
     return addSuggestionIds(rawSuggestions);
   }, [rawSuggestions]);
 
-  // Create session mutation
+  // Create session mutation with React Query-native optimistic updates
   const createSessionMutation = useMutation(
     trpc.session.create.mutationOptions({
-      onSuccess: (data, variables) => {
+      ...getSuggestionMutationOptions(queryClient, { lookAheadDays: 14 }),
+      onSuccess: (data) => {
         // Invalidate queries based on session date (granular invalidation)
         invalidateSessionQueries(queryClient, {
           startTime: data.startTime,
           id: data.id,
         });
-
-        // Invalidate the specific suggestion if it was created from one
-        if (variables.fromSuggestionId) {
-          invalidateSuggestionById(queryClient, variables.fromSuggestionId, {
-            lookAheadDays: 14,
-          });
-        }
 
         // Navigate back after successful creation
         router.back();
