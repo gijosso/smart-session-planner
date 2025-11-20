@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { SuggestionWithId } from "~/types";
 import {
+  Button,
   Card,
   CardContent,
   CardFooter,
@@ -114,7 +115,20 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
     );
 
     return (
-      <Card variant="muted">
+      <Card variant="muted" className="bg-suggestion-card">
+        <View className="flex flex-1 flex-row items-center justify-end gap-1">
+          <View className="flex flex-row items-center gap-1">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <View
+                key={level}
+                className={`h-1.5 w-1.5 rounded-full bg-black ${
+                  level <= suggestion.priority ? "bg-black" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </View>
+        </View>
+
         <CardHeader>
           <CardTitle>{suggestion.title}</CardTitle>
         </CardHeader>
@@ -140,23 +154,18 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
           </View>
         </CardContent>
         <CardFooter>
-          <Pressable
+          <Button
+            variant="default"
+            size="default"
             onPress={handleAccept}
             disabled={createSessionMutation.isPending}
-            className="bg-foreground flex-1 rounded-lg px-4 py-3"
+            className="flex-1"
           >
-            <Text className="text-background text-center text-sm font-semibold">
-              {createSessionMutation.isPending ? "Accepting..." : "Accept"}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={handleAdjust}
-            className="border-foreground/20 bg-background rounded-lg border px-4 py-2"
-          >
-            <Text className="text-foreground text-center text-sm font-semibold">
-              Adjust
-            </Text>
-          </Pressable>
+            {createSessionMutation.isPending ? "Accepting..." : "Accept"}
+          </Button>
+          <Button variant="secondary" size="default" onPress={handleAdjust}>
+            Adjust
+          </Button>
         </CardFooter>
       </Card>
     );

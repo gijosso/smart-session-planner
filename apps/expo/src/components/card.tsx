@@ -1,5 +1,5 @@
-import React from "react";
 import type { ViewProps } from "react-native";
+import React from "react";
 import { Text, View } from "react-native";
 
 import { cn } from "~/utils/cn";
@@ -20,26 +20,22 @@ const VARIANT_STYLES = {
  * Card primitive component for Expo
  * A container component with consistent styling and variants
  */
-export const Card = React.memo<CardProps>(({
-  variant = "default",
-  className,
-  children,
-  ...props
-}) => {
-
-  return (
-    <View
-      className={cn(
-        "rounded-xl p-4 shadow-sm",
-        VARIANT_STYLES[variant],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </View>
-  );
-});
+export const Card = React.memo<CardProps>(
+  ({ variant = "default", className, children, ...props }) => {
+    return (
+      <View
+        className={cn(
+          "rounded-xl p-4 shadow-sm",
+          VARIANT_STYLES[variant],
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </View>
+    );
+  },
+);
 
 export interface CardHeaderProps extends ViewProps {
   children: React.ReactNode;
@@ -49,17 +45,15 @@ export interface CardHeaderProps extends ViewProps {
 /**
  * Card header component
  */
-export const CardHeader = React.memo<CardHeaderProps>(({
-  className,
-  children,
-  ...props
-}) => {
-  return (
-    <View className={cn("mb-2 flex flex-col gap-1", className)} {...props}>
-      {children}
-    </View>
-  );
-});
+export const CardHeader = React.memo<CardHeaderProps>(
+  ({ className, children, ...props }) => {
+    return (
+      <View className={cn("mb-2 flex flex-col gap-1", className)} {...props}>
+        {children}
+      </View>
+    );
+  },
+);
 
 export interface CardTitleProps {
   children: React.ReactNode;
@@ -69,18 +63,17 @@ export interface CardTitleProps {
 /**
  * Card title component
  */
-export const CardTitle = React.memo<CardTitleProps>(({
-  className,
-  children,
-}) => {
-  return (
-    <Text
-      className={cn("text-card-foreground text-lg font-semibold", className)}
-    >
-      {children}
-    </Text>
-  );
-});
+export const CardTitle = React.memo<CardTitleProps>(
+  ({ className, children }) => {
+    return (
+      <Text
+        className={cn("text-card-foreground text-lg font-semibold", className)}
+      >
+        {children}
+      </Text>
+    );
+  },
+);
 
 export interface CardDescriptionProps {
   children: React.ReactNode;
@@ -90,16 +83,15 @@ export interface CardDescriptionProps {
 /**
  * Card description component
  */
-export const CardDescription = React.memo<CardDescriptionProps>(({
-  className,
-  children,
-}) => {
-  return (
-    <Text className={cn("text-muted-foreground text-sm", className)}>
-      {children}
-    </Text>
-  );
-});
+export const CardDescription = React.memo<CardDescriptionProps>(
+  ({ className, children }) => {
+    return (
+      <Text className={cn("text-muted-foreground text-sm", className)}>
+        {children}
+      </Text>
+    );
+  },
+);
 
 export interface CardContentProps extends ViewProps {
   children: React.ReactNode;
@@ -109,17 +101,15 @@ export interface CardContentProps extends ViewProps {
 /**
  * Card content component
  */
-export const CardContent = React.memo<CardContentProps>(({
-  className,
-  children,
-  ...props
-}) => {
-  return (
-    <View className={cn("pt-2", className)} {...props}>
-      {children}
-    </View>
-  );
-});
+export const CardContent = React.memo<CardContentProps>(
+  ({ className, children, ...props }) => {
+    return (
+      <View className={cn("pt-2", className)} {...props}>
+        {children}
+      </View>
+    );
+  },
+);
 
 export interface CardFooterProps extends ViewProps {
   children: React.ReactNode;
@@ -129,17 +119,15 @@ export interface CardFooterProps extends ViewProps {
 /**
  * Card footer component
  */
-export const CardFooter = React.memo<CardFooterProps>(({
-  className,
-  children,
-  ...props
-}) => {
-  return (
-    <View
-      className={cn("mt-4 flex flex-row items-center gap-2", className)}
-      {...props}
-    >
-      {children}
-    </View>
-  );
-});
+export const CardFooter = React.memo<CardFooterProps>(
+  ({ className, children, ...props }) => {
+    return (
+      <View
+        className={cn("mt-4 flex flex-row items-center gap-2", className)}
+        {...props}
+      >
+        {children}
+      </View>
+    );
+  },
+);

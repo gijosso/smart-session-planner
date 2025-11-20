@@ -21,7 +21,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
       }}
     >
       <Pressable className="grow">
-        <Card variant="outline" className="flex flex-row items-center gap-4">
+        <Card className="flex flex-row items-center gap-4">
           <View className="bg-muted rounded-lg p-2">
             <Ionicons
               name={SESSION_TYPES_DISPLAY[session.type].icon}

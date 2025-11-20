@@ -25,7 +25,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ stats }) => {
   }
 
   return (
-    <Card variant="muted">
+    <Card variant="muted" className="bg-progress-card">
       <CardHeader>
         <View className="flex flex-row items-center gap-2">
           <Ionicons name="disc-outline" size={22} />

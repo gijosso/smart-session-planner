@@ -1,5 +1,5 @@
-import React from "react";
 import type { PressableProps } from "react-native";
+import React from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { cn } from "~/utils/cn";
@@ -23,7 +23,7 @@ export interface ButtonProps extends Omit<PressableProps, "children"> {
 }
 
 const VARIANT_STYLES = {
-  default: "bg-primary active:bg-primary/90",
+  default: "bg-black active:bg-black/90",
   destructive: "bg-destructive active:bg-destructive/90",
   outline:
     "bg-transparent border border-border active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50",
@@ -59,54 +59,55 @@ const TEXT_SIZE_STYLES = {
  * Button primitive component for Expo
  * A pressable button with consistent styling and variants
  */
-export const Button = React.memo<ButtonProps>(({
-  variant = "default",
-  size = "default",
-  className,
-  textClassName,
-  children,
-  disabled,
-  ...props
-}) => {
+export const Button = React.memo<ButtonProps>(
+  ({
+    variant = "default",
+    size = "default",
+    className,
+    textClassName,
+    children,
+    disabled,
+    ...props
+  }) => {
+    const isIconOnly = size === "icon";
 
-  const isIconOnly = size === "icon";
-
-  return (
-    <Pressable
-      className={cn(
-        "items-center justify-center rounded-md shadow-xs",
-        VARIANT_STYLES[variant],
-        SIZE_STYLES[size],
-        disabled && "opacity-50",
-        className,
-      )}
-      disabled={disabled}
-      {...props}
-    >
-      {({ pressed }) => (
-        <View
-          className={cn(
-            "flex flex-row items-center justify-center gap-2",
-            pressed && variant !== "link" && "opacity-80",
-          )}
-        >
-          {typeof children === "string" ? (
-            <Text
-              className={cn(
-                "font-medium",
-                TEXT_VARIANT_STYLES[variant],
-                TEXT_SIZE_STYLES[size],
-                isIconOnly && "hidden",
-                textClassName,
-              )}
-            >
-              {children}
-            </Text>
-          ) : (
-            children
-          )}
-        </View>
-      )}
-    </Pressable>
-  );
-});
+    return (
+      <Pressable
+        className={cn(
+          "items-center justify-center rounded-lg shadow-xs",
+          VARIANT_STYLES[variant],
+          SIZE_STYLES[size],
+          disabled && "opacity-50",
+          className,
+        )}
+        disabled={disabled}
+        {...props}
+      >
+        {({ pressed }) => (
+          <View
+            className={cn(
+              "flex flex-row items-center justify-center gap-2",
+              pressed && variant !== "link" && "opacity-80",
+            )}
+          >
+            {typeof children === "string" ? (
+              <Text
+                className={cn(
+                  "font-medium",
+                  TEXT_VARIANT_STYLES[variant],
+                  TEXT_SIZE_STYLES[size],
+                  isIconOnly && "hidden",
+                  textClassName,
+                )}
+              >
+                {children}
+              </Text>
+            ) : (
+              children
+            )}
+          </View>
+        )}
+      </Pressable>
+    );
+  },
+);
