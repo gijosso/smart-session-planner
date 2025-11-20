@@ -225,12 +225,16 @@ export const sessionRouter = {
   /**
    * Get smart time slot suggestions based on repeating task patterns
    * Analyzes past sessions to detect patterns and suggests future slots
+   * Improved algorithm considers availability, priority, and fatigue heuristics
    */
   suggest: protectedProcedure
     .input(
       z.object({
         startDate: z.coerce.date().optional(),
         lookAheadDays: z.number().int().min(1).max(30).optional().default(14),
+        preferredTypes: z.array(z.enum(SESSION_TYPES)).optional(),
+        minPriority: z.number().int().min(1).max(5).optional(),
+        maxPriority: z.number().int().min(1).max(5).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -238,5 +242,51 @@ export const sessionRouter = {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       return suggestTimeSlots(ctx.db, ctx.session.user.id, input);
+    }),
+
+  /**
+   * Accept a suggestion and create a session from it
+   * Takes suggestion details and creates the session, optionally allowing field overrides
+   */
+  acceptSuggestion: protectedProcedure
+    .input(
+      z.object({
+        suggestionId: z.string(), // ID for tracking which suggestion was accepted
+        title: z.string().max(256),
+        type: z.enum(SESSION_TYPES),
+        startTime: z.coerce.date(),
+        endTime: z.coerce.date(),
+        priority: z.coerce.number().int().min(1).max(5),
+        description: z.string().optional(),
+        allowConflicts: z.boolean().optional().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.session?.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      // Create session from suggestion details
+      const sessionData = {
+        title: input.title,
+        type: input.type,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        priority: input.priority,
+        description: input.description,
+        completed: false, // New sessions are not completed
+        fromSuggestionId: input.suggestionId, // Track which suggestion this came from
+      };
+
+      try {
+        return await createSession(
+          ctx.db,
+          ctx.session.user.id,
+          sessionData,
+          input.allowConflicts,
+        );
+      } catch (error) {
+        handleDatabaseError(error, "accept suggestion");
+      }
     }),
 } satisfies TRPCRouterRecord;
