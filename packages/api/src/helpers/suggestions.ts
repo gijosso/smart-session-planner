@@ -5,7 +5,7 @@ import type {
   WeeklyAvailability,
 } from "@ssp/db/schema";
 import { and, eq, getUserTimezone, sql } from "@ssp/db";
-import { Availability, Profile, Session } from "@ssp/db/schema";
+import { Availability, Session } from "@ssp/db/schema";
 
 import { TIME_CONVERSIONS } from "../constants/date";
 import {
@@ -23,7 +23,7 @@ import {
   timeToMinutes,
 } from "../utils/date";
 import { logger } from "../utils/logger";
-import { checkSessionConflicts } from "./session";
+import { checkSessionConflicts, getUserTimezoneFromDb } from "./session";
 import { isWithinAvailability } from "./suggestions/availability";
 import { detectPatterns } from "./suggestions/pattern-detection";
 import {
@@ -338,12 +338,11 @@ export async function suggestTimeSlots(
   database: typeof db,
   userId: string,
   options: SuggestionOptions = {},
+  timezone?: string,
 ): Promise<SuggestedSession[]> {
-  // Get user's profile for timezone
-  const profile = await database.query.Profile.findFirst({
-    where: eq(Profile.userId, userId),
-  });
-  const userTimezone = getUserTimezone(profile?.timezone ?? null);
+  // Get user's timezone (use provided timezone or fetch from database)
+  const userTimezone =
+    timezone ?? (await getUserTimezoneFromDb(database, userId));
 
   // Get user's availability
   const availability = await database.query.Availability.findFirst({

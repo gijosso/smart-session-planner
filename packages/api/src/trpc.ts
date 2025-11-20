@@ -7,11 +7,14 @@
  * The pieces you will need to use are documented accordingly near the end
  */
 
-import type { Auth } from "@ssp/auth";
-import { db } from "@ssp/db/client";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
+
+import type { Auth } from "@ssp/auth";
+import { eq, getUserTimezone } from "@ssp/db";
+import { db } from "@ssp/db/client";
+import { Profile } from "@ssp/db/schema";
 
 import { TIMING_MIDDLEWARE } from "./constants/trpc";
 import { logger } from "./utils/logger";
@@ -33,6 +36,7 @@ interface TRPCContext {
   auth: Auth;
   session: Awaited<ReturnType<Auth["api"]["getSession"]>>;
   db: typeof db;
+  timezone?: string; // User's timezone (only available for authenticated users)
 }
 
 export async function createTRPCContext(opts: {
@@ -55,7 +59,6 @@ export async function createTRPCContext(opts: {
  * This is where the trpc api is initialized, connecting the context and
  * transformer
  */
-// TODO: FIXME fully type this for Vercel build
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter: ({ shape, error }) => ({
@@ -124,19 +127,33 @@ export const publicProcedure: typeof t.procedure =
  *
  * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
  * the session is valid and guarantees `ctx.session.user` is not null.
+ * Also fetches and caches the user's timezone in context for quick lookup.
  *
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure: typeof t.procedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
+  .use(async ({ ctx, next }) => {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
+
+    // Fetch user's timezone once and cache it in context
+    // This avoids repeated database queries for timezone lookups
+    let timezone = ctx.timezone;
+    if (!timezone) {
+      const profile = await db.query.Profile.findFirst({
+        where: eq(Profile.userId, ctx.session.user.id),
+      });
+      timezone = getUserTimezone(profile?.timezone ?? null);
+    }
+
     return next({
       ctx: {
         // infers the `session` as non-nullable
         session: { ...ctx.session, user: ctx.session.user },
+        // Add timezone to context for quick lookup
+        timezone,
       },
     });
   });

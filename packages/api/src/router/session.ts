@@ -26,8 +26,9 @@ export const sessionRouter = {
    */
   today: protectedProcedure.query(async ({ ctx }) => {
     const userId = getUserId(ctx);
+    // Timezone is already available in context from protectedProcedure middleware
     return handleAsyncOperation(
-      async () => getSessionsToday(ctx.db, userId),
+      async () => getSessionsToday(ctx.db, userId, ctx.timezone),
       "get sessions today",
       { userId },
     );
@@ -39,8 +40,9 @@ export const sessionRouter = {
    */
   week: protectedProcedure.query(async ({ ctx }) => {
     const userId = getUserId(ctx);
+    // Timezone is already available in context from protectedProcedure middleware
     return handleAsyncOperation(
-      async () => getSessionsWeek(ctx.db, userId),
+      async () => getSessionsWeek(ctx.db, userId, ctx.timezone),
       "get sessions week",
       { userId },
     );
@@ -68,6 +70,9 @@ export const sessionRouter = {
     .input(
       CreateSessionSchema.extend({
         allowConflicts: z.boolean().optional().default(false),
+      }).refine((data) => data.endTime > data.startTime, {
+        message: "End time must be after start time",
+        path: ["endTime"],
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -89,22 +94,36 @@ export const sessionRouter = {
    */
   update: protectedProcedure
     .input(
-      z.object({
-        id: z.string(),
-        title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH).optional(),
-        type: z.enum(SESSION_TYPES).optional(),
-        startTime: z.coerce.date().optional(),
-        endTime: z.coerce.date().optional(),
-        completed: z.boolean().optional(),
-        priority: z.coerce
-          .number()
-          .int()
-          .min(SESSION_LIMITS.MIN_PRIORITY)
-          .max(SESSION_LIMITS.MAX_PRIORITY)
-          .optional(),
-        description: z.string().optional(),
-        allowConflicts: z.boolean().optional().default(false),
-      }),
+      z
+        .object({
+          id: z.string(),
+          title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH).optional(),
+          type: z.enum(SESSION_TYPES).optional(),
+          startTime: z.coerce.date().optional(),
+          endTime: z.coerce.date().optional(),
+          completed: z.boolean().optional(),
+          priority: z.coerce
+            .number()
+            .int()
+            .min(SESSION_LIMITS.MIN_PRIORITY)
+            .max(SESSION_LIMITS.MAX_PRIORITY)
+            .optional(),
+          description: z.string().optional(),
+          allowConflicts: z.boolean().optional().default(false),
+        })
+        .refine(
+          (data) => {
+            // If both startTime and endTime are provided, validate the range
+            if (data.startTime && data.endTime) {
+              return data.endTime > data.startTime;
+            }
+            return true;
+          },
+          {
+            message: "End time must be after start time",
+            path: ["endTime"],
+          },
+        ),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -153,11 +172,16 @@ export const sessionRouter = {
    */
   checkConflicts: protectedProcedure
     .input(
-      z.object({
-        startTime: z.coerce.date(),
-        endTime: z.coerce.date(),
-        excludeSessionId: z.string().optional(),
-      }),
+      z
+        .object({
+          startTime: z.coerce.date(),
+          endTime: z.coerce.date(),
+          excludeSessionId: z.string().optional(),
+        })
+        .refine((data) => data.endTime > data.startTime, {
+          message: "End time must be after start time",
+          path: ["endTime"],
+        }),
     )
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
@@ -212,8 +236,9 @@ export const sessionRouter = {
     )
     .query(async ({ ctx, input }) => {
       const userId = getUserId(ctx);
+      // Timezone is already available in context from protectedProcedure middleware
       return handleAsyncOperation(
-        async () => suggestTimeSlots(ctx.db, userId, input),
+        async () => suggestTimeSlots(ctx.db, userId, input, ctx.timezone),
         "suggest time slots",
         { userId },
       );
@@ -225,20 +250,25 @@ export const sessionRouter = {
    */
   acceptSuggestion: protectedProcedure
     .input(
-      z.object({
-        suggestionId: z.string(), // ID for tracking which suggestion was accepted
-        title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH),
-        type: z.enum(SESSION_TYPES),
-        startTime: z.coerce.date(),
-        endTime: z.coerce.date(),
-        priority: z.coerce
-          .number()
-          .int()
-          .min(SESSION_LIMITS.MIN_PRIORITY)
-          .max(SESSION_LIMITS.MAX_PRIORITY),
-        description: z.string().optional(),
-        allowConflicts: z.boolean().optional().default(false),
-      }),
+      z
+        .object({
+          suggestionId: z.string(), // ID for tracking which suggestion was accepted
+          title: z.string().max(SESSION_LIMITS.MAX_TITLE_LENGTH),
+          type: z.enum(SESSION_TYPES),
+          startTime: z.coerce.date(),
+          endTime: z.coerce.date(),
+          priority: z.coerce
+            .number()
+            .int()
+            .min(SESSION_LIMITS.MIN_PRIORITY)
+            .max(SESSION_LIMITS.MAX_PRIORITY),
+          description: z.string().optional(),
+          allowConflicts: z.boolean().optional().default(false),
+        })
+        .refine((data) => data.endTime > data.startTime, {
+          message: "End time must be after start time",
+          path: ["endTime"],
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = getUserId(ctx);

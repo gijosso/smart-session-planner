@@ -25,16 +25,33 @@ type DatabaseOrTransaction =
   | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * Get sessions for today (timezone-aware)
+ * Get user's timezone from database (defaults to UTC if not set)
+ * This helper reduces duplication by centralizing timezone fetching logic
+ *
+ * @deprecated Use getUserTimezoneFromContext instead for better performance
+ * This function is kept for backward compatibility and for cases where context is not available
  */
-export async function getSessionsToday(database: typeof db, userId: string) {
-  // Get user's profile to retrieve timezone preference
+export async function getUserTimezoneFromDb(
+  database: typeof db,
+  userId: string,
+): Promise<string> {
   const profile = await database.query.Profile.findFirst({
     where: eq(Profile.userId, userId),
   });
+  return getUserTimezone(profile?.timezone ?? null);
+}
 
-  // Get user's timezone (default to UTC)
-  const userTimezone = getUserTimezone(profile?.timezone ?? null);
+/**
+ * Get sessions for today (timezone-aware)
+ */
+export async function getSessionsToday(
+  database: typeof db,
+  userId: string,
+  timezone?: string,
+) {
+  // Get user's timezone (use provided timezone or fetch from database)
+  const userTimezone =
+    timezone ?? (await getUserTimezoneFromDb(database, userId));
 
   const now = new Date();
   // Calculate start and end of "today" in user's timezone, converted to UTC
@@ -56,14 +73,14 @@ export async function getSessionsToday(database: typeof db, userId: string) {
 /**
  * Get sessions for the current week (timezone-aware)
  */
-export async function getSessionsWeek(database: typeof db, userId: string) {
-  // Get user's profile to retrieve timezone preference
-  const profile = await database.query.Profile.findFirst({
-    where: eq(Profile.userId, userId),
-  });
-
-  // Get user's timezone (default to UTC)
-  const userTimezone = getUserTimezone(profile?.timezone ?? null);
+export async function getSessionsWeek(
+  database: typeof db,
+  userId: string,
+  timezone?: string,
+) {
+  // Get user's timezone (use provided timezone or fetch from database)
+  const userTimezone =
+    timezone ?? (await getUserTimezoneFromDb(database, userId));
 
   const now = new Date();
 
