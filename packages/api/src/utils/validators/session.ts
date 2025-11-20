@@ -121,7 +121,7 @@ export const suggestionInputSchema = z
     (data) => {
       if (data.startDate) {
         const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + data.lookAheadDays);
+        maxDate.setDate(maxDate.getDate() + (data.lookAheadDays ?? 14));
         return data.startDate <= maxDate;
       }
       return true;
