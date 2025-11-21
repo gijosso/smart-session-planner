@@ -1,11 +1,10 @@
-import type React from "react";
+import type { FieldErrors } from "react-hook-form";
 import { Text, View } from "react-native";
 
 import { Button } from "~/components";
-
 import { FormField } from "./form-field";
 
-interface SelectOption<T extends string | number> {
+export interface SelectOption<T extends string | number> {
   value: T;
   label: string;
 }
@@ -39,18 +38,20 @@ export function SelectButtonGroup<T extends string | number>({
   layout = "wrap",
 }: SelectButtonGroupProps<T>) {
   const containerClassName =
-    layout === "wrap"
-      ? "flex flex-row flex-wrap gap-2"
-      : "flex flex-row gap-2";
+    layout === "wrap" ? "flex flex-row flex-wrap gap-2" : "flex flex-row gap-2";
 
   return (
     <FormField
       label={label}
       required={required}
       fieldName={fieldName}
-      errors={errors as Record<string, unknown>}
+      errors={errors as FieldErrors<Record<string, unknown>>}
       isSubmitted={isSubmitted}
-      serverError={serverError as { data?: { zodError?: { fieldErrors?: Record<string, string[]> } } } | undefined}
+      serverError={
+        serverError as
+          | { data?: { zodError?: { fieldErrors?: Record<string, string[]> } } }
+          | undefined
+      }
     >
       <View className={containerClassName}>
         {options.map((option) => {
@@ -82,4 +83,3 @@ export function SelectButtonGroup<T extends string | number>({
     </FormField>
   );
 }
-

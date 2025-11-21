@@ -11,7 +11,6 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
-  CardTitle,
   ErrorScreen,
   LoadingScreen,
   Screen,
@@ -20,11 +19,13 @@ import { Content } from "~/components/layout/content";
 import { PRIORITY_LEVELS } from "~/constants/app";
 import { COLORS_BACKGROUND_LIGHT, COLORS_MUTED } from "~/constants/colors";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
-import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import {
+  getSessionDeleteMutationOptions,
+  getSessionMutationOptions,
+} from "~/features/session/use-session-mutation";
 import { useQueryError } from "~/hooks/use-query-error";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
-import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
 import {
   formatDateDisplay,
   formatTimeRange,
@@ -43,63 +44,33 @@ export default function Session() {
 
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
-      onMutate: (variables) => {
-        // Capture current session data before toggle (React Query pattern)
-        const queryOptions = trpc.session.byId.queryOptions({
-          id: variables.id,
-        });
-        const oldSession = queryClient.getQueryData(queryOptions.queryKey);
-        return { oldSession };
-      },
-      onSuccess: (data) => {
-        // Use the response data from the mutation (always defined)
-        invalidateSessionQueries(queryClient, {
-          startTime: data.startTime,
-          id: data.id,
-        });
-
-        // Check if session is now complete (completedAt is not null)
-        const isComplete = data.completedAt !== null;
-        toast.success(
-          isComplete
-            ? "Session marked as complete"
-            : "Session marked as incomplete",
-        );
-      },
-      onError: createMutationErrorHandler({
+      ...getSessionMutationOptions(queryClient, {
+        // Toggling completion doesn't affect stats (they're already calculated)
+        invalidateStats: false,
         errorMessage: "Failed to update session. Please try again.",
+        onSuccess: (data) => {
+          // Check if session is now complete (completedAt is not null)
+          if (data) {
+            const isComplete = data.completedAt !== null;
+            toast.success(
+              isComplete
+                ? "Session marked as complete"
+                : "Session marked as incomplete",
+            );
+          }
+        },
       }),
     }),
   );
 
   const deleteMutation = useMutation(
     trpc.session.delete.mutationOptions({
-      onMutate: (variables) => {
-        // Capture current session data before deletion (React Query pattern)
-        const queryOptions = trpc.session.byId.queryOptions({
-          id: variables.id,
-        });
-        const currentSession = queryClient.getQueryData(queryOptions.queryKey);
-        return { sessionData: currentSession };
-      },
-      onSuccess: (_data, _variables, context) => {
-        // Use context to get session data captured in onMutate (avoids stale closure)
-        const sessionData = context.sessionData;
-
-        if (id) {
-          queryClient.removeQueries(trpc.session.byId.queryFilter({ id }));
-        }
-
-        if (sessionData) {
-          invalidateSessionQueries(queryClient, {
-            startTime: sessionData.startTime,
-          });
-        }
-        toast.success("Session deleted successfully");
-        router.replace("/home");
-      },
-      onError: createMutationErrorHandler({
+      ...getSessionDeleteMutationOptions(queryClient, {
         errorMessage: "Failed to delete session. Please try again.",
+        onSuccess: () => {
+          toast.success("Session deleted successfully");
+          router.replace("/home");
+        },
       }),
     }),
   );

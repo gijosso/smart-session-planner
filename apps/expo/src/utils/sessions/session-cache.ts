@@ -93,9 +93,24 @@ function isThisWeekInTimezone(date: Date | string, timezone: string): boolean {
 }
 
 /**
+ * Options for query invalidation
+ */
+export interface InvalidationOptions {
+  /**
+   * Whether to invalidate stats queries
+   * Defaults to true - set to false if the mutation doesn't affect stats
+   * (e.g., only changing completed status might not require stats recalculation)
+   */
+  invalidateStats?: boolean;
+}
+
+/**
  * Invalidate session queries based on the session's date
  * Uses timezone-aware checking to only invalidate relevant queries
- * Also invalidates stats queries since they depend on session data
+ * 
+ * Stats invalidation is optional - only invalidate when the change actually affects stats.
+ * For example, toggling completion status might not require stats recalculation if
+ * stats are already calculated correctly.
  */
 export function invalidateSessionQueries(
   queryClient: QueryClient,
@@ -103,7 +118,9 @@ export function invalidateSessionQueries(
     startTime: Date | string;
     id?: string;
   },
+  options: InvalidationOptions = {},
 ) {
+  const { invalidateStats = true } = options;
   const startTime =
     typeof session.startTime === "string"
       ? new Date(session.startTime)
@@ -112,8 +129,12 @@ export function invalidateSessionQueries(
   // Get user's timezone (defaults to browser timezone)
   const timezone = getUserTimezone();
 
-  // Invalidate stats (since any session change affects stats)
-  void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+  // Only invalidate stats if the change affects them
+  // Most session changes do affect stats, but some (like completion toggle)
+  // might not if stats are already correctly calculated
+  if (invalidateStats) {
+    void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+  }
 
   // Invalidate byId if we have an id
   if (session.id) {
@@ -136,7 +157,8 @@ export function invalidateSessionQueries(
  * Invalidate session queries for both old and new session states
  * Useful for updates where the date might have changed
  * Uses timezone-aware checking to only invalidate relevant queries
- * Also invalidates stats queries since they depend on session data
+ * 
+ * Stats invalidation is optional - only invalidate when the change actually affects stats.
  */
 export function invalidateSessionQueriesForUpdate(
   queryClient: QueryClient,
@@ -148,7 +170,9 @@ export function invalidateSessionQueriesForUpdate(
     startTime: Date | string;
     id?: string;
   },
+  options: InvalidationOptions = {},
 ) {
+  const { invalidateStats = true } = options;
   const oldStartTime =
     typeof oldSession.startTime === "string"
       ? new Date(oldSession.startTime)
@@ -161,8 +185,10 @@ export function invalidateSessionQueriesForUpdate(
   // Get user's timezone (defaults to browser timezone)
   const timezone = getUserTimezone();
 
-  // Invalidate stats (since any session change affects stats)
-  void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+  // Only invalidate stats if the change affects them
+  if (invalidateStats) {
+    void queryClient.invalidateQueries(trpc.stats.sessions.queryFilter());
+  }
 
   // Invalidate byId if we have an id
   if (oldSession.id || newSession.id) {

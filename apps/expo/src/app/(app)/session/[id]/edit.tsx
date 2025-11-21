@@ -12,15 +12,11 @@ import {
   Screen,
 } from "~/components";
 import { UpdateSessionForm } from "~/features/session/forms/session-form";
-import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import { getSessionUpdateMutationOptions } from "~/features/session/use-session-mutation";
 import { useQueryError } from "~/hooks/use-query-error";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/form";
-import {
-  invalidateSessionQueries,
-  invalidateSessionQueriesForUpdate,
-} from "~/utils/sessions/session-cache";
 
 export default function EditSession() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -36,39 +32,12 @@ export default function EditSession() {
 
   const updateMutation = useMutation(
     trpc.session.update.mutationOptions({
-      onMutate: (variables) => {
-        // Capture current session data before update
-        const queryOptions = trpc.session.byId.queryOptions({
-          id: variables.id,
-        });
-        const oldSession = queryClient.getQueryData(queryOptions.queryKey);
-        return { oldSession };
-      },
-      onSuccess: (data, _variables, context) => {
-        const oldSession = context.oldSession;
-        if (oldSession) {
-          invalidateSessionQueriesForUpdate(
-            queryClient,
-            {
-              startTime: oldSession.startTime,
-              id: oldSession.id,
-            },
-            {
-              startTime: data.startTime,
-              id: data.id,
-            },
-          );
-        } else {
-          invalidateSessionQueries(queryClient, {
-            startTime: data.startTime,
-            id: data.id,
-          });
-        }
-        toast.success("Session updated successfully");
-        router.back();
-      },
-      onError: createMutationErrorHandler({
+      ...getSessionUpdateMutationOptions(queryClient, {
         errorMessage: "Failed to update session. Please try again.",
+        onSuccess: () => {
+          toast.success("Session updated successfully");
+          router.back();
+        },
       }),
     }),
   );

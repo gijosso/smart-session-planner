@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
 import { usePrefetchHome } from "../../hooks/prefetch";
-import { useRefreshAccessToken } from "../../hooks/use-refresh-access-token";
+import { useRefreshAccessToken } from "../../features/auth";
 
 const screenOptions = {
   headerShown: false,

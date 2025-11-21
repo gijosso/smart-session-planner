@@ -29,6 +29,7 @@ export default function CreateSession() {
   const createMutation = useMutation(
     trpc.session.create.mutationOptions({
       onSuccess: (data) => {
+        // Invalidate queries based on the new session's date (granular invalidation)
         invalidateSessionQueries(queryClient, {
           startTime: data.startTime,
           id: data.id,
