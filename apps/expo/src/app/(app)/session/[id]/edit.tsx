@@ -1,13 +1,11 @@
 import { useCallback, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useGlobalSearchParams } from "expo-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { SessionType } from "@ssp/api/client";
+
+import { ErrorScreen, LoadingScreen, Screen } from "~/components";
 import { UpdateSessionForm } from "~/features/session/forms/session-form";
-import {
-  ErrorScreen,
-  LoadingScreen,
-  Screen,
-} from "~/components";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useQueryError } from "~/hooks/use-query-error";
 import { useToast } from "~/hooks/use-toast";
@@ -40,8 +38,8 @@ export default function EditSession() {
         const oldSession = queryClient.getQueryData(queryOptions.queryKey);
         return { oldSession };
       },
-      onSuccess: (data, variables, context) => {
-        const oldSession = context?.oldSession;
+      onSuccess: (data, _variables, context) => {
+        const oldSession = context.oldSession;
         if (oldSession) {
           invalidateSessionQueriesForUpdate(
             queryClient,
@@ -72,7 +70,7 @@ export default function EditSession() {
   const handleSubmit = useCallback(
     (values: {
       title?: string;
-      type?: string;
+      type?: SessionType;
       startTime?: Date;
       endTime?: Date;
       priority?: number;
@@ -84,7 +82,7 @@ export default function EditSession() {
       const updateData: {
         id: string;
         title?: string;
-        type?: string;
+        type?: SessionType;
         startTime?: Date;
         endTime?: Date;
         priority?: number;
@@ -97,13 +95,15 @@ export default function EditSession() {
       };
 
       if (values.title !== undefined) updateData.title = values.title;
-      if (values.type !== undefined) updateData.type = values.type as any;
-      if (values.startTime !== undefined) updateData.startTime = values.startTime;
+      if (values.type !== undefined) updateData.type = values.type;
+      if (values.startTime !== undefined)
+        updateData.startTime = values.startTime;
       if (values.endTime !== undefined) updateData.endTime = values.endTime;
       if (values.priority !== undefined) updateData.priority = values.priority;
       if (values.description !== undefined)
         updateData.description = values.description;
-      if (values.completed !== undefined) updateData.completed = values.completed;
+      if (values.completed !== undefined)
+        updateData.completed = values.completed;
 
       updateMutation.mutate(updateData);
     },
@@ -170,4 +170,3 @@ export default function EditSession() {
     </Screen>
   );
 }
-

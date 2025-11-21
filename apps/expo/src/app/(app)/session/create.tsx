@@ -1,14 +1,16 @@
 import { useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import type { SessionType } from "@ssp/api/client";
+
+import { Screen } from "~/components";
 import { CreateSessionForm } from "~/features/session/forms/session-form";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/form";
 import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
-import { Screen } from "~/components";
 
 export default function CreateSession() {
   const queryClient = useQueryClient();
@@ -33,7 +35,7 @@ export default function CreateSession() {
   const handleSubmit = useCallback(
     (values: {
       title: string;
-      type: string;
+      type: SessionType;
       startTime: Date;
       endTime: Date;
       priority: number;
@@ -41,11 +43,11 @@ export default function CreateSession() {
     }) => {
       createMutation.mutate({
         title: values.title,
-        type: values.type as any,
+        type: values.type,
         startTime: values.startTime,
         endTime: values.endTime,
         priority: values.priority,
-        description: values.description,
+        description: values.description ?? undefined,
         allowConflicts: false,
       });
     },
@@ -62,4 +64,3 @@ export default function CreateSession() {
     </Screen>
   );
 }
-

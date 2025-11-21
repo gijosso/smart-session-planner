@@ -21,12 +21,6 @@ export interface ServerError {
  * Get field error combining React Hook Form errors and server errors
  * Only shows form validation errors after form has been submitted at least once
  * Server errors are always shown
- *
- * @param fieldName - The name of the form field
- * @param formErrors - React Hook Form's errors object
- * @param isSubmitted - Whether the form has been submitted
- * @param serverError - Optional server error from mutation
- * @returns The error message for the field, or undefined if no error
  */
 export const getFieldError = <T extends Record<string, unknown>>(
   fieldName: keyof T,
@@ -140,7 +134,10 @@ export const getAllFieldErrors = <T extends Record<string, unknown>>(
   if (isSubmitted) {
     Object.entries(formErrors).forEach(([key, value]) => {
       if (value?.message) {
-        errors[key] = String(value.message);
+        errors[key] =
+          typeof value.message === "string"
+            ? value.message
+            : JSON.stringify(value.message);
       }
     });
   }
@@ -198,4 +195,3 @@ export const transformMutationError = (
     },
   };
 };
-
