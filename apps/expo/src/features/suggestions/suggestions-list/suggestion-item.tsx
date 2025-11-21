@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react";
 import { Text, View } from "react-native";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -41,7 +40,6 @@ interface SuggestionItemProps {
  */
 export const SuggestionItem = React.memo<SuggestionItemProps>(
   ({ suggestion, horizontal = false }) => {
-    const router = useRouter();
     const queryClient = useQueryClient();
     const toast = useToast();
 
@@ -79,24 +77,6 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         allowConflicts: false,
       });
     }, [suggestion, createSessionMutation]);
-
-    // Optimize handleAdjust - only depend on router and suggestion id
-    const handleAdjust = useCallback(() => {
-      router.push({
-        pathname: "/session/create",
-        params: {
-          title: suggestion.title,
-          type: suggestion.type,
-          suggestedStartTime: suggestion.startTime.toISOString(),
-          suggestedEndTime: suggestion.endTime.toISOString(),
-          priority: suggestion.priority.toString(),
-          suggestionId: suggestion.id,
-          ...(suggestion.description && {
-            description: suggestion.description,
-          }),
-        },
-      });
-    }, [suggestion, router]);
 
     // Memoize formatted date/time strings
     const formattedDate = useMemo(
@@ -182,15 +162,6 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
               accessibilityRole="button"
             >
               {createSessionMutation.isPending ? "Accepting..." : "Accept"}
-            </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              onPress={handleAdjust}
-              accessibilityLabel={`Adjust suggestion: ${suggestion.title}`}
-              accessibilityRole="button"
-            >
-              Adjust
             </Button>
           </CardFooter>
         </Card>

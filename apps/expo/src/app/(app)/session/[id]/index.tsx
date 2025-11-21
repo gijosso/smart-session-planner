@@ -110,12 +110,6 @@ export default function Session() {
     }
   }, [id, toggleCompleteMutation]);
 
-  const handleUpdate = useCallback(() => {
-    if (id) {
-      router.push(`/session/${id}/update`);
-    }
-  }, [id]);
-
   const handleRetry = useCallback(() => {
     void queryClient.invalidateQueries(trpc.session.byId.queryFilter({ id }));
   }, [id, queryClient]);
@@ -290,15 +284,7 @@ export default function Session() {
 
           <CardFooter className="flex flex-row gap-4">
             <Button
-              variant="default"
-              size="lg"
               className="flex-1"
-              onPress={handleUpdate}
-            >
-              Update
-            </Button>
-            <Button
-              className="w-28"
               variant="destructive"
               onPress={handleDelete}
               disabled={deleteMutation.isPending}

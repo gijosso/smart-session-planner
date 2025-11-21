@@ -1,13 +1,13 @@
-import type React from "react";
-import { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useFormik } from "formik";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import type { SessionType } from "@ssp/api/client";
 import type { SessionFormValues } from "@ssp/validators";
 import { sessionFormSchema } from "@ssp/validators";
 
-import type { ServerError } from "~/utils/formik";
+import type { ServerError } from "~/utils/form";
 import { Button } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import {
@@ -21,7 +21,7 @@ import {
   getFieldError,
   getFieldErrorClassName,
   isUnauthorizedError,
-} from "~/utils/formik";
+} from "~/utils/form";
 
 const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
 const SESSION_TYPES_ARRAY = Object.values(SESSION_TYPES_DISPLAY);
@@ -112,120 +112,113 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
     }
   }, [mode, props]);
 
-  const formik = useFormik<SessionFormValues>({
-    initialValues: formattedInitialValues,
-    validate: (values: SessionFormValues) => {
-      const result = sessionFormSchema.safeParse(values);
-      if (!result.success) {
-        const errors: Record<string, string> = {};
-        result.error.issues.forEach((issue) => {
-          const path = issue.path
-            .map((p) => (typeof p === "string" ? p : String(p)))
-            .join(".");
-          if (path && !errors[path]) {
-            errors[path] = issue.message;
-          }
-        });
-        return errors;
-      }
-      return {};
-    },
-    validateOnChange: true,
-    validateOnBlur: true,
-    onSubmit: (values) => {
-      // Parse date and time strings into Date objects in local timezone
-      // This ensures proper timezone handling and validation
-      const startTimeDate = parseLocalDateTime(values.startDate, values.startTime);
-      const endTimeDate = parseLocalDateTime(values.endDate, values.endTime);
+  const {
+    handleSubmit,
+    formState: { errors, isSubmitted },
+    watch,
+    setValue,
+    reset,
+  } = useForm<SessionFormValues>({
+    resolver: zodResolver(sessionFormSchema) as any,
+    defaultValues: formattedInitialValues,
+    mode: "onChange",
+  });
 
-      // Validate dates before submitting
-      if (!startTimeDate || !endTimeDate) {
-        // Dates are invalid, don't submit
+  // Reset form when initial values change (similar to Formik's enableReinitialize)
+  useEffect(() => {
+    reset(formattedInitialValues);
+  }, [formattedInitialValues, reset]);
+
+  // Watch form values for controlled inputs
+  const formValues = watch();
+
+  const onSubmitForm = (values: SessionFormValues) => {
+    // Parse date and time strings into Date objects in local timezone
+    // This ensures proper timezone handling and validation
+    const startTimeDate = parseLocalDateTime(values.startDate, values.startTime);
+    const endTimeDate = parseLocalDateTime(values.endDate, values.endTime);
+
+    // Validate dates before submitting
+    if (!startTimeDate || !endTimeDate) {
+      // Dates are invalid, don't submit
+      return;
+    }
+
+    if (mode === "create") {
+      // Create mode: submit all required fields
+      onSubmit({
+        title: values.title,
+        type: values.type,
+        startTime: startTimeDate,
+        endTime: endTimeDate,
+        priority: values.priority,
+        description: values.description ?? undefined,
+      });
+    } else {
+      // Update mode: only submit changed fields
+      const updates: {
+        title?: string;
+        type?: SessionType;
+        startTime?: Date;
+        endTime?: Date;
+        priority?: number;
+        description?: string;
+      } = {};
+
+      // Compare with initial values to only send changed fields
+      if (values.title !== formattedInitialValues.title) {
+        updates.title = values.title;
+      }
+      if (values.type !== formattedInitialValues.type) {
+        updates.type = values.type;
+      }
+      if (values.priority !== formattedInitialValues.priority) {
+        updates.priority = values.priority;
+      }
+      if (values.description !== formattedInitialValues.description) {
+        // Send the description value directly (empty string clears, non-empty updates)
+        updates.description = values.description;
+      }
+
+      // Check if times have changed by comparing the Date objects
+      const initialStartTime = new Date(
+        `${formattedInitialValues.startDate}T${formattedInitialValues.startTime}:00`,
+      );
+      const initialEndTime = new Date(
+        `${formattedInitialValues.endDate}T${formattedInitialValues.endTime}:00`,
+      );
+
+      if (startTimeDate.getTime() !== initialStartTime.getTime()) {
+        updates.startTime = startTimeDate;
+      }
+      if (endTimeDate.getTime() !== initialEndTime.getTime()) {
+        updates.endTime = endTimeDate;
+      }
+
+      // Validate that if both times are being updated, endTime > startTime
+      // (This matches server-side validation)
+      if (updates.startTime && updates.endTime) {
+        if (updates.endTime <= updates.startTime) {
+          // This should be caught by form validation, but double-check
+          return;
+        }
+      }
+
+      // Only submit if there are actual changes
+      if (Object.keys(updates).length === 0) {
+        // No changes, don't submit
         return;
       }
 
-      if (mode === "create") {
-        // Create mode: submit all required fields
-        onSubmit({
-          title: values.title,
-          type: values.type,
-          startTime: startTimeDate,
-          endTime: endTimeDate,
-          priority: values.priority,
-          description: values.description ?? undefined,
-        });
-      } else {
-        // Update mode: only submit changed fields
-        const updates: {
-          title?: string;
-          type?: SessionType;
-          startTime?: Date;
-          endTime?: Date;
-          priority?: number;
-          description?: string;
-        } = {};
-
-        // Compare with initial values to only send changed fields
-        if (values.title !== formattedInitialValues.title) {
-          updates.title = values.title;
-        }
-        if (values.type !== formattedInitialValues.type) {
-          updates.type = values.type;
-        }
-        if (values.priority !== formattedInitialValues.priority) {
-          updates.priority = values.priority;
-        }
-        if (values.description !== formattedInitialValues.description) {
-          // Send the description value directly (empty string clears, non-empty updates)
-          updates.description = values.description;
-        }
-
-        // Check if times have changed by comparing the Date objects
-        const initialStartTime = new Date(
-          `${formattedInitialValues.startDate}T${formattedInitialValues.startTime}:00`,
-        );
-        const initialEndTime = new Date(
-          `${formattedInitialValues.endDate}T${formattedInitialValues.endTime}:00`,
-        );
-
-        if (startTimeDate.getTime() !== initialStartTime.getTime()) {
-          updates.startTime = startTimeDate;
-        }
-        if (endTimeDate.getTime() !== initialEndTime.getTime()) {
-          updates.endTime = endTimeDate;
-        }
-
-        // Validate that if both times are being updated, endTime > startTime
-        // (This matches server-side validation)
-        if (updates.startTime && updates.endTime) {
-          if (updates.endTime <= updates.startTime) {
-            // This should be caught by form validation, but double-check
-            return;
-          }
-        }
-
-        // Only submit if there are actual changes
-        if (Object.keys(updates).length === 0) {
-          // No changes, don't submit
-          return;
-        }
-
-        onSubmit(updates);
-      }
-    },
-    enableReinitialize: true,
-  });
+      onSubmit(updates);
+    }
+  };
 
   // Helper to get field error using centralized utility
   const getFieldErrorForField = (
     fieldName: keyof SessionFormValues,
   ): string | undefined => {
-    return getFieldError(
-      fieldName,
-      formik.errors,
-      formik.submitCount,
-      serverError,
-    );
+    return getFieldError(fieldName, errors, isSubmitted, serverError);
   };
 
   const buttonText = mode === "create" ? "Create Session" : "Update Session";
@@ -248,13 +241,13 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
         <TextInput
           className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
             "title",
-            formik.errors,
-            formik.submitCount,
+            errors,
+            isSubmitted,
             serverError,
           )}`}
-          value={formik.values.title}
-          onChangeText={formik.handleChange("title")}
-          onBlur={formik.handleBlur("title")}
+          value={formValues.title}
+          onChangeText={(text) => setValue("title", text)}
+          onBlur={() => {}}
           placeholder="e.g., Morning Meditation"
           maxLength={256}
         />
@@ -271,16 +264,16 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
           {SESSION_TYPES_ARRAY.map((sessionType) => (
             <Pressable
               key={sessionType.value}
-              onPress={() => formik.setFieldValue("type", sessionType.value)}
+              onPress={() => setValue("type", sessionType.value)}
               className={`rounded-md border px-3 py-2 ${
-                formik.values.type === sessionType.value
+                formValues.type === sessionType.value
                   ? "bg-primary border-primary"
                   : "border-input bg-background"
               }`}
             >
               <Text
                 className={
-                  formik.values.type === sessionType.value
+                  formValues.type === sessionType.value
                     ? "text-primary-foreground text-sm font-medium"
                     : "text-foreground text-sm"
                 }
@@ -305,16 +298,16 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
           {PRIORITY_LEVELS.map((priority) => (
             <Pressable
               key={priority}
-              onPress={() => formik.setFieldValue("priority", priority)}
+              onPress={() => setValue("priority", priority)}
               className={`flex-1 rounded-md border px-3 py-2 ${
-                formik.values.priority === priority
+                formValues.priority === priority
                   ? "bg-primary border-primary"
                   : "border-input bg-background"
               }`}
             >
               <Text
                 className={`text-center text-sm font-medium ${
-                  formik.values.priority === priority
+                  formValues.priority === priority
                     ? "text-primary-foreground"
                     : "text-foreground"
                 }`}
@@ -340,13 +333,13 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
             <TextInput
               className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
                 "startDate",
-                formik.errors,
-                formik.submitCount,
+                errors,
+                isSubmitted,
                 serverError,
               )}`}
-              value={formik.values.startDate}
-              onChangeText={formik.handleChange("startDate")}
-              onBlur={formik.handleBlur("startDate")}
+              value={formValues.startDate}
+              onChangeText={(text) => setValue("startDate", text)}
+              onBlur={() => {}}
               placeholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
               placeholderTextColor="#71717A"
             />
@@ -358,13 +351,13 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
             <TextInput
               className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
                 "startTime",
-                formik.errors,
-                formik.submitCount,
+                errors,
+                isSubmitted,
                 serverError,
               )}`}
-              value={formik.values.startTime}
-              onChangeText={formik.handleChange("startTime")}
-              onBlur={formik.handleBlur("startTime")}
+              value={formValues.startTime}
+              onChangeText={(text) => setValue("startTime", text)}
+              onBlur={() => {}}
               placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
               placeholderTextColor="#71717A"
             />
@@ -391,13 +384,13 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
             <TextInput
               className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
                 "endDate",
-                formik.errors,
-                formik.submitCount,
+                errors,
+                isSubmitted,
                 serverError,
               )}`}
-              value={formik.values.endDate}
-              onChangeText={formik.handleChange("endDate")}
-              onBlur={formik.handleBlur("endDate")}
+              value={formValues.endDate}
+              onChangeText={(text) => setValue("endDate", text)}
+              onBlur={() => {}}
               placeholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
               placeholderTextColor="#71717A"
             />
@@ -409,13 +402,13 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
             <TextInput
               className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
                 "endTime",
-                formik.errors,
-                formik.submitCount,
+                errors,
+                isSubmitted,
                 serverError,
               )}`}
-              value={formik.values.endTime}
-              onChangeText={formik.handleChange("endTime")}
-              onBlur={formik.handleBlur("endTime")}
+              value={formValues.endTime}
+              onChangeText={(text) => setValue("endTime", text)}
+              onBlur={() => {}}
               placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
               placeholderTextColor="#71717A"
             />
@@ -439,9 +432,9 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
         </Text>
         <TextInput
           className="border-input bg-background text-foreground rounded-md border px-3 py-2 text-base"
-          value={formik.values.description}
-          onChangeText={formik.handleChange("description")}
-          onBlur={formik.handleBlur("description")}
+          value={formValues.description}
+          onChangeText={(text) => setValue("description", text)}
+          onBlur={() => {}}
           placeholder="Optional notes or description"
           multiline
           numberOfLines={4}
@@ -462,7 +455,7 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
 
       <Button
         variant="default"
-        onPress={() => formik.handleSubmit()}
+        onPress={handleSubmit(onSubmitForm as any)}
         disabled={isPending}
       >
         {isPending ? pendingText : buttonText}
