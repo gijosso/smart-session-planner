@@ -4,6 +4,9 @@
  * These are used for components that need actual color values (e.g., Ionicons)
  */
 
+export const COLORS_PRIMARY = "#101828"; // Slate-900
+export const COLORS_PRIMARY_FOREGROUND = "#FFFFFF"; // White
+
 // Error/Destructive colors
 export const COLORS_DESTRUCTIVE = "#EF4444"; // red-500
 export const COLORS_DESTRUCTIVE_FOREGROUND = "#FFFFFF"; // white
@@ -24,7 +27,10 @@ export const COLORS_BACKGROUND_DARK = "#18181B"; // zinc-900
  * Get foreground color based on color scheme
  * Returns appropriate color for text/icons based on theme
  */
-export function getForegroundColor(colorScheme: "light" | "dark" | null): string {
-  return colorScheme === "dark" ? COLORS_FOREGROUND_DARK : COLORS_FOREGROUND_LIGHT;
+export function getForegroundColor(
+  colorScheme: "light" | "dark" | null,
+): string {
+  return colorScheme === "dark"
+    ? COLORS_FOREGROUND_DARK
+    : COLORS_FOREGROUND_LIGHT;
 }
-

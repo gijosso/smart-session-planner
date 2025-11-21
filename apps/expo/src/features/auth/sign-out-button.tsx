@@ -1,0 +1,39 @@
+import { useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { Button } from "~/components";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import { trpc } from "~/utils/api";
+import { authClient } from "~/utils/auth";
+
+export const SignOutButton = () => {
+  const queryClient = useQueryClient();
+
+  const signOutMutation = useMutation({
+    mutationFn: async () => {
+      await authClient.removeAccessToken();
+      await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
+    },
+    onError: createMutationErrorHandler({
+      errorMessage: "Failed to sign out. Please try again.",
+    }),
+  });
+
+  const handleSignOut = useCallback(() => {
+    signOutMutation.mutate();
+  }, [signOutMutation]);
+
+  return (
+    <Button
+      variant="destructive"
+      size="lg"
+      onPress={handleSignOut}
+      disabled={signOutMutation.isPending}
+      accessibilityLabel="Sign out of your account"
+      accessibilityRole="button"
+    >
+      {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
+    </Button>
+  );
+};
+

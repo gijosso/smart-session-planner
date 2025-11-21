@@ -1,39 +1,14 @@
-import { useCallback } from "react";
 import { Text } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button, Card, Content, Screen } from "~/components";
 import { ClearAllSessionsButton } from "~/components/settings/DEV_clear-all-sessions";
 import { CreateSessionsForSuggestionsButton } from "~/components/settings/DEV_create-sessions-for-suggestions";
 import { COLORS_MUTED } from "~/constants/colors";
-import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
-import { useToast } from "~/hooks/use-toast";
-import { trpc } from "~/utils/api";
-import { authClient } from "~/utils/auth";
+import { SignOutButton } from "~/features/auth";
 
 export default function Settings() {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      await authClient.removeAccessToken();
-      await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
-    },
-    onSuccess: () => {
-      toast.success("Signed out successfully");
-    },
-    onError: createMutationErrorHandler({
-      errorMessage: "Failed to sign out. Please try again.",
-    }),
-  });
-
-  const handleSignOut = useCallback(() => {
-    signOutMutation.mutate();
-  }, [signOutMutation]);
-
   return (
     <Screen>
       <Content>
@@ -66,15 +41,7 @@ export default function Settings() {
       </Content>
 
       <Content>
-        <Button
-          variant="destructive"
-          onPress={handleSignOut}
-          disabled={signOutMutation.isPending}
-          accessibilityLabel="Sign out of your account"
-          accessibilityRole="button"
-        >
-          {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
-        </Button>
+        <SignOutButton />
         {process.env.NODE_ENV === "development" && (
           <>
             <CreateSessionsForSuggestionsButton />

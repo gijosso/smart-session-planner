@@ -1,17 +1,14 @@
 import { useCallback } from "react";
-import { Text } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "~/components";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
-import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
 export const SignInButton = () => {
   const { data: session } = useQuery(trpc.auth.getSession.queryOptions());
   const queryClient = useQueryClient();
-  const toast = useToast();
 
   const signInMutation = useMutation(
     trpc.auth.signUpAnonymously.mutationOptions({
@@ -29,7 +26,6 @@ export const SignInButton = () => {
         });
         // Invalidate session query to refetch with new token
         await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
-        toast.success("Signed in successfully");
       },
       onError: createMutationErrorHandler({
         errorMessage: "Failed to sign in. Please try again.",
@@ -56,23 +52,17 @@ export const SignInButton = () => {
   const isSignedIn = session?.user;
 
   return (
-    <>
-      <Text className="text-foreground pb-2 text-center text-xl font-semibold">
-        {isSignedIn && session.user.email
-          ? `Hello, ${session.user.email}`
-          : "Not logged in"}
-      </Text>
-      <Button
-        variant="default"
-        onPress={handleSignIn}
-        disabled={signInMutation.isPending || signOutMutation.isPending}
-      >
-        {signInMutation.isPending || signOutMutation.isPending
-          ? "Loading..."
-          : isSignedIn
-            ? "Sign Out"
-            : "Sign Up Anonymously"}
-      </Button>
-    </>
+    <Button
+      variant="default"
+      size="lg"
+      onPress={handleSignIn}
+      disabled={signInMutation.isPending || signOutMutation.isPending}
+    >
+      {signInMutation.isPending || signOutMutation.isPending
+        ? "Loading..."
+        : isSignedIn
+          ? "Sign Out"
+          : "Sign Up Anonymously"}
+    </Button>
   );
 };
