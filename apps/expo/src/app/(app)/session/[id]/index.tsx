@@ -12,7 +12,7 @@ import { useQueryError } from "~/hooks/use-query-error";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
-import { invalidateSessionQueries } from "~/utils/session-cache";
+import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
 
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -86,6 +86,26 @@ export default function Session() {
     }),
   );
 
+  const handleToggleComplete = useCallback(() => {
+    if (data?.id) {
+      toggleCompleteMutation.mutate({ id: data.id });
+    }
+  }, [data?.id, toggleCompleteMutation]);
+
+  const handleUpdate = useCallback(() => {
+    if (id) {
+      router.push(`/session/${id}/update`);
+    }
+  }, [id]);
+
+  const handleRetry = useCallback(() => {
+    void queryClient.invalidateQueries(trpc.session.byId.queryFilter({ id }));
+  }, [id, queryClient]);
+
+  const handleReset = useCallback(() => {
+    router.back();
+  }, []);
+
   const handleDelete = useCallback(() => {
     Alert.alert(
       "Delete Session",
@@ -116,12 +136,8 @@ export default function Session() {
     return (
       <ErrorScreen
         error={queryError.error}
-        onRetry={() => {
-          void queryClient.invalidateQueries(
-            trpc.session.byId.queryFilter({ id }),
-          );
-        }}
-        onReset={() => router.back()}
+        onRetry={handleRetry}
+        onReset={handleReset}
         title="Unable to load session"
       />
     );
@@ -135,7 +151,7 @@ export default function Session() {
           message: "Session not found",
           retryable: false,
         }}
-        onReset={() => router.back()}
+        onReset={handleReset}
         title="Session not found"
       />
     );
@@ -216,7 +232,7 @@ export default function Session() {
 
           <Button
             variant={data.completed ? "secondary" : "default"}
-            onPress={() => toggleCompleteMutation.mutate({ id: data.id })}
+            onPress={handleToggleComplete}
             disabled={toggleCompleteMutation.isPending}
             className="mt-4"
           >
@@ -228,7 +244,7 @@ export default function Session() {
           </Button>
           <Button
             variant="default"
-            onPress={() => router.push(`/session/${id}/update`)}
+            onPress={handleUpdate}
             className="mt-4"
           >
             Update

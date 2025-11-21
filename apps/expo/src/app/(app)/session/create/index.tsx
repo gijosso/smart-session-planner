@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,9 +19,9 @@ import {
   safeToDate,
 } from "~/utils/date";
 import { transformMutationError } from "~/utils/formik";
-import { invalidateSessionQueries } from "~/utils/session-cache";
+import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
 import { toSessionType } from "~/utils/type-guards";
-import { getSuggestionMutationOptions } from "~/utils/suggestion-id";
+import { getSuggestionMutationOptions } from "~/utils/suggestions/suggestion-id";
 import { useToast } from "~/hooks/use-toast";
 
 export default function CreateSession() {
@@ -86,24 +86,27 @@ export default function CreateSession() {
     }),
   );
 
-  const handleSubmit = (values: {
-    title: string;
-    type: SessionType;
-    startTime: Date;
-    endTime: Date;
-    priority: number;
-    description?: string;
-  }) => {
-    mutate({
-      title: values.title,
-      type: values.type,
-      startTime: values.startTime.toISOString(),
-      endTime: values.endTime.toISOString(),
-      priority: values.priority,
-      description: values.description,
-      ...(params.suggestionId && { fromSuggestionId: params.suggestionId }),
-    });
-  };
+  const handleSubmit = useCallback(
+    (values: {
+      title: string;
+      type: SessionType;
+      startTime: Date;
+      endTime: Date;
+      priority: number;
+      description?: string;
+    }) => {
+      mutate({
+        title: values.title,
+        type: values.type,
+        startTime: values.startTime.toISOString(),
+        endTime: values.endTime.toISOString(),
+        priority: values.priority,
+        description: values.description,
+        ...(params.suggestionId && { fromSuggestionId: params.suggestionId }),
+      });
+    },
+    [mutate, params.suggestionId],
+  );
 
   // Parse and validate prefilled values from route params
   const prefilledStartTime = safeToDate(params.suggestedStartTime);

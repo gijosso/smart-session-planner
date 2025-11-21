@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useGlobalSearchParams, useRouter } from "expo-router";
@@ -11,7 +12,7 @@ import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-hand
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
-import { invalidateSessionQueriesForUpdate } from "~/utils/session-cache";
+import { invalidateSessionQueriesForUpdate } from "~/utils/sessions/session-cache";
 
 export default function UpdateSession() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -99,7 +100,7 @@ export default function UpdateSession() {
           </Text>
           <Button
             variant="outline"
-            onPress={() => router.back()}
+            onPress={handleGoBack}
             className="mt-4"
           >
             Go Back
@@ -109,42 +110,49 @@ export default function UpdateSession() {
     );
   }
 
-  const handleSubmit = (values: {
-    title?: string;
-    type?: SessionType;
-    startTime?: Date;
-    endTime?: Date;
-    priority?: number;
-    description?: string;
-    completed?: boolean;
-  }) => {
-    if (!id || !session) return;
-
-    // Convert Date objects to ISO strings for proper serialization
-    const payload: {
-      id: string;
+  const handleSubmit = useCallback(
+    (values: {
       title?: string;
       type?: SessionType;
-      startTime?: string;
-      endTime?: string;
+      startTime?: Date;
+      endTime?: Date;
       priority?: number;
       description?: string;
       completed?: boolean;
-    } = {
-      id,
-    };
+    }) => {
+      if (!id || !session) return;
 
-    if (values.title !== undefined) payload.title = values.title;
-    if (values.type !== undefined) payload.type = values.type;
-    if (values.description !== undefined)
-      payload.description = values.description;
-    if (values.completed !== undefined) payload.completed = values.completed;
-    if (values.priority !== undefined) payload.priority = values.priority;
-    if (values.startTime) payload.startTime = values.startTime.toISOString();
-    if (values.endTime) payload.endTime = values.endTime.toISOString();
+      // Convert Date objects to ISO strings for proper serialization
+      const payload: {
+        id: string;
+        title?: string;
+        type?: SessionType;
+        startTime?: string;
+        endTime?: string;
+        priority?: number;
+        description?: string;
+        completed?: boolean;
+      } = {
+        id,
+      };
 
-    mutate(payload as Parameters<typeof mutate>[0]);
-  };
+      if (values.title !== undefined) payload.title = values.title;
+      if (values.type !== undefined) payload.type = values.type;
+      if (values.description !== undefined)
+        payload.description = values.description;
+      if (values.completed !== undefined) payload.completed = values.completed;
+      if (values.priority !== undefined) payload.priority = values.priority;
+      if (values.startTime) payload.startTime = values.startTime.toISOString();
+      if (values.endTime) payload.endTime = values.endTime.toISOString();
+
+      mutate(payload as Parameters<typeof mutate>[0]);
+    },
+    [id, session, mutate],
+  );
+
+  const handleGoBack = useCallback(() => {
+    router.back();
+  }, [router]);
 
   if (isLoading) {
     return (

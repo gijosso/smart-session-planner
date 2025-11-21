@@ -8,7 +8,7 @@ import { Button, LoadingScreen, Screen } from "~/components";
 import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { SuggestionsList } from "~/features/suggestions";
 import { trpc } from "~/utils/api";
-import { addSuggestionIds } from "~/utils/suggestion-id";
+import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";
 
 /**
  * Suggestions Screen
@@ -44,6 +44,27 @@ export default function SuggestionsScreen() {
     void refetch();
   }, [refetch]);
 
+  const handleNavigateToAvailability = useCallback(() => {
+    router.push("/settings/availability");
+  }, [router]);
+
+  const ListEmptyComponent = useCallback(
+    () => (
+      <View className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
+        <Text className="text-muted-foreground text-center text-base">
+          No suggestions available.
+        </Text>
+        <Text className="text-muted-foreground text-center text-base">
+          Make sure you have availability windows set up.
+        </Text>
+        <Button onPress={handleNavigateToAvailability}>
+          Set up availability
+        </Button>
+      </View>
+    ),
+    [handleNavigateToAvailability],
+  );
+
   if (!rawSuggestions) {
     return <LoadingScreen />;
   }
@@ -66,19 +87,7 @@ export default function SuggestionsScreen() {
         horizontal={false}
         isLoading={isLoading}
         onRefresh={handleRefresh}
-        ListEmptyComponent={() => (
-          <View className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
-            <Text className="text-muted-foreground text-center text-base">
-              No suggestions available.
-            </Text>
-            <Text className="text-muted-foreground text-center text-base">
-              Make sure you have availability windows set up.
-            </Text>
-            <Button onPress={() => router.push("/settings/availability")}>
-              Set up availability
-            </Button>
-          </View>
-        )}
+        ListEmptyComponent={ListEmptyComponent}
       />
     </Screen>
   );

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +23,7 @@ import { ProgressCard } from "~/features/stats";
 import { SuggestionsList } from "~/features/suggestions";
 import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
-import { addSuggestionIds } from "~/utils/suggestion-id";
+import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";
 
 export default function Home() {
   // Fetch all shared data at route level
@@ -53,6 +53,18 @@ export default function Home() {
   // Show unified loading state
   const isLoading = statsQuery.isLoading || todaySessionsForListQuery.isLoading;
 
+  // Memoize retry handler to prevent unnecessary re-renders
+  const handleRetry = useCallback(() => {
+    void statsQuery.refetch();
+    void todaySessionsForListQuery.refetch();
+    void suggestionsQuery.refetch();
+  }, [statsQuery, todaySessionsForListQuery, suggestionsQuery]);
+
+  // Memoize navigation handler
+  const handleNavigateToSuggestions = useCallback(() => {
+    router.push("/suggestions");
+  }, []);
+
   // Show error screen for critical errors (stats, today's sessions, or suggestions)
   if (
     statsError.hasError ||
@@ -62,16 +74,7 @@ export default function Home() {
     const error =
       statsError.error ?? todaySessionsError.error ?? suggestionsError.error;
     if (error) {
-      return (
-        <ErrorScreen
-          error={error}
-          onRetry={() => {
-            void statsQuery.refetch();
-            void todaySessionsForListQuery.refetch();
-            void suggestionsQuery.refetch();
-          }}
-        />
-      );
+      return <ErrorScreen error={error} onRetry={handleRetry} />;
     }
   }
 
@@ -99,7 +102,7 @@ export default function Home() {
           <Button
             variant="ghost"
             size="icon"
-            onPress={() => router.push("/suggestions")}
+            onPress={handleNavigateToSuggestions}
             accessibilityLabel="View all suggestions"
             accessibilityRole="button"
           >

@@ -23,12 +23,12 @@ import { COLORS_MUTED } from "~/constants/colors";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
-import { invalidateSessionQueries } from "~/utils/session-cache";
+import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
 import {
   formatDateDisplay,
   formatTimeRange,
-} from "~/utils/suggestion-formatting";
-import { getSuggestionMutationOptions } from "~/utils/suggestion-id";
+} from "~/utils/suggestions/suggestion-formatting";
+import { getSuggestionMutationOptions } from "~/utils/suggestions/suggestion-id";
 
 interface SuggestionItemProps {
   suggestion: SuggestionWithId;
