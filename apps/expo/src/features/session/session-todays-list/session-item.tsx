@@ -1,11 +1,15 @@
 import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { Link } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
-import { Button, Card } from "~/components";
-import { COLORS_BACKGROUND_LIGHT, COLORS_MUTED } from "~/constants/colors";
+import {
+  Button,
+  Card,
+  CompletedIndicator,
+  SessionTypeIcon,
+  TimeDisplay,
+} from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatTimeRange } from "~/utils/date";
 
@@ -42,46 +46,16 @@ export const SessionItem = memo<SessionItemProps>(({ session }) => {
         accessibilityRole="button"
       >
         <Card className="flex flex-row items-center gap-4">
-          <View className="bg-muted rounded-xl p-3" accessibilityRole="image">
-            <Ionicons
-              name={SESSION_TYPES_DISPLAY[session.type].icon}
-              size={22}
-              color={SESSION_TYPES_DISPLAY[session.type].iconColor}
-              accessibilityLabel={`${sessionTypeLabel} icon`}
-            />
-          </View>
+          <SessionTypeIcon type={session.type} iconSize={22} />
 
           <View className="flex flex-1 flex-col gap-2">
             <Text className="text-foreground text-xl" accessibilityRole="text">
               {sessionTypeLabel}
             </Text>
-            <View className="flex flex-row items-center gap-2">
-              <Ionicons
-                name="time-outline"
-                size={18}
-                color={COLORS_MUTED}
-                accessibilityLabel="Time icon"
-              />
-              <Text className="text-muted-foreground text-md" accessibilityRole="text">
-                {timeRange}
-              </Text>
-            </View>
+            <TimeDisplay timeRange={timeRange} iconSize={18} />
           </View>
 
-          {session.completed && (
-            <View
-              className="bg-foreground items-center justify-center rounded-full p-1"
-              accessibilityRole="image"
-              accessibilityLabel="Completed indicator"
-            >
-              <Ionicons
-                name="checkmark-outline"
-                size={14}
-                color={COLORS_BACKGROUND_LIGHT}
-                accessibilityLabel="Checkmark icon"
-              />
-            </View>
-          )}
+          {session.completed && <CompletedIndicator />}
         </Card>
       </Button>
     </Link>

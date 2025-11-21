@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { Alert, Text, View } from "react-native";
 import { router, useGlobalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -11,13 +10,15 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
+  CompletedIndicator,
   ErrorScreen,
   LoadingScreen,
+  PriorityIndicator,
   Screen,
+  SessionTypeIcon,
+  TimeDisplay,
 } from "~/components";
 import { Content } from "~/components/layout/content";
-import { PRIORITY_LEVELS } from "~/constants/app";
-import { COLORS_BACKGROUND_LIGHT, COLORS_MUTED } from "~/constants/colors";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import {
   getSessionDeleteMutationOptions,
@@ -163,58 +164,17 @@ export default function Session() {
     <Screen backButton variant="default">
       <Content className="gap-8">
         <BackButtonTitle title={session.title}>
-          {session.completed && (
-            <View
-              className="bg-foreground items-center justify-center rounded-full p-1"
-              accessibilityRole="image"
-              accessibilityLabel="Completed indicator"
-            >
-              <Ionicons
-                name="checkmark-outline"
-                size={14}
-                color={COLORS_BACKGROUND_LIGHT}
-                accessibilityLabel="Checkmark icon"
-              />
-            </View>
-          )}
+          {session.completed && <CompletedIndicator />}
         </BackButtonTitle>
 
         <Card>
           <CardHeader>
             <View className="flex flex-1 flex-row items-center justify-end">
-              <View
-                className="flex flex-row items-center gap-1"
-                accessibilityLabel={`Priority level ${session.priority} out of ${PRIORITY_LEVELS.length}`}
-                accessibilityRole="image"
-              >
-                {PRIORITY_LEVELS.map((level) => (
-                  <View
-                    key={level}
-                    className={`h-2 w-2 rounded-full ${
-                      level <= session.priority ? "bg-black" : "bg-gray-300"
-                    }`}
-                    accessibilityLabel={
-                      level <= session.priority
-                        ? "Active priority"
-                        : "Inactive priority"
-                    }
-                  />
-                ))}
-              </View>
+              <PriorityIndicator priority={session.priority} />
             </View>
 
             <View className="flex flex-1 flex-row items-center gap-4">
-              <View
-                className="bg-muted rounded-xl p-3"
-                accessibilityRole="image"
-              >
-                <Ionicons
-                  name={SESSION_TYPES_DISPLAY[session.type].icon}
-                  size={22}
-                  color={SESSION_TYPES_DISPLAY[session.type].iconColor}
-                  accessibilityLabel={`${sessionTypeLabel} icon`}
-                />
-              </View>
+              <SessionTypeIcon type={session.type} iconSize={22} />
 
               <Text
                 className="text-foreground text-xl font-semibold"
@@ -226,22 +186,11 @@ export default function Session() {
           </CardHeader>
 
           <CardContent className="flex flex-1 flex-col justify-center gap-4">
-            <View className="flex flex-row items-center gap-2">
-              <Ionicons
-                name="time-outline"
-                size={22}
-                color={COLORS_MUTED}
-                accessibilityLabel="Time icon"
-              />
-
-              <Text className="text-secondary-foreground">{formattedDate}</Text>
-
-              <View className="bg-muted-foreground h-1 w-1 rounded-full" />
-
-              <Text className="text-secondary-foreground">
-                {formattedTimeRange}
-              </Text>
-            </View>
+            <TimeDisplay
+              timeRange={formattedTimeRange}
+              date={formattedDate}
+              showSeparator={true}
+            />
 
             {session.description && (
               <Text className="text-secondary-foreground" numberOfLines={3}>
@@ -255,7 +204,6 @@ export default function Session() {
               Edit
             </Button>
             <Button
-              className="flex-1"
               variant="destructive"
               onPress={handleDelete}
               disabled={deleteMutation.isPending}
