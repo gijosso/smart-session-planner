@@ -77,7 +77,7 @@ export default function SuggestionsScreen() {
             Smart Suggestions
           </Text>
           <Text className="text-secondary-foreground text-md">
-            Based on your tasks
+            Based on your completed tasks
           </Text>
         </View>
       </View>

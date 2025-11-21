@@ -173,12 +173,63 @@ export async function createSession(
     }
   }
 
-  // Handle completedAt when creating a session
-  // If completed = true, set completedAt to current time
+  // Handle completedAt when creating a session added for testing purposes
+  if (input.completed) {
+    const now = new Date();
+
+    if (input.startTime > now) {
+      throw new ValidationError(
+        "Cannot create a completed session with a future start time. Start time must be in the past or present.",
+        {
+          startTime: input.startTime.toISOString(),
+          now: now.toISOString(),
+        },
+      );
+    }
+
+    // Use raw SQL insert to ensure completedAt uses database NOW() (same as createdAt)
+    // This satisfies: completed_at >= created_at constraint
+    const result = await database.execute(
+      sql`
+        INSERT INTO session (
+          user_id, title, type, start_time, end_time, completed, completed_at, priority, description, from_suggestion_id
+        ) VALUES (
+          ${userId}::uuid,
+          ${input.title},
+          ${input.type}::session_type,
+          ${input.startTime}::timestamptz,
+          ${input.endTime}::timestamptz,
+          true,
+          NOW(),
+          ${input.priority},
+          ${input.description ?? null},
+          ${input.fromSuggestionId ?? null}
+        )
+        RETURNING *
+      `,
+    );
+
+    if (result.rows.length === 0) {
+      throw new DatabaseError(
+        "Failed to create session. Please try again.",
+        undefined,
+        {
+          userId,
+          operation: "createSession",
+        },
+      );
+    }
+
+    // Convert raw result to Session type
+    const row = result.rows[0] as unknown as typeof Session.$inferSelect;
+    return row;
+  }
+
+  // For non-completed sessions, use normal insert
   const insertData = {
     ...input,
     userId,
-    completedAt: input.completed ? new Date() : null,
+    completedAt: null,
   };
 
   const [result] = await database
@@ -417,6 +468,29 @@ export async function deleteSession(
   }
 
   return deleted;
+}
+
+/**
+ * Delete all sessions for a user (soft delete - sets deletedAt timestamp)
+ * Development/testing utility
+ */
+export async function deleteAllSessions(database: typeof db, userId: string) {
+  const now = new Date();
+  const result = await database
+    .update(Session)
+    .set({
+      deletedAt: now,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(Session.userId, userId),
+        isNull(Session.deletedAt), // Only delete sessions that aren't already deleted
+      ),
+    )
+    .returning();
+
+  return result;
 }
 
 /**

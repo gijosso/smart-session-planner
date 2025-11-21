@@ -13,6 +13,7 @@ import {
 import {
   checkSessionConflicts,
   createSession,
+  deleteAllSessions,
   deleteSession,
   getSessionById,
   getSessionsToday,
@@ -150,6 +151,19 @@ export const sessionRouter = {
         { userId, sessionId: input.id },
       );
     }),
+
+  /**
+   * Delete all sessions for the authenticated user (soft delete)
+   * Development/testing utility
+   */
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = getUserId(ctx);
+    return handleAsyncOperation(
+      async () => deleteAllSessions(ctx.db, userId),
+      "delete all sessions",
+      { userId },
+    );
+  }),
 
   /**
    * Check if a time range conflicts with existing sessions

@@ -5,8 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button, Card, Content, Screen } from "~/components";
+import { ClearAllSessionsButton } from "~/components/settings/DEV_clear-all-sessions";
+import { CreateSessionsForSuggestionsButton } from "~/components/settings/DEV_create-sessions-for-suggestions";
 import { COLORS_MUTED } from "~/constants/colors";
-import { MEDIUM_DELAY_MS, SHORT_DELAY_MS } from "~/constants/time";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
@@ -33,24 +34,13 @@ export default function Settings() {
     signOutMutation.mutate();
   }, [signOutMutation]);
 
-  // Test toast button (development only)
-  const handleTestToast = useCallback(() => {
-    toast.success("Success toast test!", "Test");
-    setTimeout(() => {
-      toast.error("Error toast test!", "Test");
-    }, SHORT_DELAY_MS);
-    setTimeout(() => {
-      toast.info("Info toast test!", "Test");
-    }, MEDIUM_DELAY_MS);
-  }, [toast]);
-
   return (
     <Screen>
       <Content>
         <Text className="text-foreground text-3xl font-semibold">Settings</Text>
       </Content>
 
-      <Content>
+      <Content className="flex-1">
         <Link href="/settings/availability" asChild>
           <Button
             variant="ghost"
@@ -86,14 +76,10 @@ export default function Settings() {
           {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
         </Button>
         {process.env.NODE_ENV === "development" && (
-          <Button
-            variant="outline"
-            onPress={handleTestToast}
-            accessibilityLabel="Test toast notifications"
-            accessibilityRole="button"
-          >
-            Test Toast
-          </Button>
+          <>
+            <CreateSessionsForSuggestionsButton />
+            <ClearAllSessionsButton />
+          </>
         )}
       </Content>
     </Screen>
