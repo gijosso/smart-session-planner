@@ -4,8 +4,12 @@ import { Redirect, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useQuery } from "@tanstack/react-query";
 
-import { Card, CardContent, Content, Screen } from "~/components";
-import { FeatureItem, SignInButton } from "~/features/auth";
+import { Card } from "~/components/card";
+import { CardContent } from "~/components/card";
+import { Content } from "~/components/layout/content";
+import { Screen } from "~/components/layout/screen";
+import { FeatureItem } from "~/features/auth/feature-item";
+import { SignInButton } from "~/features/auth/sign-in-button";
 import { trpc } from "~/utils/api";
 
 export default function Index() {

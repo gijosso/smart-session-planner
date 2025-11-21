@@ -265,6 +265,8 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 
 1. **Smoothness**
    UX could be improved, no smooth animations nor transitions, Reanimated isn't used at all really.
+   - Main pages are ScrollViews, should move away from it when layout or features change
+   - Transparent StatusBar and minimnal SafeArea padding because I love this esthetic
 
 2. **Forms**
    I implemented simple forms, far from pretty but does the job.

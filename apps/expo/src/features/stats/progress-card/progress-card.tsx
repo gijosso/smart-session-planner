@@ -1,9 +1,11 @@
-import type React from "react";
+import React, { memo } from "react";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
-import { Card, CardContent, CardHeader } from "~/components";
+import { Card } from "~/components/card";
+import { CardContent } from "~/components/card";
+import { CardHeader } from "~/components/card";
 import { AverageSpacing } from "./average-spacing";
 import { SessionsByType } from "./sessions-by-type";
 import { StatsOverview } from "./stats-overview";
@@ -18,8 +20,9 @@ interface ProgressCardProps {
 /**
  * Progress card component showing session statistics
  * Displays scheduled, completed, completion rate, and breakdown by type
+ * Memoized to prevent unnecessary re-renders when parent re-renders
  */
-export const ProgressCard: React.FC<ProgressCardProps> = ({ stats }) => {
+export const ProgressCard = memo<ProgressCardProps>(({ stats }) => {
   if (!stats || stats.total === 0) {
     return null;
   }
@@ -55,4 +58,6 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ stats }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+ProgressCard.displayName = "ProgressCard";

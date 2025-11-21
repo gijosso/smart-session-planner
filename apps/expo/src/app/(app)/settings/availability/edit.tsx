@@ -7,7 +7,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WeeklyAvailability } from "@ssp/api/client";
 import { DAYS_OF_WEEK } from "@ssp/api/client";
 
-import { Button, Card, ErrorScreen, LoadingScreen } from "~/components";
+import { Button } from "~/components/button";
+import { Card } from "~/components/card";
+import { ErrorScreen } from "~/components/error/error-screen";
+import { LoadingScreen } from "~/components/layout/loading-screen";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
 import { useQueryErrorHandling } from "~/hooks/use-error-handling";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";

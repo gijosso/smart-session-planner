@@ -4,9 +4,11 @@ import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import type { SuggestionWithId } from "~/types";
-import { Button, LoadingScreen, Screen } from "~/components";
+import { Button } from "~/components/button";
+import { LoadingScreen } from "~/components/layout/loading-screen";
+import { Screen } from "~/components/layout/screen";
 import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
-import { SuggestionsList } from "~/features/suggestions";
+import { SuggestionsList } from "~/features/suggestions/suggestions-list";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";
 

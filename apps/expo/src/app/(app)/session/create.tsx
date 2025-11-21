@@ -5,7 +5,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SessionType } from "@ssp/api/client";
 import type { SessionFormValues } from "@ssp/validators";
 
-import { BackButtonTitle, Content, Screen } from "~/components";
+import { BackButtonTitle } from "~/components/layout/back-button-title";
+import { Content } from "~/components/layout/content";
+import { LoadingScreen } from "~/components/layout/loading-screen";
+import { Screen } from "~/components/layout/screen";
 import { CreateSessionForm } from "~/features/session/forms/session-form";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";

@@ -1,11 +1,12 @@
-import { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { SuggestionWithId } from "~/types";
 import type { AppError } from "~/utils/error/types";
-import { Button, Content } from "~/components";
+import { Button } from "~/components/button";
+import { Content } from "~/components/layout/content";
 import { SkeletonList } from "~/components/layout/skeleton-loader";
 import { FLEX_1_STYLE, SUGGESTION_ITEM_HEIGHT } from "~/constants/app";
 import { COLORS_MUTED } from "~/constants/colors";
@@ -22,13 +23,10 @@ type SmartSuggestionsSectionProps = {
  * Smart Suggestions Section
  * Displays the header and list of suggestions for the home screen
  * Automatically hides when there are no suggestions and not loading
+ * Memoized to prevent unnecessary re-renders when parent re-renders
  */
-export function SmartSuggestionsSection({
-  suggestions,
-  isLoading = false,
-  error,
-  onRetry,
-}: SmartSuggestionsSectionProps) {
+export const SmartSuggestionsSection = memo<SmartSuggestionsSectionProps>(
+  ({ suggestions, isLoading = false, error, onRetry }) => {
   const handleNavigateToSuggestions = useCallback(() => {
     router.push("/suggestions");
   }, []);
@@ -90,5 +88,7 @@ export function SmartSuggestionsSection({
       </View>
     </>
   );
-}
+});
+
+SmartSuggestionsSection.displayName = "SmartSuggestionsSection";
 

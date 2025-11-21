@@ -3,22 +3,18 @@ import { View } from "react-native";
 import { router, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import {
-  BackButtonTitle,
-  Button,
-  Card,
-  CardHeader,
-  CompletedIndicator,
-  ErrorScreen,
-  LoadingScreen,
-  Screen,
-} from "~/components";
+import { BackButtonTitle } from "~/components/layout/back-button-title";
+import { Button } from "~/components/button";
+import { Card } from "~/components/card";
+import { CardHeader } from "~/components/card";
+import { CompletedIndicator } from "~/components/session/completed-indicator";
+import { ErrorScreen } from "~/components/error/error-screen";
+import { LoadingScreen } from "~/components/layout/loading-screen";
+import { Screen } from "~/components/layout/screen";
 import { Content } from "~/components/layout/content";
-import {
-  SessionActions,
-  SessionDetails,
-  SessionHeader,
-} from "~/features/session/session-detail";
+import { SessionActions } from "~/features/session/session-detail/session-actions";
+import { SessionDetails } from "~/features/session/session-detail/session-details";
+import { SessionHeader } from "~/features/session/session-detail/session-header";
 import {
   getSessionDeleteMutationOptions,
   getSessionMutationOptions,

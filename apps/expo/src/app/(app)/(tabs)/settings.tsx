@@ -1,12 +1,28 @@
+import React from "react";
 import { Text } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Button, Card, Content, Screen } from "~/components";
-import { ClearAllSessionsButton } from "~/components/settings/DEV_clear-all-sessions";
-import { CreateSessionsForSuggestionsButton } from "~/components/settings/DEV_create-sessions-for-suggestions";
+import { Button } from "~/components/button";
+import { Card } from "~/components/card";
+import { Content } from "~/components/layout/content";
+import { Screen } from "~/components/layout/screen";
 import { COLORS_MUTED } from "~/constants/colors";
-import { SignOutButton } from "~/features/auth";
+import { SignOutButton } from "~/features/auth/sign-out-button";
+
+// Conditionally import dev-only components to reduce bundle size in production
+let ClearAllSessionsButton: React.ComponentType | null = null;
+let CreateSessionsForSuggestionsButton: React.ComponentType | null = null;
+
+if (process.env.NODE_ENV === "development") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const clearAllModule = require("~/components/settings/DEV_clear-all-sessions");
+  ClearAllSessionsButton = clearAllModule.ClearAllSessionsButton;
+  
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const createSessionsModule = require("~/components/settings/DEV_create-sessions-for-suggestions");
+  CreateSessionsForSuggestionsButton = createSessionsModule.CreateSessionsForSuggestionsButton;
+}
 
 export default function Settings() {
   return (
@@ -44,8 +60,10 @@ export default function Settings() {
         <SignOutButton />
         {process.env.NODE_ENV === "development" && (
           <>
-            <CreateSessionsForSuggestionsButton />
-            <ClearAllSessionsButton />
+            {CreateSessionsForSuggestionsButton && (
+              <CreateSessionsForSuggestionsButton />
+            )}
+            {ClearAllSessionsButton && <ClearAllSessionsButton />}
           </>
         )}
       </Content>

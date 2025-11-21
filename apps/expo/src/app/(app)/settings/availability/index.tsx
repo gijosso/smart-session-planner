@@ -4,8 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ErrorScreen, LoadingScreen } from "~/components";
-import { AvailabilityCalendar } from "~/features/availability";
+import { ErrorScreen } from "~/components/error/error-screen";
+import { LoadingScreen } from "~/components/layout/loading-screen";
+import { AvailabilityCalendar } from "~/features/availability/availability-calendar";
 import { useQueryErrorHandling } from "~/hooks/use-error-handling";
 import { trpc } from "~/utils/api";
 

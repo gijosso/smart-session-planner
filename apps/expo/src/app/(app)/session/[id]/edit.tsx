@@ -4,13 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import {
-  BackButtonTitle,
-  Content,
-  ErrorScreen,
-  LoadingScreen,
-  Screen,
-} from "~/components";
+import { BackButtonTitle } from "~/components/layout/back-button-title";
+import { Content } from "~/components/layout/content";
+import { ErrorScreen } from "~/components/error/error-screen";
+import { LoadingScreen } from "~/components/layout/loading-screen";
+import { Screen } from "~/components/layout/screen";
 import { UpdateSessionForm } from "~/features/session/forms/session-form";
 import { getSessionUpdateMutationOptions } from "~/features/session/use-session-mutation";
 import { useQueryError } from "~/hooks/use-query-error";

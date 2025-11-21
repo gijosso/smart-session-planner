@@ -3,7 +3,10 @@ import { Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 
 import type { SuggestionWithId } from "~/types";
-import { Content, ErrorScreen, LoadingScreen, Screen } from "~/components";
+import { Content } from "~/components/layout/content";
+import { ErrorScreen } from "~/components/error/error-screen";
+import { LoadingScreen } from "~/components/layout/loading-screen";
+import { Screen } from "~/components/layout/screen";
 import { SkeletonCard } from "~/components/layout/skeleton-loader";
 import {
   FLEX_1_STYLE,
@@ -14,13 +17,11 @@ import {
   SUGGESTIONS_STALE_TIME_MS,
   TODAY_SESSIONS_STALE_TIME_MS,
 } from "~/constants/api";
-import {
-  SessionAddButton,
-  SessionRecap,
-  SessionTodaysList,
-} from "~/features/session";
-import { ProgressCard } from "~/features/stats";
-import { SmartSuggestionsSection } from "~/features/suggestions";
+import { SessionAddButton } from "~/features/session/session-add-button";
+import { SessionRecap } from "~/features/session/session-recap";
+import { SessionTodaysList } from "~/features/session/session-todays-list";
+import { ProgressCard } from "~/features/stats/progress-card";
+import { SmartSuggestionsSection } from "~/features/suggestions/smart-suggestions-section";
 import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";

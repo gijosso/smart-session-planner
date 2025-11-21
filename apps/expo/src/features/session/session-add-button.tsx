@@ -1,12 +1,12 @@
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Button } from "~/components";
+import { Button } from "~/components/button";
 import { COLORS_BACKGROUND_LIGHT } from "~/constants/colors";
 
-export const SessionAddButton: React.FC = () => {
+export const SessionAddButton: React.FC = React.memo(() => {
   const handlePress = useCallback(() => {
     router.push("/session/create");
   }, []);
@@ -28,4 +28,4 @@ export const SessionAddButton: React.FC = () => {
       </View>
     </Button>
   );
-};
+});

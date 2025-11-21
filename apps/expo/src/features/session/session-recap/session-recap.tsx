@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import React, { memo, useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
-import { Card, CardContent } from "~/components";
+import { Card } from "~/components/card";
+import { CardContent } from "~/components/card";
 import { COLORS_MUTED } from "~/constants/colors";
 import { formatDateShort } from "~/utils/date";
 import { SessionRecapFilter } from "./session-recap-filter";
@@ -20,7 +21,11 @@ interface SessionRecapProps {
   stats?: SessionStats;
 }
 
-export const SessionRecap: React.FC<SessionRecapProps> = ({ stats }) => {
+/**
+ * Session recap component showing today's or week's session statistics
+ * Memoized to prevent unnecessary re-renders when parent re-renders
+ */
+export const SessionRecap = memo<SessionRecapProps>(({ stats }) => {
   const [filter, setFilter] = useState<FilterType>("today");
   const today = useMemo(() => formatDateShort(new Date()), []);
 
@@ -80,4 +85,6 @@ export const SessionRecap: React.FC<SessionRecapProps> = ({ stats }) => {
       </Card>
     </View>
   );
-};
+});
+
+SessionRecap.displayName = "SessionRecap";
