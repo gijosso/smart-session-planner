@@ -8,6 +8,7 @@ import type { SessionType } from "@ssp/api/client";
 import { Button } from "~/components";
 import { UpdateSessionForm } from "~/features/session";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueriesForUpdate } from "~/utils/session-cache";
@@ -16,6 +17,7 @@ export default function UpdateSession() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const isValidId = typeof id === "string" && id.trim() !== "";
 
@@ -77,6 +79,7 @@ export default function UpdateSession() {
           },
         );
 
+        toast.success("Session updated successfully");
         router.back();
       },
       onError: createMutationErrorHandler({

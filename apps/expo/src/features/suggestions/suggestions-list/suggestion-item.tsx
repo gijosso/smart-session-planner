@@ -21,6 +21,7 @@ import {
 } from "~/constants/app";
 import { COLORS_MUTED } from "~/constants/colors";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import {
@@ -45,6 +46,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
   ({ suggestion, horizontal = false }) => {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const toast = useToast();
 
     // Create session mutation with React Query-native optimistic updates
     const createSessionMutation = useMutation(
@@ -58,6 +60,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
             startTime: data.startTime,
             id: data.id,
           });
+          toast.success("Session created successfully");
         },
         onError: createMutationErrorHandler({
           errorMessage: "Failed to create session. Please try again.",

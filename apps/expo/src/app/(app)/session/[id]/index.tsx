@@ -9,6 +9,7 @@ import { PRIORITY_LEVELS } from "~/constants/app";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useQueryError } from "~/hooks/use-query-error";
+import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
@@ -16,6 +17,7 @@ import { invalidateSessionQueries } from "~/utils/session-cache";
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { data, isLoading, error } = useQuery(
     trpc.session.byId.queryOptions({ id }),
   );
@@ -23,18 +25,28 @@ export default function Session() {
 
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
-      onSettled: (_data, _error, variables) => {
-        // Use React Query's getQueryData to get latest session data (avoids stale closure)
+      onMutate: (variables) => {
+        // Capture current session data before toggle (React Query pattern)
         const queryOptions = trpc.session.byId.queryOptions({
           id: variables.id,
         });
-        const currentSession = queryClient.getQueryData(queryOptions.queryKey);
-        if (currentSession) {
-          invalidateSessionQueries(queryClient, {
-            startTime: currentSession.startTime,
-            id: currentSession.id,
-          });
-        }
+        const oldSession = queryClient.getQueryData(queryOptions.queryKey);
+        return { oldSession };
+      },
+      onSuccess: (data) => {
+        // Use the response data from the mutation (always defined)
+        invalidateSessionQueries(queryClient, {
+          startTime: data.startTime,
+          id: data.id,
+        });
+
+        // Check if session is now complete (completedAt is not null)
+        const isComplete = data.completedAt !== null;
+        toast.success(
+          isComplete
+            ? "Session marked as complete"
+            : "Session marked as incomplete",
+        );
       },
       onError: createMutationErrorHandler({
         errorMessage: "Failed to update session. Please try again.",
@@ -65,6 +77,7 @@ export default function Session() {
             startTime: sessionData.startTime,
           });
         }
+        toast.success("Session deleted successfully");
         router.replace("/home");
       },
       onError: createMutationErrorHandler({

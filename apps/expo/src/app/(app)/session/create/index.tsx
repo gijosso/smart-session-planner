@@ -22,10 +22,12 @@ import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import { toSessionType } from "~/utils/type-guards";
 import { getSuggestionMutationOptions } from "~/utils/suggestion-id";
+import { useToast } from "~/hooks/use-toast";
 
 export default function CreateSession() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [resetKey, setResetKey] = useState(0);
   const params = useLocalSearchParams<{
     // Prefilled from suggestion
@@ -66,6 +68,8 @@ export default function CreateSession() {
           startTime: data.startTime,
           id: data.id,
         });
+
+        toast.success("Session created successfully");
 
         // Navigate to the created session
         // Type-safe access - data should always have id from the API

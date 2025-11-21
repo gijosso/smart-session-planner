@@ -10,6 +10,7 @@ import { DAYS_OF_WEEK } from "@ssp/api/client";
 import { Button, Card, LoadingScreen } from "~/components";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import {
   formatTimeFromFull,
@@ -21,6 +22,7 @@ import { toDayOfWeek } from "~/utils/type-guards";
 export default function EditAvailability() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const {
     data: availability,
@@ -36,6 +38,7 @@ export default function EditAvailability() {
     trpc.availability.setWeekly.mutationOptions({
       onSuccess: () => {
         void queryClient.invalidateQueries(trpc.availability.get.queryFilter());
+        toast.success("Availability updated successfully");
         router.back();
       },
       onError: createMutationErrorHandler({
@@ -56,8 +59,10 @@ export default function EditAvailability() {
 
       // Validate time formats
       if (!isValidTimeFormat(newStartTime) || !isValidTimeFormat(newEndTime)) {
-        // Invalid time format, should show error to user
-        // For now, just return early
+        toast.error(
+          "Please enter a valid time format (HH:MM)",
+          "Invalid Time Format",
+        );
         return;
       }
 

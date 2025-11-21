@@ -1,27 +1,26 @@
-import { Alert } from "react-native";
-
 import type { AppError } from "~/utils/error/types";
 import { createAppError } from "~/utils/error/types";
+import { showErrorToast } from "~/utils/toast";
 
 export interface MutationErrorHandlingOptions {
   /**
-   * Custom error message to show in alert
+   * Custom error message to show in toast
    * If not provided, uses error's userMessage or a default message
    */
   errorMessage?: string;
   /**
-   * Custom title for error alert
+   * Custom title for error toast
    * Defaults to "Error"
    */
   errorTitle?: string;
   /**
-   * Whether to show an alert on error
+   * Whether to show a toast on error
    * Defaults to true
    */
-  showAlert?: boolean;
+  showToast?: boolean;
   /**
    * Custom error handler function
-   * If provided, this will be called instead of showing default alert
+   * If provided, this will be called instead of showing default toast
    */
   onError?: (error: AppError) => void;
   /**
@@ -34,6 +33,7 @@ export interface MutationErrorHandlingOptions {
 /**
  * Creates standardized mutation error handler
  * Can be used with mutationOptions to provide consistent error handling
+ * Uses toast notifications instead of alerts for better UX
  */
 export function createMutationErrorHandler(
   options: MutationErrorHandlingOptions = {},
@@ -41,7 +41,7 @@ export function createMutationErrorHandler(
   const {
     errorMessage,
     errorTitle = "Error",
-    showAlert = true,
+    showToast = true,
     onError,
     logError = process.env.NODE_ENV === "development",
   } = options;
@@ -50,14 +50,16 @@ export function createMutationErrorHandler(
     const appError = createAppError(error);
 
     if (logError) {
+      // eslint-disable-next-line no-console
       console.error("Mutation error:", error);
     }
 
     if (onError) {
       onError(appError);
-    } else if (showAlert) {
-      const message = errorMessage ?? appError.userMessage ?? appError.message;
-      Alert.alert(errorTitle, message, [{ text: "OK" }]);
+    } else if (showToast) {
+      const message =
+        errorMessage ?? appError.userMessage ?? appError.message ?? "An error occurred";
+      showErrorToast(message, errorTitle);
     }
   };
 }
