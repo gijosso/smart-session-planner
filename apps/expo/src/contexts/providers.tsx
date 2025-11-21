@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from "react";
 import { Platform } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 
@@ -7,7 +8,7 @@ import { queryClient } from "~/utils/api";
 // Conditionally import DevTools only in development and for web platform
 // React Native requires a different setup (e.g., Flipper or expo plugin)
 // For native development, consider using: tanstack-query-dev-tools-expo-plugin
-let ReactQueryDevtools: React.ComponentType<{
+let ReactQueryDevtools: ComponentType<{
   initialIsOpen?: boolean;
 }> | null = null;
 
@@ -24,7 +25,7 @@ if (process.env.NODE_ENV === "development" && Platform.OS === "web") {
   }
 }
 
-export const Providers = ({ children }: { children: React.ReactNode }) => {
+export const Providers = ({ children }: { children: ReactNode }) => {
   const isDevelopment = process.env.NODE_ENV === "development";
   const isWeb = Platform.OS === "web";
 

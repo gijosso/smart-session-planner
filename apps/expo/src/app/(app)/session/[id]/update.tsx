@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
+import { Button } from "~/components";
 import { UpdateSessionForm } from "~/features/session";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
@@ -14,6 +15,27 @@ export default function UpdateSession() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  // Validate route params
+  if (!id || typeof id !== "string" || id.trim() === "") {
+    return (
+      <SafeAreaView className="bg-background flex-1 items-center justify-center">
+        <Stack.Screen options={{ title: "Update Session" }} />
+        <View className="h-full w-full p-4">
+          <Text className="text-destructive text-lg">
+            Invalid session ID. Please go back and try again.
+          </Text>
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
+            Go Back
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const {
     data: session,
@@ -25,7 +47,17 @@ export default function UpdateSession() {
     mutate,
     error: mutationError,
     isPending,
-  } = useMutation(trpc.session.update.mutationOptions());
+  } = useMutation(
+    trpc.session.update.mutationOptions({
+      onError: (error) => {
+        // Error is handled via serverError prop in form
+        // Additional logging for debugging
+        if (process.env.NODE_ENV === "development") {
+          console.error("Update session error:", error);
+        }
+      },
+    }),
+  );
 
   const handleSubmit = (values: {
     title?: string;

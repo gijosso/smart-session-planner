@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button, ErrorScreen, LoadingScreen } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
-import { useQueryError } from "~/hooks/use-query-error";
+import { useMutationError, useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
@@ -29,6 +29,17 @@ export default function Session() {
             startTime: data.startTime,
             id: data.id,
           });
+        }
+      },
+      onError: (error) => {
+        // Show error alert for mutation failures
+        Alert.alert(
+          "Error",
+          "Failed to update session. Please try again.",
+          [{ text: "OK" }],
+        );
+        if (process.env.NODE_ENV === "development") {
+          console.error("Toggle complete error:", error);
         }
       },
     }),
@@ -57,6 +68,17 @@ export default function Session() {
 
         // Navigate back to home after successful deletion
         router.replace("/home");
+      },
+      onError: (error) => {
+        // Show error alert for deletion failures
+        Alert.alert(
+          "Error",
+          "Failed to delete session. Please try again.",
+          [{ text: "OK" }],
+        );
+        if (process.env.NODE_ENV === "development") {
+          console.error("Delete session error:", error);
+        }
       },
     }),
   );

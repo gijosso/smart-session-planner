@@ -36,6 +36,7 @@ export default function Home() {
   // Handle errors consistently
   const statsError = useQueryError(statsQuery);
   const todaySessionsError = useQueryError(todaySessionsForListQuery);
+  const suggestionsError = useQueryError(suggestionsQuery);
 
   // Add idempotency IDs to suggestions for React Query tracking
   const suggestions = useMemo(() => {
@@ -46,9 +47,9 @@ export default function Home() {
   // Show unified loading state
   const isLoading = statsQuery.isLoading || todaySessionsForListQuery.isLoading;
 
-  // Show error screen for critical errors (stats or today's sessions)
-  if (statsError.hasError || todaySessionsError.hasError) {
-    const error = statsError.error ?? todaySessionsError.error;
+  // Show error screen for critical errors (stats, today's sessions, or suggestions)
+  if (statsError.hasError || todaySessionsError.hasError || suggestionsError.hasError) {
+    const error = statsError.error ?? todaySessionsError.error ?? suggestionsError.error;
     if (error) {
       return (
         <ErrorScreen
@@ -56,6 +57,7 @@ export default function Home() {
           onRetry={() => {
             void statsQuery.refetch();
             void todaySessionsForListQuery.refetch();
+            void suggestionsQuery.refetch();
           }}
         />
       );

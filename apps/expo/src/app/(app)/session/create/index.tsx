@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
+import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { CreateSessionForm } from "~/features/session/forms";
 import { trpc } from "~/utils/api";
 import {
@@ -32,6 +33,20 @@ export default function CreateSession() {
     suggestionId?: string; // ID of the suggestion this session is being created from
   }>();
 
+  // Validate route params
+  const validatedType: SessionType | undefined =
+    params.type &&
+    Object.values(SESSION_TYPES_DISPLAY).some((t) => t.value === params.type)
+      ? (params.type as SessionType)
+      : undefined;
+
+  const validatedPriority: number | undefined = params.priority
+    ? (() => {
+        const parsed = Number.parseInt(params.priority, 10);
+        return !isNaN(parsed) && parsed >= 1 && parsed <= 5 ? parsed : undefined;
+      })()
+    : undefined;
+
   const {
     mutate,
     error: mutationError,
@@ -57,6 +72,13 @@ export default function CreateSession() {
           router.back();
         }
       },
+      onError: (error) => {
+        // Error is handled via serverError prop in form
+        // Additional logging for debugging
+        if (process.env.NODE_ENV === "development") {
+          console.error("Create session error:", error);
+        }
+      },
     }),
   );
 
@@ -79,23 +101,21 @@ export default function CreateSession() {
     });
   };
 
-  // Parse prefilled values from route params
+  // Parse and validate prefilled values from route params
   const prefilledStartTime = safeToDate(params.suggestedStartTime);
   const prefilledEndTime = safeToDate(params.suggestedEndTime);
-  const prefilledPriority = params.priority
-    ? Number.parseInt(params.priority, 10)
-    : undefined;
 
+  // Use validated values, fallback to defaults if invalid
   const initialValues =
     prefilledStartTime && prefilledEndTime
       ? {
           title: params.title ?? "",
-          type: params.type ?? "OTHER",
+          type: validatedType ?? "OTHER",
           startDate: formatDateForInput(prefilledStartTime),
           startTime: formatTimeForInput(prefilledStartTime),
           endDate: formatDateForInput(prefilledEndTime),
           endTime: formatTimeForInput(prefilledEndTime),
-          priority: prefilledPriority ?? 3,
+          priority: validatedPriority ?? 3,
           description: params.description ?? "",
         }
       : undefined;

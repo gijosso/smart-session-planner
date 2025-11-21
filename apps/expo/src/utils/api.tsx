@@ -82,20 +82,38 @@ const MAX_REFRESH_RETRIES = 2;
 interface RefreshState {
   promise: Promise<void>;
   timestamp: number;
-  retryCount: number;
 }
 
 let refreshState: RefreshState | null = null;
 
 /**
- * Create a timeout promise that rejects after the specified duration
+ * Create a fetch request with timeout protection using AbortController
+ * Properly cancels the fetch request if timeout occurs to prevent memory leaks
  */
-function createTimeoutPromise(ms: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(new Error(`Token refresh timed out after ${ms}ms`));
-    }, ms);
-  });
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Token refresh timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -133,23 +151,21 @@ export async function refreshAccessToken(): Promise<void> {
           throw new Error("No refresh token available");
         }
 
-        // Call refresh endpoint with timeout protection
+        // Call refresh endpoint with timeout protection using AbortController
         const baseUrl = getBaseUrl();
-        const fetchPromise = fetch(`${baseUrl}/api/trpc/auth.refreshToken`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetchWithTimeout(
+          `${baseUrl}/api/trpc/auth.refreshToken`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              json: { refreshToken },
+            }),
           },
-          body: JSON.stringify({
-            json: { refreshToken },
-          }),
-        });
-
-        // Race between fetch and timeout
-        const response = await Promise.race([
-          fetchPromise,
-          createTimeoutPromise(REFRESH_TIMEOUT_MS),
-        ]);
+          REFRESH_TIMEOUT_MS,
+        );
 
         if (!response.ok) {
           throw new Error(`Token refresh failed: ${response.statusText}`);
@@ -213,7 +229,6 @@ export async function refreshAccessToken(): Promise<void> {
   refreshState = {
     promise: refreshPromise,
     timestamp: Date.now(),
-    retryCount: 0,
   };
 
   // Clean up state when promise resolves or rejects

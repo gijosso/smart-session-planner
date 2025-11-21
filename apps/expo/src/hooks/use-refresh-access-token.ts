@@ -1,5 +1,5 @@
 import type { AppStateStatus } from "react-native";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,6 +15,21 @@ export const useRefreshAccessToken = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
+  // Memoize the token refresh function to avoid recreating it on every render
+  const checkAndRefreshToken = useCallback(async () => {
+    try {
+      const isExpired = await authClient.isTokenExpired();
+      if (isExpired) {
+        await refreshAccessToken();
+      }
+    } catch (error) {
+      // Silently fail - token refresh will be retried on next API call
+      if (process.env.NODE_ENV === "development") {
+        console.error("Failed to refresh token in background:", error);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!session?.user) {
       // Clear interval if user is not authenticated
@@ -24,19 +39,6 @@ export const useRefreshAccessToken = () => {
       }
       return;
     }
-
-    // Function to check and refresh token if needed
-    const checkAndRefreshToken = async () => {
-      try {
-        const isExpired = await authClient.isTokenExpired();
-        if (isExpired) {
-          await refreshAccessToken();
-        }
-      } catch (error) {
-        // Silently fail - token refresh will be retried on next API call
-        console.error("Failed to refresh token in background:", error);
-      }
-    };
 
     // Initial check
     void checkAndRefreshToken();
@@ -64,6 +66,7 @@ export const useRefreshAccessToken = () => {
       }
       subscription.remove();
     };
-  }, [session?.user]);
+  }, [session?.user, checkAndRefreshToken]);
+
   return { isLoading };
 };
