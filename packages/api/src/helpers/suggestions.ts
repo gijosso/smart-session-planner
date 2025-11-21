@@ -431,16 +431,37 @@ export async function suggestTimeSlots(
     return formatter.format(date); // Returns YYYY-MM-DD format
   };
 
-  // If no patterns detected, generate default suggestions
-  if (patterns.length === 0) {
-    return generateDefaultSuggestions(
-      availability.weeklyAvailability,
-      userTimezone,
-      activeSessions,
-      startDate,
-      lookAheadDays,
-      options,
+  // Calculate end date for look-ahead period
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + lookAheadDays);
+
+  // Count active sessions within the look-ahead period
+  const activeSessionsInPeriod = activeSessions.filter(
+    (session) =>
+      session.startTime >= startDate && session.startTime < endDate,
+  ).length;
+
+  // Helper to check if default suggestions should be shown
+  const shouldShowDefaultSuggestions = (): boolean => {
+    return (
+      activeSessionsInPeriod <
+      SUGGESTION_LIMITS.MIN_ACTIVE_SESSIONS_FOR_NO_DEFAULTS
     );
+  };
+
+  // If no patterns detected, only generate default suggestions if user doesn't have enough active sessions
+  if (patterns.length === 0) {
+    if (shouldShowDefaultSuggestions()) {
+      return generateDefaultSuggestions(
+        availability.weeklyAvailability,
+        userTimezone,
+        activeSessions,
+        startDate,
+        lookAheadDays,
+        options,
+      );
+    }
+    return [];
   }
 
   const suggestions: SuggestedSession[] = [];
@@ -627,7 +648,8 @@ export async function suggestTimeSlots(
 
   // Fallback to default suggestions if pattern-based suggestions didn't produce enough results
   // This handles cases where patterns exist but all suggestions were filtered out
-  if (filteredSuggestions.length === 0) {
+  // Only show default suggestions if user doesn't have enough active sessions
+  if (filteredSuggestions.length === 0 && shouldShowDefaultSuggestions()) {
     return generateDefaultSuggestions(
       availability.weeklyAvailability,
       userTimezone,

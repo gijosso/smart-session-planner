@@ -1,34 +1,18 @@
 import { useCallback, useMemo } from "react";
 import { Text, View } from "react-native";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 
 import type { SuggestionWithId } from "~/types";
-import {
-  Button,
-  Content,
-  ErrorScreen,
-  LoadingScreen,
-  Screen,
-} from "~/components";
-import {
-  SkeletonCard,
-  SkeletonList,
-} from "~/components/layout/skeleton-loader";
-import {
-  FLEX_1_STYLE,
-  SUGGESTION_ITEM_HEIGHT,
-  SUGGESTION_LOOK_AHEAD_DAYS,
-} from "~/constants/app";
-import { COLORS_MUTED } from "~/constants/colors";
+import { Content, ErrorScreen, LoadingScreen, Screen } from "~/components";
+import { SkeletonCard } from "~/components/layout/skeleton-loader";
+import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import {
   SessionAddButton,
   SessionRecap,
   SessionTodaysList,
 } from "~/features/session";
 import { ProgressCard } from "~/features/stats";
-import { SuggestionsList } from "~/features/suggestions";
+import { SmartSuggestionsSection } from "~/features/suggestions";
 import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";
@@ -73,11 +57,6 @@ export default function Home() {
     void suggestionsQuery.refetch();
   }, [statsQuery, todaySessionsForListQuery, suggestionsQuery]);
 
-  // Memoize navigation handler
-  const handleNavigateToSuggestions = useCallback(() => {
-    router.push("/suggestions");
-  }, []);
-
   // Show error screen for critical errors (stats, today's sessions, or suggestions)
   if (
     statsError.hasError ||
@@ -111,40 +90,10 @@ export default function Home() {
         )}
       </Content>
 
-      <Content>
-        <View className="flex flex-row items-center justify-between">
-          <Text className="text-foreground text-2xl" accessibilityRole="header">
-            Smart Suggestions
-          </Text>
-          <Button
-            variant="ghost"
-            size="icon"
-            onPress={handleNavigateToSuggestions}
-            accessibilityLabel="View all suggestions"
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="chevron-forward-outline"
-              size={22}
-              color={COLORS_MUTED}
-              accessibilityLabel="Navigate to suggestions"
-            />
-          </Button>
-        </View>
-      </Content>
-      <View style={FLEX_1_STYLE}>
-        {isSuggestionsLoading ? (
-          <View className="p-4">
-            <SkeletonList count={3} />
-          </View>
-        ) : (
-          <SuggestionsList
-            suggestions={suggestions}
-            horizontal={true}
-            style={{ height: SUGGESTION_ITEM_HEIGHT }}
-          />
-        )}
-      </View>
+      <SmartSuggestionsSection
+        suggestions={suggestions}
+        isLoading={isSuggestionsLoading}
+      />
 
       <Content>
         <View className="flex flex-row items-center justify-between">

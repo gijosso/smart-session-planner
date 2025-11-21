@@ -94,6 +94,8 @@ export const SUGGESTION_LIMITS = {
   MIN_PATTERN_DURATION_MINUTES: 15,
   /** Maximum pattern duration in minutes */
   MAX_PATTERN_DURATION_MINUTES: 480, // 8 hours
+  /** Minimum number of active sessions in look-ahead period before hiding default suggestions */
+  MIN_ACTIVE_SESSIONS_FOR_NO_DEFAULTS: 3,
 } as const;
 
 /**
