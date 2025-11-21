@@ -4,7 +4,7 @@ import { router, Stack } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { LoadingScreen } from "~/components";
-import { AvailabilityCalendar } from "~/features/availability/availability-calendar";
+import { AvailabilityCalendar } from "~/features/availability";
 import { trpc } from "~/utils/api";
 
 export default function AvailabilityList() {

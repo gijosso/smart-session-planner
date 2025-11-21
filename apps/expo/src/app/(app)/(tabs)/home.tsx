@@ -5,11 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button, Content, LoadingScreen, Screen } from "~/components";
-import { SessionAddButton } from "~/features/session/session-add-button";
-import { SessionRecap } from "~/features/session/session-recap";
-import { SessionTodaysList } from "~/features/session/session-todays-list";
-import { ProgressCard } from "~/features/stats/progress-card";
-import { SuggestionsList } from "~/features/suggestions/smart-suggestions/suggestions-list";
+import {
+  SessionAddButton,
+  SessionRecap,
+  SessionTodaysList,
+} from "~/features/session";
+import { ProgressCard } from "~/features/stats";
+import { SuggestionsList } from "~/features/suggestions";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 

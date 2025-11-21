@@ -12,12 +12,12 @@ import {
   VERTICAL_CONTENT_CONTAINER_STYLE,
 } from "~/components/list";
 import { SEPARATOR_SIZE } from "~/components/list/item-separator";
-import { ListEmptyComponent } from "./list-empty";
 import {
   SUGGESTION_ITEM_HEIGHT,
   SUGGESTION_ITEM_WIDTH,
   SuggestionItem,
 } from "./suggestion-item";
+import { ListEmptyComponent } from "./suggestions-list-empty";
 
 type SuggestionsListProps = {
   suggestions: SuggestionWithId[];

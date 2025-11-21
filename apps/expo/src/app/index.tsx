@@ -5,7 +5,7 @@ import { Redirect, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useQuery } from "@tanstack/react-query";
 
-import { SignInButton } from "~/features/auth/sign-in-button";
+import { SignInButton } from "~/features/auth";
 import { trpc } from "~/utils/api";
 
 export default function Index() {

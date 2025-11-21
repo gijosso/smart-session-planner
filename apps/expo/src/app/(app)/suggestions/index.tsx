@@ -3,10 +3,8 @@ import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
-import { Button } from "~/components/button";
-import { LoadingScreen } from "~/components/layout/loading-screen";
-import { Screen } from "~/components/layout/screen";
-import { SuggestionsList } from "~/features/suggestions/smart-suggestions/suggestions-list";
+import { Button, LoadingScreen, Screen } from "~/components";
+import { SuggestionsList } from "~/features/suggestions";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 

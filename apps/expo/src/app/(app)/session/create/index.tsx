@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import { CreateSessionForm } from "~/features/session/forms/create";
+import { CreateSessionForm } from "~/features/session/forms";
 import { trpc } from "~/utils/api";
 import {
   formatDateForInput,

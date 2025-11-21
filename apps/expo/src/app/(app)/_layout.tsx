@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
+import { usePrefetchHome } from "../../hooks/prefetch";
 import { useRefreshAccessToken } from "../../hooks/use-refresh-access-token";
 
 const screenOptions = {
@@ -16,6 +17,7 @@ export default function AppLayout() {
   );
 
   useRefreshAccessToken();
+  usePrefetchHome(!!session?.user);
 
   useEffect(() => {
     if (!isLoading) {

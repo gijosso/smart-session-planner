@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import { UpdateSessionForm } from "~/features/session/forms/update";
+import { UpdateSessionForm } from "~/features/session";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueriesForUpdate } from "~/utils/session-cache";
