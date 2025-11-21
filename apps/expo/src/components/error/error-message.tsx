@@ -38,6 +38,7 @@ export const ErrorMessage = React.memo<ErrorMessageProps>(
 
     return (
       <View
+        key={`error-message-${size}-${className ?? ""}-${textClassName ?? ""}`}
         className={`flex flex-row items-center gap-2 ${className ?? ""}`}
         accessibilityRole="alert"
         accessibilityLabel={`Error: ${message}`}

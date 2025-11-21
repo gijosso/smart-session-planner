@@ -32,6 +32,7 @@ export const SessionTypeIcon = React.memo<SessionTypeIconProps>(
 
     return (
       <View
+        key={`session-type-icon-${type}-${size}-${iconSize}-${className ?? ""}`}
         className={`bg-muted rounded-xl p-3 ${className ?? ""}`}
         accessibilityRole="image"
         accessibilityLabel={label}

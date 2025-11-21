@@ -19,7 +19,7 @@ export const BackButtonTitle: React.FC<BackButtonTitleProps> = ({
   className = "",
 }) => {
   return (
-    <View className={`flex flex-row items-center gap-2 ${className}`}>
+    <View key={`back-button-title-${className}`} className={`flex flex-row items-center gap-2 ${className}`}>
       <BackButton />
       <Text className="text-foreground text-2xl" accessibilityRole="header">
         {title}

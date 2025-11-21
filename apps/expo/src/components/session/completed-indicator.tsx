@@ -19,6 +19,7 @@ export const CompletedIndicator = React.memo<CompletedIndicatorProps>(
   ({ size = 14, iconSize = 14, className }) => {
     return (
       <View
+        key={`completed-${size}-${iconSize}-${className ?? ""}`}
         className={`bg-foreground items-center justify-center rounded-full p-1 ${className ?? ""}`}
         accessibilityRole="image"
         accessibilityLabel="Completed indicator"

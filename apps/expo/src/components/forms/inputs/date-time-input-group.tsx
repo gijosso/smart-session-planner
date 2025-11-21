@@ -76,6 +76,7 @@ export const DateTimeInputGroup: React.FC<DateTimeInputGroupProps> = ({
       <View className="flex flex-row gap-2">
         <View className="flex-1">
           <TextInput
+            key={`date-input-${dateFieldName}-${dateErrorClassName}`}
             className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${dateErrorClassName}`}
             value={dateValue}
             onChangeText={onDateChange}
@@ -88,6 +89,7 @@ export const DateTimeInputGroup: React.FC<DateTimeInputGroupProps> = ({
         </View>
         <View className="flex-1">
           <TextInput
+            key={`time-input-${timeFieldName}-${timeErrorClassName}`}
             className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${timeErrorClassName}`}
             value={timeValue}
             onChangeText={onTimeChange}

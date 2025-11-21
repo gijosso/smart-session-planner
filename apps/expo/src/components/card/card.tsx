@@ -30,6 +30,7 @@ export const Card = React.memo<CardProps>(
   ({ variant = "default", className, children, ...props }) => {
     return (
       <View
+        key={`card-${variant}-${className ?? ""}`}
         className={cn(
           "gap-6 rounded-3xl p-6",
           VARIANT_STYLES[variant],

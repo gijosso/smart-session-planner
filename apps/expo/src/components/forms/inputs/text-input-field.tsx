@@ -62,6 +62,7 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
       serverError={serverError}
     >
       <TextInput
+        key={`text-input-${fieldName}-${multiline ? "multiline" : "single"}-${errorClassName}-${className}`}
         className={`${baseClassName} ${errorClassName} ${className}`}
         value={value}
         onChangeText={onChangeText}

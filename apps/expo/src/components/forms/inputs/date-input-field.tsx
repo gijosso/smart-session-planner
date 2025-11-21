@@ -40,6 +40,7 @@ export const DateInputField: React.FC<DateInputFieldProps> = ({
   return (
     <View className="flex-1">
       <TextInput
+        key={`date-input-${fieldName}-${errorClassName}`}
         className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${errorClassName}`}
         value={value}
         onChangeText={onChangeText}

@@ -15,7 +15,7 @@ export interface CardContentProps extends ViewProps {
 export const CardContent = React.memo<CardContentProps>(
   ({ className, children, ...props }) => {
     return (
-      <View className={cn("gap-2", className)} {...props}>
+      <View key={`card-content-${className ?? ""}`} className={cn("gap-2", className)} {...props}>
         {children}
       </View>
     );

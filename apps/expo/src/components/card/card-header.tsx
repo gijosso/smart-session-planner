@@ -15,7 +15,7 @@ export interface CardHeaderProps extends ViewProps {
 export const CardHeader = React.memo<CardHeaderProps>(
   ({ className, children, ...props }) => {
     return (
-      <View className={cn("flex flex-col", className)} {...props}>
+      <View key={`card-header-${className ?? ""}`} className={cn("flex flex-col", className)} {...props}>
         {children}
       </View>
     );

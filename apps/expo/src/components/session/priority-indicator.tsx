@@ -17,6 +17,7 @@ export const PriorityIndicator = React.memo<PriorityIndicatorProps>(
   ({ priority, className }) => {
     return (
       <View
+        key={`priority-${priority}-${className ?? ""}`}
         className={`flex flex-row items-center gap-1 ${className ?? ""}`}
         accessibilityLabel={`Priority level ${priority} out of ${PRIORITY_LEVELS.length}`}
         accessibilityRole="image"

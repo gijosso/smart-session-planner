@@ -69,7 +69,7 @@ const SHADOW_STYLES = {
 /**
  * Button primitive component for Expo
  * A pressable button with consistent styling and variants
- * 
+ *
  * Accessibility: Icon-only buttons (size="icon") should always include
  * accessibilityLabel and accessibilityRole="button" for screen readers
  */
@@ -86,13 +86,15 @@ export const Button = React.memo<ButtonProps>(
     ...props
   }) => {
     const isIconOnly = size === "icon";
-    
+
     // Ensure icon-only buttons have proper accessibility props
     // Icon-only buttons should always have accessibilityLabel for screen readers
-    const finalAccessibilityRole = accessibilityRole ?? (isIconOnly ? "button" : undefined);
+    const finalAccessibilityRole =
+      accessibilityRole ?? (isIconOnly ? "button" : undefined);
 
     return (
       <Pressable
+        key={`button-${variant}-${size}-${disabled ? "disabled" : "enabled"}-${className ?? ""}`}
         className={cn(
           "items-center justify-center rounded-3xl",
           VARIANT_STYLES[variant],

@@ -40,6 +40,7 @@ export const TimeInputField: React.FC<TimeInputFieldProps> = ({
   return (
     <View className="flex-1">
       <TextInput
+        key={`time-input-${fieldName}-${errorClassName}`}
         className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${errorClassName}`}
         value={value}
         onChangeText={onChangeText}

@@ -28,6 +28,7 @@ export const SkeletonLoader = React.memo<SkeletonLoaderProps>(
   ({ width = "100%", height = 20, borderRadius = 8, className }) => {
     return (
       <View
+        key={`skeleton-${width}-${height}-${borderRadius}-${className ?? ""}`}
         className={`bg-muted animate-pulse ${className ?? ""}`}
         style={{
           width: typeof width === "number" ? width : undefined,
