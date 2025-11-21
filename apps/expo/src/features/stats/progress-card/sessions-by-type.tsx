@@ -17,7 +17,7 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
   const activeTypes = useMemo(
     () =>
       (Object.entries(byType) as [SessionType, number][])
-    .filter(([_, count]) => count > 0)
+        .filter(([_, count]) => count > 0)
         .sort(([_, a], [__, b]) => b - a), // Sort by count descending
     [byType],
   );
@@ -47,7 +47,14 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
       <View className="flex flex-row flex-wrap items-center gap-4">
         {activeTypes.map(([type, count]) => (
           <View key={type} className="flex flex-row items-center gap-3">
-            <View className="bg-muted-foreground h-3 w-3 rounded-full" />
+            <View
+              style={{
+                height: 12,
+                width: 12,
+                borderRadius: 9999,
+                backgroundColor: SESSION_TYPES_DISPLAY[type].color,
+              }}
+            />
             <View className="flex flex-row items-center gap-2">
               <Text className="text-foreground text-xl">
                 {SESSION_TYPES_DISPLAY[type].label}
