@@ -140,6 +140,12 @@ export default function Session() {
     );
   }, [session?.title, id, deleteMutation]);
 
+  const handleEdit = useCallback(() => {
+    if (id) {
+      router.push(`/session/${id}/edit`);
+    }
+  }, [id]);
+
   const formattedDate = useMemo(
     () => formatDateDisplay(session?.startTime ?? new Date()),
     [session?.startTime],
@@ -283,6 +289,9 @@ export default function Session() {
           </CardContent>
 
           <CardFooter className="flex flex-row gap-4">
+            <Button className="flex-1" variant="outline" onPress={handleEdit}>
+              Edit
+            </Button>
             <Button
               className="flex-1"
               variant="destructive"
