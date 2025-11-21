@@ -1,12 +1,9 @@
 import React, { useMemo } from "react";
-import { ScrollView, Text, useColorScheme, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
-import { getForegroundColor } from "~/constants/colors";
 import { cn } from "~/utils/cn";
-import { Button } from "../button";
+import { BackButtonTitle } from "./back-button-title";
 
 /**
  * Screen component
@@ -32,8 +29,6 @@ export const Screen = React.memo<{
     variant = "default",
   }) => {
     const { top, bottom } = useSafeAreaInsets();
-    const colorScheme = useColorScheme();
-    const iconColor = getForegroundColor(colorScheme ?? null);
 
     const contentContainerStyle = useMemo(
       () => ({
@@ -49,31 +44,12 @@ export const Screen = React.memo<{
         <View className={cn("bg-background flex-1", className)}>
           <View style={contentContainerStyle}>
             {(backButton || title) && (
-              <View className="flex flex-row items-center gap-2 p-4">
-                {backButton && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onPress={() => router.back()}
-                    accessibilityLabel="Go back"
-                    accessibilityRole="button"
-                  >
-                    <Ionicons
-                      name="chevron-back-outline"
-                      size={22}
-                      color={iconColor}
-                      accessibilityLabel="Back arrow"
-                    />
-                  </Button>
-                )}
-                {title && (
-                  <Text
-                    className="text-foreground text-2xl"
-                    accessibilityRole="header"
-                  >
-                    {title}
-                  </Text>
-                )}
+              <View className="p-4">
+                {title ? (
+                  <BackButtonTitle title={title} />
+                ) : backButton ? (
+                  <BackButtonTitle title="" />
+                ) : null}
               </View>
             )}
             <View className="flex-1">{children}</View>

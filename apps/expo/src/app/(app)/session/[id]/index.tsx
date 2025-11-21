@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  BackButtonTitle,
   Button,
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import {
   LoadingScreen,
   Screen,
 } from "~/components";
-import { BackButton } from "~/components/layout/back-button";
 import { Content } from "~/components/layout/content";
 import { PRIORITY_LEVELS } from "~/constants/app";
 import { COLORS_BACKGROUND_LIGHT, COLORS_MUTED } from "~/constants/colors";
@@ -197,10 +197,7 @@ export default function Session() {
   return (
     <Screen backButton variant="default">
       <Content className="gap-8">
-        <View className="flex flex-row items-center gap-2">
-          <BackButton />
-
-          <Text className="text-foreground text-2xl">{session.title}</Text>
+        <BackButtonTitle title={session.title}>
           {session.completed && (
             <View
               className="bg-foreground items-center justify-center rounded-full p-1"
@@ -215,7 +212,7 @@ export default function Session() {
               />
             </View>
           )}
-        </View>
+        </BackButtonTitle>
 
         <Card>
           <CardHeader>

@@ -1,12 +1,16 @@
 import { useCallback, useMemo } from "react";
-import { Text, View } from "react-native";
 import { router, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import { Content, ErrorScreen, LoadingScreen, Screen } from "~/components";
-import { BackButton } from "~/components/layout/back-button";
+import {
+  BackButtonTitle,
+  Content,
+  ErrorScreen,
+  LoadingScreen,
+  Screen,
+} from "~/components";
 import { UpdateSessionForm } from "~/features/session/forms/session-form";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useQueryError } from "~/hooks/use-query-error";
@@ -164,10 +168,7 @@ export default function EditSession() {
   return (
     <Screen backButton variant="default">
       <Content className="gap-8">
-        <View className="flex flex-row items-center gap-2">
-          <BackButton />
-          <Text className="text-foreground text-2xl">Edit Session</Text>
-        </View>
+        <BackButtonTitle title="Edit Session" />
         <UpdateSessionForm
           initialValues={formattedInitialValues}
           onSubmit={handleSubmit}
