@@ -124,13 +124,22 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         <Card variant="muted" className="bg-suggestion-card flex-1 p-6">
           <CardHeader>
             <View className="flex flex-1 flex-row items-center justify-end">
-              <View className="flex flex-row items-center gap-1">
+              <View
+                className="flex flex-row items-center gap-1"
+                accessibilityLabel={`Priority level ${suggestion.priority} out of ${PRIORITY_LEVELS.length}`}
+                accessibilityRole="image"
+              >
                 {PRIORITY_LEVELS.map((level) => (
                   <View
                     key={level}
-                    className={`h-2 w-2 rounded-full bg-black ${
+                    className={`h-2 w-2 rounded-full ${
                       level <= suggestion.priority ? "bg-black" : "bg-gray-300"
                     }`}
+                    accessibilityLabel={
+                      level <= suggestion.priority
+                        ? "Active priority"
+                        : "Inactive priority"
+                    }
                   />
                 ))}
               </View>

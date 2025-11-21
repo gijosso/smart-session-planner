@@ -1,4 +1,4 @@
-import type React from "react";
+import { memo, useCallback } from "react";
 import { LegendList } from "@legendapp/list";
 
 import type { RouterOutputs } from "~/utils/api";
@@ -19,26 +19,38 @@ interface SessionTodaysListProps {
 
 const keyExtractor = (item: Session) => item.id;
 
-const itemSeparatorComponent = () => <ItemSeparator size="sm" />;
-
-const renderItem = ({ item }: { item: Session }) => (
-  <SessionItem session={item} />
-);
-
 const estimatedItemSize = SESSION_ITEM_HEIGHT + SEPARATOR_SIZE.sm;
 
-export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
-  sessions = [],
-}) => (
-  <LegendList
-    data={sessions}
-    estimatedItemSize={estimatedItemSize}
-    contentContainerStyle={HORIZONTAL_CONTENT_CONTAINER_STYLE}
-    ItemSeparatorComponent={itemSeparatorComponent}
-    ListEmptyComponent={ListEmptyComponent}
-    keyExtractor={keyExtractor}
-    renderItem={renderItem}
-    scrollEnabled={false}
-    style={FLEX_1_STYLE}
-  />
+/**
+ * List of today's sessions
+ * Optimized with memoized render functions for better performance
+ */
+export const SessionTodaysList = memo<SessionTodaysListProps>(
+  ({ sessions = [] }) => {
+    const renderItem = useCallback(
+      ({ item }: { item: Session }) => <SessionItem session={item} />,
+      [],
+    );
+
+    const ItemSeparatorComponent = useCallback(
+      () => <ItemSeparator size="sm" />,
+      [],
+    );
+
+    return (
+      <LegendList
+        data={sessions}
+        estimatedItemSize={estimatedItemSize}
+        contentContainerStyle={HORIZONTAL_CONTENT_CONTAINER_STYLE}
+        ItemSeparatorComponent={ItemSeparatorComponent}
+        ListEmptyComponent={ListEmptyComponent}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        scrollEnabled={false}
+        style={FLEX_1_STYLE}
+      />
+    );
+  },
 );
+
+SessionTodaysList.displayName = "SessionTodaysList";

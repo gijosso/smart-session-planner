@@ -1,5 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 
+import { TOKEN_EXPIRATION_BUFFER_SECONDS } from "~/constants/time";
+
 const ACCESS_TOKEN_KEY = "supabase_access_token";
 const REFRESH_TOKEN_KEY = "supabase_refresh_token";
 const EXPIRES_AT_KEY = "supabase_expires_at";
@@ -59,14 +61,14 @@ export const authClient = {
   },
 
   /**
-   * Check if token is expired or will expire soon (within 5 minutes)
+   * Check if token is expired or will expire soon (within expiration buffer)
    */
   isTokenExpired: async (): Promise<boolean> => {
     const expiresAt = await authClient.getExpiresAt();
     if (!expiresAt) return false; // If no expiration, assume not expired
-    // Check if token expires within 5 minutes (300 seconds)
+    // Check if token expires within the expiration buffer
     const now = Math.floor(Date.now() / 1000);
-    return expiresAt <= now + 300;
+    return expiresAt <= now + TOKEN_EXPIRATION_BUFFER_SECONDS;
   },
 
   /**

@@ -5,6 +5,8 @@
 
 import Toast from "react-native-toast-message";
 
+import { DEFAULT_TOAST_DURATION_MS } from "~/constants/time";
+
 export type ToastType = "success" | "error" | "info";
 
 export interface ShowToastOptions {
@@ -23,7 +25,7 @@ export interface ShowToastOptions {
   message: string;
   /**
    * Duration in milliseconds before auto-hiding
-   * @default 3000
+   * @default DEFAULT_TOAST_DURATION_MS (3 seconds)
    */
   duration?: number;
   /**
@@ -54,7 +56,7 @@ export function showToast(options: ShowToastOptions): void {
     type = "info",
     title,
     message,
-    duration = 3000,
+    duration = DEFAULT_TOAST_DURATION_MS,
     position = "top",
     onShow,
     onHide,

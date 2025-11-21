@@ -13,6 +13,7 @@ import {
   Screen,
 } from "~/components";
 import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
+import { COLORS_MUTED } from "~/constants/colors";
 import {
   SessionAddButton,
   SessionRecap,
@@ -105,7 +106,7 @@ export default function Home() {
             <Ionicons
               name="chevron-forward-outline"
               size={22}
-              className="text-muted-foreground"
+              color={COLORS_MUTED}
               accessibilityLabel="Navigate to suggestions"
             />
           </Button>

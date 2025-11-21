@@ -3,6 +3,8 @@
  * Centralized date formatting and manipulation functions
  */
 
+import { MS_PER_DAY } from "~/constants/time";
+
 /**
  * Get today's date in YYYY-MM-DD format for form inputs
  */
@@ -278,7 +280,7 @@ export function formatDateDisplay(date: Date | string): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const suggestionDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diffDays = Math.floor(
-    (suggestionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    (suggestionDate.getTime() - today.getTime()) / MS_PER_DAY,
   );
 
   if (diffDays === 0) return "Today";

@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button, Card, Content, Screen } from "~/components";
 import { COLORS_MUTED } from "~/constants/colors";
+import { MEDIUM_DELAY_MS, SHORT_DELAY_MS } from "~/constants/time";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
@@ -37,10 +38,10 @@ export default function Settings() {
     toast.success("Success toast test!", "Test");
     setTimeout(() => {
       toast.error("Error toast test!", "Test");
-    }, 1000);
+    }, SHORT_DELAY_MS);
     setTimeout(() => {
       toast.info("Info toast test!", "Test");
-    }, 2000);
+    }, MEDIUM_DELAY_MS);
   }, [toast]);
 
   return (

@@ -12,6 +12,7 @@ import {
   REFRESH_TIMEOUT_MS,
   STALE_REFRESH_THRESHOLD_MS,
 } from "~/constants/api";
+import { DEFAULT_QUERY_CACHE_TIME_MS, MS_PER_SECOND } from "~/constants/time";
 import { authClient } from "./auth";
 import { getBaseUrl } from "./base-url";
 import { safeParse } from "./safe-json";
@@ -64,8 +65,8 @@ export const queryClient = new QueryClient({
       // Default to 0 (always refetch) - individual queries can override
       staleTime: 0,
       // Cache time (gcTime in v5): how long unused data stays in cache
-      // 5 minutes default - allows offline viewing of recently accessed data
-      gcTime: 5 * 60 * 1000, // 5 minutes
+      // Allows offline viewing of recently accessed data
+      gcTime: DEFAULT_QUERY_CACHE_TIME_MS,
       // Refetch behavior
       refetchOnWindowFocus: false, // Mobile apps don't have window focus
       refetchOnReconnect: true, // Refetch when network reconnects
@@ -231,7 +232,7 @@ export async function refreshAccessToken(): Promise<void> {
         }
 
         // Exponential backoff: wait before retrying (1s, 2s)
-        const delay = 1000 * (attempt + 1);
+        const delay = MS_PER_SECOND * (attempt + 1);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
