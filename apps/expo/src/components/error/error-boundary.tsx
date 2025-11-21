@@ -73,8 +73,11 @@ export class AppErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error for debugging (in production, this should go to an error reporting service)
     if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
       console.error("ErrorBoundary caught an error:", error, errorInfo);
     }
+    // In production, send to error reporting service
+    // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
 
     // Update state with error info
     this.setState({

@@ -125,7 +125,7 @@ export function createMutationErrorHandler(
     const appError = createAppError(error);
 
     // Log full error details in development
-    if (logError) {
+    if (logError && isDevelopment) {
       // eslint-disable-next-line no-console
       console.error("Mutation error:", error);
     }

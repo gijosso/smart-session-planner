@@ -24,8 +24,10 @@ export const useRefreshAccessToken = () => {
     } catch (error) {
       // Silently fail - token refresh will be retried on next API call
       if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
         console.error("Failed to refresh token in background:", error);
       }
+      // In production, consider tracking consecutive failures and logging out after threshold
     }
   }, []);
 

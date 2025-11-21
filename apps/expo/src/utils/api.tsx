@@ -344,7 +344,11 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
             } catch (error) {
               // Refresh failed, return original 401 response
               // Error is already logged/handled in refreshAccessToken
-              console.error(error);
+              // Only log in development to avoid exposing errors in production
+              if (process.env.NODE_ENV === "development") {
+                // eslint-disable-next-line no-console
+                console.error("Token refresh retry failed:", error);
+              }
               return response;
             }
           }

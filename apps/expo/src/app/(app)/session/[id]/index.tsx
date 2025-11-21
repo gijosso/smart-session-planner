@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from "react";
-import { Alert, Text, View } from "react-native";
+import { useCallback } from "react";
+import { View } from "react-native";
 import { router, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -7,19 +7,18 @@ import {
   BackButtonTitle,
   Button,
   Card,
-  CardContent,
-  CardFooter,
   CardHeader,
   CompletedIndicator,
   ErrorScreen,
   LoadingScreen,
-  PriorityIndicator,
   Screen,
-  SessionTypeIcon,
-  TimeDisplay,
 } from "~/components";
 import { Content } from "~/components/layout/content";
-import { SESSION_TYPES_DISPLAY } from "~/constants/session";
+import {
+  SessionActions,
+  SessionDetails,
+  SessionHeader,
+} from "~/features/session/session-detail";
 import {
   getSessionDeleteMutationOptions,
   getSessionMutationOptions,
@@ -27,10 +26,6 @@ import {
 import { useErrorHandling } from "~/hooks/use-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
-import {
-  formatDateDisplay,
-  formatTimeRange,
-} from "~/utils/suggestions/suggestion-formatting";
 
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -82,53 +77,13 @@ export default function Session() {
     }
   }, [id, toggleCompleteMutation]);
 
-  // handleRetry and handleReset are provided by useErrorHandling
-
-  const handleDelete = useCallback(() => {
-    Alert.alert(
-      "Delete Session",
-      `Are you sure you want to delete "${session?.title}"? This action cannot be undone.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            if (id) {
-              deleteMutation.mutate({ id });
-            }
-          },
-        },
-      ],
-    );
-  }, [session?.title, id, deleteMutation]);
-
-  const handleEdit = useCallback(() => {
-    if (id) {
-      router.push(`/session/${id}/edit`);
-    }
-  }, [id]);
-
-  const formattedDate = useMemo(
-    () => formatDateDisplay(session?.startTime ?? new Date()),
-    [session?.startTime],
-  );
-
-  const formattedTimeRange = useMemo(
-    () =>
-      formatTimeRange(
-        session?.startTime ?? new Date(),
-        session?.endTime ?? new Date(),
-      ),
-    [session?.startTime, session?.endTime],
-  );
-
-  const sessionTypeLabel = useMemo(
-    () => SESSION_TYPES_DISPLAY[session?.type ?? "OTHER"].label,
-    [session?.type],
+  const handleDelete = useCallback(
+    (sessionId: string) => {
+      if (sessionId) {
+        deleteMutation.mutate({ id: sessionId });
+      }
+    },
+    [deleteMutation],
   );
 
   if (isLoading) {
@@ -169,48 +124,21 @@ export default function Session() {
 
         <Card>
           <CardHeader>
-            <View className="flex flex-1 flex-row items-center justify-end">
-              <PriorityIndicator priority={session.priority} />
-            </View>
-
-            <View className="flex flex-1 flex-row items-center gap-4">
-              <SessionTypeIcon type={session.type} iconSize={22} />
-
-              <Text
-                className="text-foreground text-xl font-semibold"
-                accessibilityRole="text"
-              >
-                {sessionTypeLabel}
-              </Text>
-            </View>
+            <SessionHeader type={session.type} priority={session.priority} />
           </CardHeader>
 
-          <CardContent className="flex flex-1 flex-col justify-center gap-4">
-            <TimeDisplay
-              timeRange={formattedTimeRange}
-              date={formattedDate}
-              showSeparator={true}
-            />
+          <SessionDetails
+            startTime={session.startTime}
+            endTime={session.endTime}
+            description={session.description}
+          />
 
-            {session.description && (
-              <Text className="text-secondary-foreground" numberOfLines={3}>
-                {session.description}.
-              </Text>
-            )}
-          </CardContent>
-
-          <CardFooter className="flex flex-row gap-4">
-            <Button className="flex-1" variant="outline" onPress={handleEdit}>
-              Edit
-            </Button>
-            <Button
-              variant="destructive"
-              onPress={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </CardFooter>
+          <SessionActions
+            sessionId={id}
+            sessionTitle={session.title}
+            onDelete={handleDelete}
+            isDeleting={deleteMutation.isPending}
+          />
         </Card>
       </Content>
 
