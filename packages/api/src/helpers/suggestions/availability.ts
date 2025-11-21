@@ -20,7 +20,16 @@ function getAvailabilityFormatter(timezone: string): Intl.DateTimeFormat {
       }),
     );
   }
-  return availabilityFormatterCache.get(timezone)!;
+  return (
+    availabilityFormatterCache.get(timezone) ??
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "long",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    })
+  );
 }
 
 /**
@@ -104,4 +113,3 @@ export function isWithinAvailability(
 
   return { valid: false, reason: "Outside availability windows" };
 }
-

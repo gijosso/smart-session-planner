@@ -1,7 +1,10 @@
 import type { DayOfWeek, SessionType } from "@ssp/db/schema";
 
-import { PATTERN_DETECTION } from "../../constants/suggestions";
 import { TIME_CONVERSIONS } from "../../constants/date";
+import {
+  PATTERN_DETECTION,
+  SUGGESTION_LIMITS,
+} from "../../constants/suggestions";
 
 /**
  * Pattern detected from past sessions
@@ -17,11 +20,6 @@ export interface SessionPattern {
   title: string; // Most common title for this pattern
   successRate: number; // Completion rate for this pattern (0-1)
   recencyWeight: number; // Recency decay weight (0-1)
-  sessions: {
-    startTime: Date;
-    title: string;
-    completed: boolean;
-  }[]; // Store sessions for recency calculation
 }
 
 /**
@@ -42,7 +40,17 @@ function getTimezoneFormatter(timezone: string): Intl.DateTimeFormat {
       }),
     );
   }
-  return formatterCache.get(timezone)!;
+
+  return (
+    formatterCache.get(timezone) ??
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "long",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    })
+  );
 }
 
 /**
@@ -67,7 +75,6 @@ function calculateRecencyWeight(
 function normalizeToFuzzyCluster(
   hour: number,
   minute: number,
-  fuzzyWindowMinutes: number,
 ): { hour: number; minute: number } {
   const totalMinutes = hour * 60 + minute;
   // Round to nearest cluster center (every 30 minutes, but allow ±15 minute window)
@@ -121,12 +128,14 @@ export function detectPatterns(
   const formatter = getTimezoneFormatter(userTimezone);
 
   // Group sessions by pattern key: type + dayOfWeek + fuzzy time cluster
+  // Use a more efficient structure: group by type+day first, then cluster times
   const patternMap = new Map<
     string,
     SessionPattern & {
       completedCount: number;
       titleFrequency: Map<string, number>;
       totalRecencyWeight: number;
+      totalMinutes: number; // For weighted time averaging
     }
   >();
 
@@ -158,11 +167,7 @@ export function detectPatterns(
     if (!dayOfWeek) continue;
 
     // Normalize to fuzzy cluster center
-    const normalized = normalizeToFuzzyCluster(
-      hour,
-      minute,
-      PATTERN_DETECTION.FUZZY_TIME_WINDOW_MINUTES,
-    );
+    const normalized = normalizeToFuzzyCluster(hour, minute);
 
     const durationMinutes = Math.round(
       (session.endTime.getTime() - session.startTime.getTime()) /
@@ -170,17 +175,23 @@ export function detectPatterns(
     );
 
     // Try to find existing pattern within fuzzy window
-    let matchedPattern: (SessionPattern & {
-      completedCount: number;
-      titleFrequency: Map<string, number>;
-      totalRecencyWeight: number;
-    }) | null = null;
+    // Optimize: only check patterns of same type and day
+    const typeDayKey = `${session.type}-${dayOfWeek}`;
+    let matchedPattern:
+      | (SessionPattern & {
+          completedCount: number;
+          titleFrequency: Map<string, number>;
+          totalRecencyWeight: number;
+          totalMinutes: number;
+        })
+      | null = null;
     let matchedKey: string | null = null;
 
+    // Only check patterns matching type and day (much faster than checking all)
     for (const [key, pattern] of patternMap.entries()) {
+      if (!key.startsWith(typeDayKey)) continue;
+
       if (
-        pattern.type === session.type &&
-        pattern.dayOfWeek === dayOfWeek &&
         isWithinFuzzyWindow(
           pattern.hour,
           pattern.minute,
@@ -203,21 +214,30 @@ export function detectPatterns(
     if (matchedPattern && matchedKey) {
       // Update existing pattern
       const pattern = matchedPattern;
-      const oldTotalMinutes = pattern.hour * 60 + pattern.minute;
       const newTotalMinutes = normalized.hour * 60 + normalized.minute;
-      // Weighted average of time (weighted by recency)
-      const weightedTime =
-        (oldTotalMinutes * pattern.frequency + newTotalMinutes * recencyWeight) /
-        (pattern.frequency + recencyWeight);
-      const avgHour = Math.floor(weightedTime / 60) % 24;
-      const avgMinute = Math.floor(weightedTime % 60);
 
-      pattern.hour = avgHour;
-      pattern.minute = avgMinute;
-      pattern.durationMinutes = Math.round(
+      // Update time using simple moving average (frequency-based, not recency-weighted)
+      // Recency is handled separately in scoring
+      pattern.totalMinutes =
+        (pattern.totalMinutes * pattern.frequency + newTotalMinutes) /
+        (pattern.frequency + 1);
+      pattern.hour = Math.floor(pattern.totalMinutes / 60) % 24;
+      pattern.minute = Math.floor(pattern.totalMinutes % 60);
+
+      // Validate duration before updating
+      const newDurationMinutes = Math.round(
         (pattern.durationMinutes * pattern.frequency + durationMinutes) /
           (pattern.frequency + 1),
       );
+      // Clamp duration to reasonable bounds
+      pattern.durationMinutes = Math.max(
+        SUGGESTION_LIMITS.MIN_PATTERN_DURATION_MINUTES,
+        Math.min(
+          SUGGESTION_LIMITS.MAX_PATTERN_DURATION_MINUTES,
+          newDurationMinutes,
+        ),
+      );
+
       pattern.priority = Math.round(
         (pattern.priority * pattern.frequency + session.priority) /
           (pattern.frequency + 1),
@@ -241,24 +261,28 @@ export function detectPatterns(
         }
       }
       pattern.title = mostCommonTitle;
-
-      pattern.sessions.push({
-        startTime: session.startTime,
-        title: session.title,
-        completed: session.completed,
-      });
     } else {
       // Create new pattern
       const patternKey = `${session.type}-${dayOfWeek}-${normalized.hour}-${normalized.minute}`;
       const titleFrequency = new Map<string, number>();
       titleFrequency.set(session.title, 1);
 
+      // Validate duration
+      const validatedDuration = Math.max(
+        SUGGESTION_LIMITS.MIN_PATTERN_DURATION_MINUTES,
+        Math.min(
+          SUGGESTION_LIMITS.MAX_PATTERN_DURATION_MINUTES,
+          durationMinutes,
+        ),
+      );
+
+      const totalMinutes = normalized.hour * 60 + normalized.minute;
       patternMap.set(patternKey, {
         type: session.type,
         dayOfWeek,
         hour: normalized.hour,
         minute: normalized.minute,
-        durationMinutes,
+        durationMinutes: validatedDuration,
         priority: session.priority,
         frequency: 1,
         completedCount: session.completed ? 1 : 0,
@@ -266,33 +290,25 @@ export function detectPatterns(
         successRate: session.completed ? 1 : 0,
         recencyWeight: recencyWeight,
         totalRecencyWeight: recencyWeight,
+        totalMinutes,
         titleFrequency,
-        sessions: [
-          {
-            startTime: session.startTime,
-            title: session.title,
-            completed: session.completed,
-          },
-        ],
       });
     }
   }
-
-  const now = new Date();
 
   // Calculate average recency weight for each pattern and clean up
   return Array.from(patternMap.values())
     .filter((p) => p.frequency >= PATTERN_DETECTION.MIN_PATTERN_FREQUENCY)
     .map((pattern) => {
       // Calculate average recency weight
-      const avgRecencyWeight =
-        pattern.totalRecencyWeight / pattern.frequency;
+      const avgRecencyWeight = pattern.totalRecencyWeight / pattern.frequency;
 
       // Clean up internal fields
       const {
         completedCount: _completedCount,
         titleFrequency: _titleFrequency,
         totalRecencyWeight: _totalRecencyWeight,
+        totalMinutes: _totalMinutes,
         ...cleanPattern
       } = pattern;
 
@@ -315,4 +331,3 @@ export function detectPatterns(
       return b.recencyWeight - a.recencyWeight;
     });
 }
-

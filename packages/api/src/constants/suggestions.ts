@@ -86,6 +86,14 @@ export const SUGGESTION_LIMITS = {
   DAYS_IN_WEEK: 7,
   /** Days from now for near-term bonus */
   NEAR_TERM_BONUS_DAYS: 3,
+  /** Maximum suggestions per day for diversity */
+  MAX_SUGGESTIONS_PER_DAY: 2,
+  /** Maximum suggestions per type for diversity */
+  MAX_SUGGESTIONS_PER_TYPE: 3,
+  /** Minimum pattern duration in minutes */
+  MIN_PATTERN_DURATION_MINUTES: 15,
+  /** Maximum pattern duration in minutes */
+  MAX_PATTERN_DURATION_MINUTES: 480, // 8 hours
 } as const;
 
 /**

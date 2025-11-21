@@ -203,13 +203,16 @@ export function calculatePatternScore(
 ): { score: number; reasons: string[] } {
   const reasons: string[] = [];
 
-  // Normalize pattern frequency (assume max frequency of 20 for normalization)
-  const maxFrequency = 20;
-  const normalizedFrequency = normalizeToScore(
-    Math.min(pattern.frequency, maxFrequency),
-    0,
-    maxFrequency,
-  );
+  // Normalize pattern frequency using logarithmic scale for better distribution
+  // This handles users with many sessions better than a hard cap
+  // Log scale: log(frequency + 1) / log(max_frequency + 1) * 100
+  const maxFrequency = 50; // Reasonable upper bound for normalization
+  const logFrequency = Math.log1p(pattern.frequency);
+  const logMaxFrequency = Math.log1p(maxFrequency);
+  const normalizedFrequency =
+    logMaxFrequency > 0
+      ? (logFrequency / logMaxFrequency) * SCORING.MAX_SCORE
+      : SCORING.MIN_SCORE;
 
   // Normalize success rate (already 0-1, convert to 0-100)
   const normalizedSuccessRate = pattern.successRate * SCORING.MAX_SCORE;
@@ -220,34 +223,40 @@ export function calculatePatternScore(
     Math.min(SCORING.MAX_SCORE, spacingResult.score),
   );
 
-  // Normalize fatigue penalty (invert: high fatigue = low score)
+  // Normalize fatigue penalty (invert: high fatigue = high penalty, which reduces score)
   // Fatigue score is typically 0-50+, normalize to 0-100 penalty
+  // We want: fatigue 0 = penalty 0, fatigue max = penalty 100
   const maxFatigue = 100;
   const normalizedFatiguePenalty = normalizeToScore(
     Math.min(fatigue.fatigueScore, maxFatigue),
     0,
     maxFatigue,
   );
+  // This is correct - high fatigue maps to high penalty value (0-100)
 
   // Normalize recency weight (already 0-1, convert to 0-100)
   const normalizedRecency = pattern.recencyWeight * SCORING.MAX_SCORE;
 
   // Combine normalized components with weights
-  let score: number = SCORING.BASE_PATTERN_SCORE;
+  // Use weighted sum approach: base score + weighted components
+  // Weights: pattern 40%, spacing 30%, fatigue 20%, recency 10%
+  // Base score provides floor, components adjust from there
 
   // Pattern component (frequency + success rate + recency)
   const patternComponent =
-    (normalizedFrequency * 0.4 +
-      normalizedSuccessRate * 0.4 +
-      normalizedRecency * 0.2) *
-    SCORING.PATTERN_SCORE_WEIGHT;
-  score += patternComponent;
+    normalizedFrequency * 0.4 +
+    normalizedSuccessRate * 0.4 +
+    normalizedRecency * 0.2;
 
-  // Spacing component (weighted)
-  score += normalizedSpacing * SCORING.SPACING_SCORE_WEIGHT;
-
-  // Fatigue penalty (subtract, weighted)
-  score -= normalizedFatiguePenalty * SCORING.FATIGUE_PENALTY_WEIGHT;
+  // Weighted combination: base + weighted components
+  // Pattern component contributes up to 40% of score range
+  // Spacing contributes up to 30% of score range
+  // Fatigue reduces score by up to 20% of score range
+  let score: number =
+    SCORING.BASE_PATTERN_SCORE +
+    patternComponent * SCORING.PATTERN_SCORE_WEIGHT +
+    normalizedSpacing * SCORING.SPACING_SCORE_WEIGHT -
+    normalizedFatiguePenalty * SCORING.FATIGUE_PENALTY_WEIGHT;
 
   // Bonus for earlier dates (sooner is better, but not too much)
   if (daysFromNow <= SUGGESTION_LIMITS.NEAR_TERM_BONUS_DAYS) {

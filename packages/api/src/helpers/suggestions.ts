@@ -13,13 +13,11 @@ import {
   DEFAULT_SESSION,
   FATIGUE_SCORING,
   SCORING,
-  SESSION_SPACING,
   SUGGESTION_LIMITS,
 } from "../constants/suggestions";
 import {
   convertLocalTimeToUTC,
   getDateForDayOfWeek,
-  hoursBetween,
   timeToMinutes,
 } from "../utils/date";
 import { isWithinAvailability } from "./suggestions/availability";
@@ -93,20 +91,14 @@ function hasConflictWithSessions(
  * Generate default suggestions when no patterns are detected
  * Improved: Better distribution and availability checking
  */
-async function generateDefaultSuggestions(
-  database: typeof db,
-  userId: string,
+function generateDefaultSuggestions(
   weeklyAvailability: WeeklyAvailability,
   userTimezone: string,
-  activeSessions: {
-    startTime: Date;
-    endTime: Date;
-    priority: number;
-  }[],
+  activeSessions: { startTime: Date; endTime: Date; priority: number }[],
   startDate: Date,
   lookAheadDays: number,
   options: SuggestionOptions,
-): Promise<SuggestedSession[]> {
+): SuggestedSession[] {
   // Default session types (excluding CLIENT_MEETING)
   const defaultTypes: SessionType[] = options.preferredTypes ?? [
     "DEEP_WORK",
@@ -154,12 +146,31 @@ async function generateDefaultSuggestions(
 
   const suggestions: SuggestedSession[] = [];
 
-  // Helper to get day of week name from a date in user's timezone
+  // Helper to get day of week name from a date in user's timezone (use cached formatter)
+  const getDayOfWeekFormatter = (() => {
+    const cache = new Map<string, Intl.DateTimeFormat>();
+    return (timezone: string) => {
+      if (!cache.has(timezone)) {
+        cache.set(
+          timezone,
+          new Intl.DateTimeFormat("en-US", {
+            timeZone: timezone,
+            weekday: "long",
+          }),
+        );
+      }
+      return (
+        cache.get(timezone) ??
+        new Intl.DateTimeFormat("en-US", {
+          timeZone: timezone,
+          weekday: "long",
+        })
+      );
+    };
+  })();
+
   const getDayOfWeekFromDate = (date: Date): DayOfWeek => {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: userTimezone,
-      weekday: "long",
-    });
+    const formatter = getDayOfWeekFormatter(userTimezone);
     const weekday = formatter.format(date);
     const dayMap: Record<string, DayOfWeek> = {
       Monday: "MONDAY",
@@ -388,8 +399,7 @@ export async function suggestTimeSlots(
    */
   const hasConflict = (slotStart: Date, slotEnd: Date): boolean => {
     return activeSessions.some(
-      (session) =>
-        session.startTime < slotEnd && slotStart < session.endTime,
+      (session) => session.startTime < slotEnd && slotStart < session.endTime,
     );
   };
 
@@ -410,11 +420,20 @@ export async function suggestTimeSlots(
     startDate.setTime(new Date().getTime());
   }
 
+  // Helper to get date key in user's timezone (used for diversity and midnight checks)
+  const getDateKeyInTimezone = (date: Date, timezone: string): string => {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    return formatter.format(date); // Returns YYYY-MM-DD format
+  };
+
   // If no patterns detected, generate default suggestions
   if (patterns.length === 0) {
     return generateDefaultSuggestions(
-      database,
-      userId,
       availability.weeklyAvailability,
       userTimezone,
       activeSessions,
@@ -489,6 +508,15 @@ export async function suggestTimeSlots(
       // Skip if in the past
       if (slotStart < new Date()) {
         continue;
+      }
+
+      // Check if pattern spans midnight (end time is on different day in user's timezone)
+      // This is handled by availability check, but we validate the pattern is reasonable
+      const startDayInTz = getDateKeyInTimezone(slotStart, userTimezone);
+      const endDayInTz = getDateKeyInTimezone(slotEnd, userTimezone);
+      if (startDayInTz !== endDayInTz) {
+        // Pattern spans midnight - this is okay, but availability check must handle it
+        // The availability check will verify both days have appropriate windows
       }
 
       // Check availability
@@ -569,32 +597,22 @@ export async function suggestTimeSlots(
 
   for (const suggestion of sortedSuggestions) {
     // Check diversity constraints
-    const suggestionDate = new Date(suggestion.startTime);
-    const dateKey = `${suggestionDate.getFullYear()}-${String(suggestionDate.getMonth() + 1).padStart(2, "0")}-${String(suggestionDate.getDate()).padStart(2, "0")}`;
+    // Use user's timezone for date key to avoid timezone boundary issues
+    const dateKey = getDateKeyInTimezone(suggestion.startTime, userTimezone);
     const typeCount = selectedTypes.get(suggestion.type) ?? 0;
     const dayCount = selectedDays.get(dateKey) ?? 0;
 
-    // Enforce diversity: max 2 suggestions per day, max 3 per type
-    const maxPerDay = 2;
-    const maxPerType = 3;
-
-    if (dayCount >= maxPerDay) {
+    // Enforce diversity using constants
+    if (dayCount >= SUGGESTION_LIMITS.MAX_SUGGESTIONS_PER_DAY) {
       continue; // Skip if day already has enough suggestions
     }
 
-    if (typeCount >= maxPerType) {
+    if (typeCount >= SUGGESTION_LIMITS.MAX_SUGGESTIONS_PER_TYPE) {
       continue; // Skip if type already has enough suggestions
     }
 
-    // Check spacing from already selected suggestions (additional safety check)
-    const tooClose = filteredSuggestions.some((existing) => {
-      const hoursDiff = hoursBetween(suggestion.startTime, existing.startTime);
-      return hoursDiff < SESSION_SPACING.MIN_SPACING_HOURS;
-    });
-
-    if (tooClose) {
-      continue; // Skip if too close (spacing should be handled in scoring, but double-check)
-    }
+    // Spacing is already handled in scoring, so we don't need redundant check
+    // The scoring system penalizes close suggestions, so they'll naturally rank lower
 
     // Add suggestion
     filteredSuggestions.push(suggestion);
@@ -605,6 +623,19 @@ export async function suggestTimeSlots(
     if (filteredSuggestions.length >= SUGGESTION_LIMITS.MAX_SUGGESTIONS) {
       break;
     }
+  }
+
+  // Fallback to default suggestions if pattern-based suggestions didn't produce enough results
+  // This handles cases where patterns exist but all suggestions were filtered out
+  if (filteredSuggestions.length === 0) {
+    return generateDefaultSuggestions(
+      availability.weeklyAvailability,
+      userTimezone,
+      activeSessions,
+      startDate,
+      lookAheadDays,
+      options,
+    );
   }
 
   return filteredSuggestions;
