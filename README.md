@@ -1,8 +1,8 @@
 # Smart Session Planner
 
-A productivity-focused mobile application built with React Native (Expo) that helps users plan and track their work sessions. The app features AI-powered time slot suggestions based on user patterns, availability management, and comprehensive session tracking with statistics.
-
 ## Tech Stack
+
+Based on t3, tried to mimic MeAgain setup to learn the ins and out of the stack, also to have an easier testing/review process.
 
 - **Monorepo**: Turborepo with pnpm workspaces
 - **Mobile App**: Expo (React Native) with Expo Router
@@ -14,13 +14,6 @@ A productivity-focused mobile application built with React Native (Expo) that he
 - **Validation**: Zod schemas
 
 ## Setup Instructions
-
-### Prerequisites
-
-- Node.js `^22.21.0`
-- pnpm `^10.19.0`
-- PostgreSQL database (Neon recommended)
-- Supabase account for authentication
 
 ### Installation
 
@@ -43,7 +36,7 @@ A productivity-focused mobile application built with React Native (Expo) that he
 
    ```env
    # Database
-   POSTGRES_URL=postgresql://user:password@host:port/database
+   POSTGRES_URL=your-neon-postrges-url
 
    # Supabase Configuration
    SUPABASE_URL=your-supabase-url
@@ -58,31 +51,17 @@ A productivity-focused mobile application built with React Native (Expo) that he
 
 5. **Start development servers**
 
-   ```bash
-   # Start all apps (Expo + Next.js)
-   pnpm dev
+   Build a development build then:
 
-   # Or start individually
-   pnpm dev:next  # Start Next.js backend only
-   cd apps/expo && pnpm dev  # Start Expo app only
+   ```bash
+   pnpm dev
    ```
 
-### Expo App Configuration
+## Tips
 
-The Expo app can be run on iOS or Android:
-
-- **iOS**: Requires Xcode and iOS Simulator
-
-  ```bash
-   cd apps/expo
-   pnpm dev:ios
-  ```
-
-- **Android**: Requires Android Studio and Android Emulator
-  ```bash
-  cd apps/expo
-  pnpm dev:android
-  ```
+- Anonymous sign up, log out and log in again to generate a new fresh account
+- In Settings you can generate 6 sessions to test the suggestion engine (ignore some db constraints for testing purposes)
+- In Settings you can delete all sessions
 
 ## What Has Been Built
 
@@ -120,13 +99,6 @@ The database layer uses Drizzle ORM with PostgreSQL and includes:
    - One record per user (userId as primary key)
    - JSONB structure validation via CHECK constraint
 
-#### Database Client
-
-- Uses Neon HTTP driver for edge-compatible database access
-- Lazy initialization pattern for better testability
-- Proxy-based export to maintain interface while enabling lazy loading
-- Snake case column naming convention
-
 #### Timezone Handling
 
 - All timestamps stored in UTC (`timestamp with time zone`)
@@ -152,7 +124,7 @@ The API layer is built with tRPC v11 and provides type-safe endpoints:
    - `create`: Create new session with conflict checking
    - `update`: Update existing session
    - `delete`: Soft delete session
-   - `deleteAll`: Delete all user sessions
+   - `deleteAll`: Delete all user sessions (for DEV testing purposes)
    - `toggleComplete`: Mark session as completed/incomplete
    - `checkConflicts`: Check if time range conflicts with existing sessions
    - `suggest`: Get AI-powered time slot suggestions
@@ -160,7 +132,7 @@ The API layer is built with tRPC v11 and provides type-safe endpoints:
 
 3. **Availability Router** (`router/availability.ts`)
    - `get`: Get user's weekly availability
-   - `setWeekly`: Set/update weekly availability
+   - `setWeekly`: Set/update weekly availability (ultimately unused)
 
 4. **Stats Router** (`router/stats.ts`)
    - `sessions`: Get comprehensive session statistics
@@ -206,50 +178,6 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 
 ### Expo App (`apps/expo`)
 
-The mobile application is built with Expo Router and React Native:
-
-#### Navigation Structure
-
-- **Root Layout**: Handles authentication state and splash screen
-- **Auth Flow**: Welcome screen with sign-in button
-- **App Flow**: Protected routes with tab navigation
-  - Home tab: Dashboard with sessions and suggestions
-  - Settings tab: User preferences and account management
-
-#### Key Features
-
-1. **Home Screen** (`app/(app)/(tabs)/home.tsx`)
-   - Session recap card with statistics
-   - Smart suggestions section with retry logic
-   - Today's sessions list
-   - Progress card
-   - Add session button
-
-2. **Session Management**
-   - Create/edit session form with validation
-   - Time picker with timezone awareness
-   - Conflict detection before creation
-   - Session completion toggle
-   - Session deletion (soft delete)
-
-3. **Suggestions Screen** (`app/(app)/suggestions/index.tsx`)
-   - Displays AI-generated time slot suggestions
-   - Shows suggestion score and reasoning
-   - One-tap session creation from suggestions
-   - Suggestion ID generation for tracking
-
-4. **Settings Screen** (`app/(app)/(tabs)/settings.tsx`)
-   - User profile management
-   - Timezone selection
-   - Availability configuration
-   - Sign out functionality
-
-5. **Session Detail Screen** (`app/(app)/session/[id]/index.tsx`)
-   - View session details
-   - Edit session
-   - Delete session
-   - Completion toggle
-
 #### State Management
 
 - TanStack Query for server state
@@ -274,75 +202,6 @@ The mobile application is built with Expo Router and React Native:
 
 ## Architectural Choices
 
-### Monorepo Structure
-
-**Choice**: Turborepo with pnpm workspaces
-
-**Rationale**:
-
-- Shared code between packages (validators, types, UI components)
-- Type-safe API client in Expo app (dev dependency only)
-- Consistent tooling across packages
-- Efficient build caching with Turborepo
-
-### Database: Drizzle ORM
-
-**Choice**: Drizzle ORM over Prisma or TypeORM
-
-**Rationale**:
-
-- Lightweight and performant
-- Excellent TypeScript support
-- Edge-compatible (Neon HTTP driver)
-- Flexible query API
-- Schema migrations with Drizzle Kit
-
-### API: tRPC
-
-**Choice**: tRPC over REST or GraphQL
-
-**Rationale**:
-
-- End-to-end type safety
-- No code generation needed
-- Excellent developer experience
-- Built-in validation with Zod
-- Works seamlessly with React Query
-
-### Authentication: Supabase
-
-**Choice**: Supabase for authentication
-
-**Rationale**:
-
-- Anonymous authentication support (no email required)
-- Flexible auth provider system
-- Supabase handles user management
-- Direct integration with Supabase Auth API
-
-### Mobile: Expo
-
-**Choice**: Expo over bare React Native
-
-**Rationale**:
-
-- Faster development iteration
-- Over-the-air updates with EAS Update
-- Built-in navigation (Expo Router)
-- Easy deployment to app stores
-- No native code required for most features
-
-### Styling: NativeWind
-
-**Choice**: NativeWind (Tailwind CSS for React Native)
-
-**Rationale**:
-
-- Familiar Tailwind CSS syntax
-- Shared theme configuration with web app
-- Consistent design system
-- Good performance with NativeWind v5
-
 ### Timezone Strategy
 
 **Choice**: Store UTC, convert at boundaries
@@ -354,17 +213,6 @@ The mobile application is built with Expo Router and React Native:
 - User timezone stored in profile for display
 - Date boundary queries calculated in user timezone, then converted to UTC
 - Uses `date-fns-tz` for reliable DST handling
-
-### Indexing Strategy
-
-**Choice**: Comprehensive partial and covering indexes
-
-**Rationale**:
-
-- Optimized for common query patterns (today, week, stats)
-- Partial indexes reduce index size (only non-deleted sessions)
-- Covering indexes avoid table lookups
-- Leftmost column rule for efficient query planning
 
 ### Suggestion Algorithm
 
@@ -382,201 +230,50 @@ The mobile application is built with Expo Router and React Native:
 
 ### Database Improvements
 
-1. **Query Optimization**
-   - Add database query performance monitoring
-   - Consider materialized views for complex stats queries
-   - Implement query result caching for frequently accessed data
+1. **DB operations**
+   I did optimize db queries but nothing extra fancy.
+   - No materialized views implemented
+   - Expensive queries could be cached (see [Infrastructure Improvements](#infrastructure-improvements))
+   - Couldn't get transactions to properly work, had to move away due to time, definitely some partial updates and inconsistent data could be created/orphaned, dit not want to waste time on complex clean up where a transation would solve the issue.
 
-2. **Data Archival**
-   - Implement archival strategy for old completed sessions
-   - Add partitioning for large session tables
-   - Consider separate tables for historical data
+### Infrastructure Improvements
 
-3. **Full-Text Search**
-   - Add PostgreSQL full-text search for session titles/descriptions
-   - Enable searching sessions by content
+1. **Redis**
+   I did not use Redis as cache, although I wanted to get more familiar with, wanted to avoid a rabbit hole.
+   - Rate limiting is implemented in memory and won't scale
+   - User sessions, timezones, availibities (and probably suggestions) should be properly cached
 
-### API Improvements
+### Feature Enhancements
 
-1. **Rate Limiting**
-   - Implement rate limiting per user/IP
-   - Protect suggestion endpoint from abuse
-   - Add request throttling
+1. **Suggestion engine**
+   Crafted a sound algorithm (after a couple of iteraions) matching the criterias.
+   - I use default suggestions when user has not enough sessions yet
+   - Default suggestions are based on availibilty but pretty default
+   - Client side suggestions are not refetched on accepting/adjusting one, to prevent a refetch with an invalid avalibility window. It is an acceptable trade but could definitely be improved.
 
-2. **Caching Layer**
-   - Add Redis caching for frequently accessed data
-   - Cache user timezone and availability
-   - Cache suggestion results with TTL
+2. **Onboarding**
+   Would have loved to implement an onboarding after user creates an account.
+   - Defining availibility
+   - Defining preferences to craft relevant default suggestions
 
-3. **Batch Operations**
-   - Add batch session creation endpoint
-   - Bulk update operations
-   - Batch conflict checking
-
-4. **Webhooks/Events**
-   - Add webhook support for session events
-   - Event-driven architecture for notifications
-   - Real-time updates via WebSockets
-
-5. **Advanced Suggestions**
-   - Machine learning model for better predictions
-   - Consider calendar integration for external events
-   - Weather/context-aware suggestions
-   - Multi-user scheduling (team sessions)
+3. **Availibility**
+   - Availibilities are defined arbitrarely for users (7-9am Mon-Fri and 10-2pm Sat-Sun)
+   - Rough calendar component generated to visualize it in Settings
+   - ~Unused Availibity edition
 
 ### Expo App Improvements
 
-1. **Offline Support**
+1. **Smoothness**
+   UX could be improved, no smooth animations nor transitions, Reanimated isn't used at all really.
+
+2. **Forms**
+   I implemented simple forms, far from pretty but does the job.
+   - Used Formik then transitioned to React Hook Form, but user feedback could be improved
+   - Form components are pretty bare and are not using native functionalities
+
+3. **Offline Support**
+   Always wanted to get my hands on a proper offline-first client, went online for time concerns.
    - Implement offline-first architecture
    - Local database with sync (SQLite + WatermelonDB)
    - Queue mutations when offline
    - Optimistic UI updates
-
-2. **Push Notifications**
-   - Session reminders
-   - Suggestion notifications
-   - Achievement notifications
-
-3. **Analytics**
-   - User behavior tracking
-   - Session completion analytics
-   - Suggestion acceptance rates
-   - Performance monitoring
-
-4. **Accessibility**
-   - Screen reader support
-   - Voice commands
-   - High contrast mode
-   - Font size scaling
-
-5. **Performance**
-   - Image optimization
-   - Code splitting
-   - Lazy loading for screens
-   - Memory optimization
-
-6. **Testing**
-   - Unit tests for utilities
-   - Integration tests for API
-   - E2E tests with Detox
-   - Visual regression testing
-
-### Feature Enhancements
-
-1. **Session Templates**
-   - Save common session configurations
-   - Quick creation from templates
-   - Template sharing between users
-
-2. **Recurring Sessions**
-   - Daily/weekly/monthly recurring sessions
-   - Exception handling (skip specific dates)
-   - Series management
-
-3. **Session Notes**
-   - Rich text notes
-   - Attachments (images, files)
-   - Session reflection prompts
-
-4. **Goals & Targets**
-   - Set weekly/monthly goals
-   - Track progress toward goals
-   - Goal-based suggestions
-
-5. **Social Features**
-   - Share sessions with friends
-   - Accountability partners
-   - Leaderboards
-
-6. **Export & Reporting**
-   - Export sessions to calendar (iCal)
-   - PDF reports
-   - CSV export for analysis
-
-### Infrastructure Improvements
-
-1. **Monitoring & Observability**
-   - Application performance monitoring (APM)
-   - Error tracking (Sentry)
-   - Log aggregation
-   - Database query monitoring
-
-2. **CI/CD**
-   - Automated testing in CI
-   - Automated deployments
-   - Preview deployments for PRs
-   - E2E testing in CI
-
-3. **Documentation**
-   - API documentation (OpenAPI/Swagger)
-   - Component storybook
-   - Architecture decision records (ADRs)
-   - User documentation
-
-4. **Security**
-   - Security audit
-   - Penetration testing
-   - Rate limiting improvements
-   - Input sanitization review
-
-5. **Scalability**
-   - Database connection pooling optimization
-   - Horizontal scaling preparation
-   - CDN for static assets
-   - Edge function optimization
-
-## Development Commands
-
-```bash
-# Install dependencies
-pnpm install
-
-# Development
-pnpm dev                    # Start all apps
-pnpm dev:next              # Start Next.js backend only
-
-# Database
-pnpm db:push               # Push schema to database
-pnpm db:studio             # Open Drizzle Studio
-
-# Code Quality
-pnpm lint                  # Lint all packages
-pnpm lint:fix              # Fix linting issues
-pnpm typecheck             # Type check all packages
-pnpm format                # Check formatting
-pnpm format:fix            # Fix formatting
-
-# Building
-pnpm build                 # Build all packages
-
-# Expo
-cd apps/expo
-pnpm dev                   # Start Expo dev server
-pnpm dev:ios               # Start iOS simulator
-pnpm dev:android           # Start Android emulator
-```
-
-## Project Structure
-
-```
-smart-session-planner/
-├── apps/
-│   ├── expo/              # React Native mobile app
-│   └── nextjs/            # Next.js backend (tRPC server)
-├── packages/
-│   ├── api/               # tRPC API routes and helpers
-│   ├── auth/              # Supabase authentication configuration
-│   ├── db/                # Database schema and client
-│   ├── ui/                # Shared UI components
-│   └── validators/        # Zod validation schemas
-├── tooling/               # Shared tooling configs
-│   ├── eslint/
-│   ├── prettier/
-│   ├── tailwind/
-│   └── typescript/
-└── docs/                  # Documentation
-```
-
-## License
-
-MIT
