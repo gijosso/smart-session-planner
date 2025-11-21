@@ -48,6 +48,7 @@ export default function Home() {
       (s) => "id" in s && typeof s.id === "string",
     );
     if (hasIds) {
+      // Type assertion is safe here because we've verified all items have id property
       return suggestionsQuery.data as typeof suggestionsQuery.data & {
         id: string;
       }[];

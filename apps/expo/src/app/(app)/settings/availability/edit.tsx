@@ -4,27 +4,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { DayOfWeek, WeeklyAvailability } from "@ssp/api/client";
+import type { WeeklyAvailability } from "@ssp/api/client";
 import { DAYS_OF_WEEK } from "@ssp/api/client";
 
 import { Button, Card, LoadingScreen } from "~/components";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
-
-/**
- * Formats time from HH:MM:SS to HH:MM
- */
-function formatTime(time: string): string {
-  return time.split(":").slice(0, 2).join(":");
-}
-
-/**
- * Converts HH:MM to HH:MM:SS
- */
-function toFullTime(time: string): string {
-  return `${time}:00`;
-}
+import {
+  formatTimeFromFull,
+  formatTimeToFull,
+  isValidTimeFormat,
+} from "~/utils/date";
+import { toDayOfWeek } from "~/utils/type-guards";
 
 export default function EditAvailability() {
   const router = useRouter();
@@ -56,7 +48,19 @@ export default function EditAvailability() {
     (day: string) => {
       if (!availability) return;
 
-      const dayOfWeek = day as DayOfWeek;
+      const dayOfWeek = toDayOfWeek(day);
+      if (!dayOfWeek) {
+        // Invalid day, should not happen but handle gracefully
+        return;
+      }
+
+      // Validate time formats
+      if (!isValidTimeFormat(newStartTime) || !isValidTimeFormat(newEndTime)) {
+        // Invalid time format, should show error to user
+        // For now, just return early
+        return;
+      }
+
       const currentWindows =
         dayOfWeek in availability.weeklyAvailability
           ? availability.weeklyAvailability[dayOfWeek]
@@ -64,8 +68,8 @@ export default function EditAvailability() {
       const updatedWindows = [
         ...currentWindows,
         {
-          startTime: toFullTime(newStartTime),
-          endTime: toFullTime(newEndTime),
+          startTime: formatTimeToFull(newStartTime),
+          endTime: formatTimeToFull(newEndTime),
         },
       ].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
@@ -83,7 +87,12 @@ export default function EditAvailability() {
     (day: string, index: number) => {
       if (!availability) return;
 
-      const dayOfWeek = day as DayOfWeek;
+      const dayOfWeek = toDayOfWeek(day);
+      if (!dayOfWeek) {
+        // Invalid day, should not happen but handle gracefully
+        return;
+      }
+
       const currentWindows =
         dayOfWeek in availability.weeklyAvailability
           ? availability.weeklyAvailability[dayOfWeek]
@@ -169,8 +178,8 @@ export default function EditAvailability() {
                         className="bg-muted flex flex-row items-center justify-between rounded-md p-3"
                       >
                         <Text className="text-foreground text-base">
-                          {formatTime(window.startTime)} -{" "}
-                          {formatTime(window.endTime)}
+                          {formatTimeFromFull(window.startTime)} -{" "}
+                          {formatTimeFromFull(window.endTime)}
                         </Text>
                         <Button
                           variant="destructive"

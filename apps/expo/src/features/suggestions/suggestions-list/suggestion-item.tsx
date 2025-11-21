@@ -17,9 +17,10 @@ import {
   PRIORITY_LEVELS,
   SUGGESTION_ITEM_HEIGHT,
   SUGGESTION_ITEM_WIDTH,
+  SUGGESTION_LOOK_AHEAD_DAYS,
 } from "~/constants/app";
 import { COLORS_MUTED } from "~/constants/colors";
-import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import {
@@ -58,6 +59,9 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
             id: data.id,
           });
         },
+        onError: createMutationErrorHandler({
+          errorMessage: "Failed to create session. Please try again.",
+        }),
       }),
     );
 

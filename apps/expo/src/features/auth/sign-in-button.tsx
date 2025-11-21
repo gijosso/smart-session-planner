@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "~/components";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -27,6 +28,9 @@ export const SignInButton = () => {
         // Invalidate session query to refetch with new token
         await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
       },
+      onError: createMutationErrorHandler({
+        errorMessage: "Failed to sign in. Please try again.",
+      }),
     }),
   );
 
@@ -35,6 +39,9 @@ export const SignInButton = () => {
       await authClient.removeAccessToken();
       await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
     },
+    onError: createMutationErrorHandler({
+      errorMessage: "Failed to sign out. Please try again.",
+    }),
   });
 
   const handleSignIn = useCallback(() => {

@@ -52,13 +52,17 @@ export default function UpdateSession() {
 
         if (!latestSession) return;
 
-        const newStartTime = variables.startTime
-          ? new Date(variables.startTime as string)
-          : undefined;
+        const newStartTime =
+          variables.startTime && typeof variables.startTime === "string"
+            ? new Date(variables.startTime)
+            : undefined;
 
         const oldStartTime =
-          (context.oldSession?.startTime as Date | string | undefined) ??
-          latestSession.startTime;
+          context.oldSession?.startTime &&
+          (typeof context.oldSession.startTime === "string" ||
+            context.oldSession.startTime instanceof Date)
+            ? context.oldSession.startTime
+            : latestSession.startTime;
         const finalNewStartTime = newStartTime ?? oldStartTime;
 
         invalidateSessionQueriesForUpdate(

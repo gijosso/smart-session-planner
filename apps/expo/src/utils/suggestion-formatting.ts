@@ -1,29 +1,13 @@
 /**
- * Format a date to display as "Today", "Tomorrow", or date
+ * Re-export date formatting functions from utils/date for backward compatibility
+ * @deprecated Use formatDateDisplay from ~/utils/date instead
  */
-export function formatDateDisplay(date: Date): string {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const suggestionDate = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
-  const diffDays = Math.floor(
-    (suggestionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Tomorrow";
-  if (diffDays === -1) return "Yesterday";
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
+export { formatDateDisplay } from "~/utils/date";
 
 /**
  * Format time range for display
+ * Note: This is a duplicate of formatTimeRange in utils/date.ts
+ * Kept here for backward compatibility, but consider using the one from utils/date
  */
 export function formatTimeRange(startTime: Date, endTime: Date): string {
   const start = startTime.toLocaleTimeString("en-US", {

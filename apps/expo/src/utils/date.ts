@@ -178,9 +178,34 @@ export const dateToISOString = (date: Date | null | undefined): string => {
 };
 
 /**
+ * Formats time from HH:MM:SS to HH:MM
+ * Used for displaying time windows in availability settings
+ */
+export const formatTimeFromFull = (time: string): string => {
+  return time.split(":").slice(0, 2).join(":");
+};
+
+/**
+ * Converts HH:MM to HH:MM:SS format
+ * Used for storing time windows in availability settings
+ */
+export const formatTimeToFull = (time: string): string => {
+  return `${time}:00`;
+};
+
+/**
+ * Validates time format (HH:MM)
+ * Returns true if time is in valid format
+ */
+export const isValidTimeFormat = (time: string): boolean => {
+  const regex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+  return regex.test(time);
+};
+
+/**
  * Parse date and time strings into a Date object in the user's local timezone
  * Properly handles timezone conversion to ensure dates are interpreted correctly
- * 
+ *
  * @param dateStr - Date string in YYYY-MM-DD format
  * @param timeStr - Time string in HH:mm format
  * @returns Date object in local timezone, or null if invalid
@@ -194,21 +219,33 @@ export function parseLocalDateTime(
   try {
     // Split time string to get hours and minutes
     const [hours, minutes] = timeStr.split(":").map(Number);
-    
+
+    if (typeof hours !== "number" || typeof minutes !== "number") {
+      return null;
+    }
+
     if (isNaN(hours) || isNaN(minutes)) {
       return null;
     }
 
     // Split date string to get year, month, day
     const [year, month, day] = dateStr.split("-").map(Number);
-    
+
+    if (
+      typeof year !== "number" ||
+      typeof month !== "number" ||
+      typeof day !== "number"
+    ) {
+      return null;
+    }
+
     if (isNaN(year) || isNaN(month) || isNaN(day)) {
       return null;
     }
 
     // Create date in local timezone (month is 0-indexed in Date constructor)
     const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
-    
+
     // Validate the date
     if (isNaN(date.getTime())) {
       return null;
@@ -229,4 +266,26 @@ export function parseLocalDateTime(
   } catch {
     return null;
   }
+}
+
+/**
+ * Format a date to display as "Today", "Tomorrow", "Yesterday", or date
+ * Used for suggestion and session date displays
+ */
+export function formatDateDisplay(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const suggestionDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.floor(
+    (suggestionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays === -1) return "Yesterday";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }

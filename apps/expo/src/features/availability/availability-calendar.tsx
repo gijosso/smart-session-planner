@@ -7,6 +7,7 @@ import { DAYS_OF_WEEK } from "@ssp/api/client";
 
 import { Card } from "~/components";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
+import { formatTimeFromFull } from "~/utils/date";
 
 interface AvailabilityCalendarProps {
   weeklyAvailability: WeeklyAvailability;
@@ -14,13 +15,6 @@ interface AvailabilityCalendarProps {
     dayOfWeek: string,
     timeWindow: { startTime: string; endTime: string },
   ) => void;
-}
-
-/**
- * Formats time from HH:MM:SS to HH:MM
- */
-function formatTime(time: string): string {
-  return time.split(":").slice(0, 2).join(":");
 }
 
 /**
@@ -94,7 +88,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 {/* Time label */}
                 <View className="border-border w-20 border-r p-2">
                   <Text className="text-muted-foreground text-xs">
-                    {formatTime(slotTime)}
+                    {formatTimeFromFull(slotTime)}
                   </Text>
                 </View>
 
@@ -145,7 +139,8 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       {isWindowStart && windowStart && windowEnd && (
                         <View className="bg-primary rounded px-1 py-0.5">
                           <Text className="text-primary-foreground text-[10px] font-medium">
-                            {formatTime(windowStart)} - {formatTime(windowEnd)}
+                            {formatTimeFromFull(windowStart)} -{" "}
+                            {formatTimeFromFull(windowEnd)}
                           </Text>
                         </View>
                       )}

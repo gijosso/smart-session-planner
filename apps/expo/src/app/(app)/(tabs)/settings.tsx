@@ -1,11 +1,12 @@
 import { useCallback } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button, Card, Screen } from "~/components";
 import { COLORS_MUTED } from "~/constants/colors";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -17,6 +18,9 @@ export default function Settings() {
       await authClient.removeAccessToken();
       await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
     },
+    onError: createMutationErrorHandler({
+      errorMessage: "Failed to sign out. Please try again.",
+    }),
   });
 
   const handleSignOut = useCallback(() => {
@@ -30,12 +34,19 @@ export default function Settings() {
 
         <View className="flex flex-col gap-4">
           <Link href="/settings/availability" asChild>
-            <Pressable accessibilityRole="button" accessibilityLabel="Manage availability settings">
+            <Button
+              variant="ghost"
+              accessibilityLabel="Navigate to availability settings"
+              accessibilityRole="button"
+            >
               <Card
                 variant="outline"
-                className="flex flex-row items-center justify-between"
+                className="flex flex-1 flex-row items-center justify-between"
               >
-                <Text className="text-foreground font-semibold" accessibilityRole="text">
+                <Text
+                  className="text-foreground font-semibold"
+                  accessibilityRole="text"
+                >
                   Availability
                 </Text>
                 <Ionicons
@@ -45,7 +56,7 @@ export default function Settings() {
                   accessibilityLabel="Navigate to availability settings"
                 />
               </Card>
-            </Pressable>
+            </Button>
           </Link>
 
           <Button

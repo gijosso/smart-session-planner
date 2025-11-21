@@ -10,7 +10,6 @@ import {
   DEFAULT_PRIORITY,
   SUGGESTION_LOOK_AHEAD_DAYS,
 } from "~/constants/app";
-import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { CreateSessionForm } from "~/features/session/forms";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
@@ -21,6 +20,7 @@ import {
 } from "~/utils/date";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueries } from "~/utils/session-cache";
+import { toSessionType } from "~/utils/type-guards";
 import { getSuggestionMutationOptions } from "~/utils/suggestion-id";
 
 export default function CreateSession() {
@@ -30,7 +30,7 @@ export default function CreateSession() {
   const params = useLocalSearchParams<{
     // Prefilled from suggestion
     title?: string;
-    type?: SessionType;
+    type?: string;
     suggestedStartTime?: string;
     suggestedEndTime?: string;
     priority?: string;
@@ -38,12 +38,8 @@ export default function CreateSession() {
     suggestionId?: string; // ID of the suggestion this session is being created from
   }>();
 
-  // Validate route params - type assertion is safe here because we validate against known values
-  const validatedType: SessionType | undefined =
-    params.type &&
-    Object.values(SESSION_TYPES_DISPLAY).some((t) => t.value === params.type)
-      ? (params.type as SessionType)
-      : undefined;
+  // Validate route params using type guard
+  const validatedType = params.type ? toSessionType(params.type) : undefined;
 
   const validatedPriority: number | undefined = params.priority
     ? (() => {
