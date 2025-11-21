@@ -71,7 +71,7 @@ export default function SuggestionsScreen() {
 
   return (
     <Screen variant="list" title="Smart Suggestions" backButton>
-      <View className="border-border bg-muted border p-4">
+      <View className="border-border bg-progress-card border p-4">
         <View className="flex flex-col">
           <Text className="text-foreground text-xl font-semibold">
             Smart Suggestions
