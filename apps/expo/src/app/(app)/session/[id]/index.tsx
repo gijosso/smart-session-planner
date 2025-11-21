@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { Alert, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack, useGlobalSearchParams } from "expo-router";
@@ -8,7 +8,7 @@ import { Button, ErrorScreen, LoadingScreen } from "~/components";
 import { PRIORITY_LEVELS } from "~/constants/app";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
-import { useMutationError, useQueryError } from "~/hooks/use-query-error";
+import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
@@ -21,15 +21,14 @@ export default function Session() {
   );
   const queryError = useQueryError({ error });
 
-  // Use ref to store latest session data to avoid stale closure
-  const sessionDataRef = useRef(data);
-  sessionDataRef.current = data;
-
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
-      onSettled: () => {
-        // Use ref to get latest session data for invalidation
-        const currentSession = sessionDataRef.current;
+      onSettled: (_data, _error, variables) => {
+        // Use React Query's getQueryData to get latest session data (avoids stale closure)
+        const queryOptions = trpc.session.byId.queryOptions({
+          id: variables.id,
+        });
+        const currentSession = queryClient.getQueryData(queryOptions.queryKey);
         if (currentSession) {
           invalidateSessionQueries(queryClient, {
             startTime: currentSession.startTime,
@@ -45,26 +44,27 @@ export default function Session() {
 
   const deleteMutation = useMutation(
     trpc.session.delete.mutationOptions({
-      onSuccess: () => {
-        // Use ref to get latest session data (avoids stale closure)
-        const sessionData = sessionDataRef.current;
+      onMutate: (variables) => {
+        // Capture current session data before deletion (React Query pattern)
+        const queryOptions = trpc.session.byId.queryOptions({
+          id: variables.id,
+        });
+        const currentSession = queryClient.getQueryData(queryOptions.queryKey);
+        return { sessionData: currentSession };
+      },
+      onSuccess: (_data, _variables, context) => {
+        // Use context to get session data captured in onMutate (avoids stale closure)
+        const sessionData = context.sessionData;
 
-        // Remove the byId query from cache first to prevent refetch errors
-        // This prevents React Query from trying to refetch a deleted session
         if (id) {
           queryClient.removeQueries(trpc.session.byId.queryFilter({ id }));
         }
 
-        // Invalidate other queries based on session date
-        // Note: We skip invalidating byId since we already removed it above
         if (sessionData) {
           invalidateSessionQueries(queryClient, {
             startTime: sessionData.startTime,
-            // Don't pass id to avoid invalidating byId (we already removed it)
           });
         }
-
-        // Navigate back to home after successful deletion
         router.replace("/home");
       },
       onError: createMutationErrorHandler({
@@ -104,7 +104,9 @@ export default function Session() {
       <ErrorScreen
         error={queryError.error}
         onRetry={() => {
-          void queryClient.invalidateQueries(trpc.session.byId.queryFilter({ id }));
+          void queryClient.invalidateQueries(
+            trpc.session.byId.queryFilter({ id }),
+          );
         }}
         onReset={() => router.back()}
         title="Unable to load session"

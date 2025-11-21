@@ -1,6 +1,4 @@
-import { useCallback } from "react";
 import { Alert } from "react-native";
-import type { UseMutationResult } from "@tanstack/react-query";
 
 import type { AppError } from "~/utils/error/types";
 import { createAppError } from "~/utils/error/types";
@@ -34,54 +32,7 @@ export interface MutationErrorHandlingOptions {
 }
 
 /**
- * Hook that wraps a mutation with standardized error handling
- * Provides consistent error handling across the app
- */
-export function useMutationWithErrorHandling<
-  TData,
-  TError,
-  TVariables,
->(
-  mutation: UseMutationResult<TData, TError, TVariables>,
-  options: MutationErrorHandlingOptions = {},
-): UseMutationResult<TData, TError, TVariables> {
-  const {
-    errorMessage,
-    errorTitle = "Error",
-    showAlert = true,
-    onError,
-    logError = process.env.NODE_ENV === "development",
-  } = options;
-
-  const handleError = useCallback(
-    (error: TError) => {
-      const appError = createAppError(error);
-
-      if (logError) {
-        // eslint-disable-next-line no-console
-        console.error("Mutation error:", error);
-      }
-
-      if (onError) {
-        onError(appError);
-      } else if (showAlert) {
-        const message =
-          errorMessage ?? appError.userMessage ?? appError.message ?? "An error occurred";
-        Alert.alert(errorTitle, message, [{ text: "OK" }]);
-      }
-    },
-    [errorMessage, errorTitle, showAlert, onError, logError],
-  );
-
-  // Return mutation with error handling applied
-  // Note: This doesn't modify the mutation itself, but provides a pattern
-  // for consistent error handling. The actual error handling should be
-  // done in the mutation's onError callback.
-  return mutation;
-}
-
-/**
- * Creates standardized mutation error handler options
+ * Creates standardized mutation error handler
  * Can be used with mutationOptions to provide consistent error handling
  */
 export function createMutationErrorHandler(
@@ -99,17 +50,14 @@ export function createMutationErrorHandler(
     const appError = createAppError(error);
 
     if (logError) {
-      // eslint-disable-next-line no-console
       console.error("Mutation error:", error);
     }
 
     if (onError) {
       onError(appError);
     } else if (showAlert) {
-      const message =
-        errorMessage ?? appError.userMessage ?? appError.message ?? "An error occurred";
+      const message = errorMessage ?? appError.userMessage ?? appError.message;
       Alert.alert(errorTitle, message, [{ text: "OK" }]);
     }
   };
 }
-

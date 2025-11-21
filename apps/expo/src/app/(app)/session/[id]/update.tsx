@@ -34,6 +34,47 @@ export default function UpdateSession() {
     isPending,
   } = useMutation(
     trpc.session.update.mutationOptions({
+      onMutate: (variables) => {
+        // Capture current session data before update (React Query pattern)
+        const queryOptions = trpc.session.byId.queryOptions({
+          id: variables.id,
+        });
+        const oldSession = queryClient.getQueryData(queryOptions.queryKey);
+        return { oldSession };
+      },
+      onSuccess: (_data, variables, context) => {
+        // Use React Query's getQueryData to get latest session (may have been updated)
+        const queryOptions = trpc.session.byId.queryOptions({
+          id: variables.id,
+        });
+        const latestSession =
+          queryClient.getQueryData(queryOptions.queryKey) ?? context.oldSession;
+
+        if (!latestSession) return;
+
+        const newStartTime = variables.startTime
+          ? new Date(variables.startTime as string)
+          : undefined;
+
+        const oldStartTime =
+          (context.oldSession?.startTime as Date | string | undefined) ??
+          latestSession.startTime;
+        const finalNewStartTime = newStartTime ?? oldStartTime;
+
+        invalidateSessionQueriesForUpdate(
+          queryClient,
+          {
+            startTime: oldStartTime,
+            id: latestSession.id,
+          },
+          {
+            startTime: finalNewStartTime,
+            id: latestSession.id,
+          },
+        );
+
+        router.back();
+      },
       onError: createMutationErrorHandler({
         // Error is handled via serverError prop in form, so don't show alert
         showAlert: false,
@@ -95,28 +136,7 @@ export default function UpdateSession() {
     if (values.startTime) payload.startTime = values.startTime.toISOString();
     if (values.endTime) payload.endTime = values.endTime.toISOString();
 
-    mutate(payload as Parameters<typeof mutate>[0], {
-      onSuccess() {
-        // Invalidate queries based on old and new session dates
-        const oldStartTime = session.startTime;
-        const newStartTime = values.startTime ?? oldStartTime;
-
-        invalidateSessionQueriesForUpdate(
-          queryClient,
-          {
-            startTime: oldStartTime,
-            id: session.id,
-          },
-          {
-            startTime: newStartTime,
-            id: session.id,
-          },
-        );
-
-        // Navigate back to session detail
-        router.back();
-      },
-    });
+    mutate(payload as Parameters<typeof mutate>[0]);
   };
 
   if (isLoading) {

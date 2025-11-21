@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
+import type { SuggestionWithId } from "~/types";
 import { Button, LoadingScreen, Screen } from "~/components";
 import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { SuggestionsList } from "~/features/suggestions";
@@ -27,14 +28,14 @@ export default function SuggestionsScreen() {
 
   // Add idempotency IDs to suggestions for React Query tracking
   // Only process if data exists and hasn't been processed yet
-  const suggestions = useMemo(() => {
+  const suggestions: SuggestionWithId[] = useMemo(() => {
     if (!rawSuggestions) return [];
     // Check if IDs already exist (optimization to avoid unnecessary processing)
     const hasIds = rawSuggestions.some(
       (s) => "id" in s && typeof s.id === "string",
     );
     if (hasIds) {
-      return rawSuggestions as typeof rawSuggestions & { id: string }[];
+      return rawSuggestions as SuggestionWithId[];
     }
     return addSuggestionIds(rawSuggestions);
   }, [rawSuggestions]);

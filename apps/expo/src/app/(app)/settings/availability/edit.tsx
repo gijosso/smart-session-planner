@@ -9,6 +9,7 @@ import { DAYS_OF_WEEK } from "@ssp/api/client";
 
 import { Button, Card, LoadingScreen } from "~/components";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 
 /**
@@ -45,6 +46,9 @@ export default function EditAvailability() {
         void queryClient.invalidateQueries(trpc.availability.get.queryFilter());
         router.back();
       },
+      onError: createMutationErrorHandler({
+        errorMessage: "Failed to update availability. Please try again.",
+      }),
     }),
   );
 

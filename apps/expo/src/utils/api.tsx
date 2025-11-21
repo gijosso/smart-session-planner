@@ -55,7 +55,10 @@ export const queryClient = new QueryClient({
       },
       retryDelay: (attemptIndex) => {
         // Exponential backoff: 1s, 2s, 4s
-        return Math.min(DEFAULT_RETRY_DELAY_MS * 2 ** attemptIndex, MAX_RETRY_DELAY_MS);
+        return Math.min(
+          DEFAULT_RETRY_DELAY_MS * 2 ** attemptIndex,
+          MAX_RETRY_DELAY_MS,
+        );
       },
       // Stale time: how long data is considered fresh
       // Default to 0 (always refetch) - individual queries can override
@@ -125,7 +128,7 @@ async function fetchWithTimeout(
 /**
  * Refresh the access token using the stored refresh token
  * Exported for use in components that need to manually trigger refresh
- * 
+ *
  * Features:
  * - Prevents concurrent refresh attempts (race condition protection)
  * - Timeout protection (10 seconds)
@@ -147,7 +150,7 @@ export async function refreshAccessToken(): Promise<void> {
   // Create new refresh promise with timeout protection
   const refreshPromise = (async (): Promise<void> => {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 0; attempt <= MAX_REFRESH_RETRIES; attempt++) {
       try {
         const refreshToken = await authClient.getRefreshToken();
@@ -211,7 +214,7 @@ export async function refreshAccessToken(): Promise<void> {
         return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         // Don't retry on certain errors (e.g., no refresh token, invalid response)
         if (
           lastError.message.includes("No refresh token") ||
@@ -309,7 +312,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
             try {
               // Wait for any in-progress refresh or start a new one
               await refreshAccessToken();
-              
+
               // Retry the request with the new token
               const newHeaders = new Headers(options?.headers);
               const authHeader = await authClient.getAuthHeader();
@@ -322,7 +325,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
                   newHeaders.set("Cookie", cookies);
                 }
               }
-              
+
               return fetch(url, {
                 ...options,
                 headers: newHeaders,
@@ -330,6 +333,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
             } catch (error) {
               // Refresh failed, return original 401 response
               // Error is already logged/handled in refreshAccessToken
+              console.error(error);
               return response;
             }
           }
