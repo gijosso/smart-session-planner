@@ -5,7 +5,7 @@
 
 import { useCallback } from "react";
 
-import type { ShowToastOptions, ToastType } from "~/utils/toast";
+import type { ShowToastOptions } from "~/utils/toast";
 import {
   hideToast,
   showErrorToast,
@@ -17,14 +17,7 @@ import {
 /**
  * Hook that provides toast notification functions
  * Use this hook in components to show toast messages
- *
- * @example
- * ```tsx
- * const toast = useToast();
- *
- * toast.success("Session created successfully!");
- * toast.error("Failed to create session");
- * ```
+
  */
 export function useToast() {
   const success = useCallback(
@@ -76,5 +69,3 @@ export function useToast() {
     hide,
   };
 }
-
-

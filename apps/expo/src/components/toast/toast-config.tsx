@@ -21,7 +21,7 @@ export const toastConfig = {
    */
   success: ({ text1, text2 }: { text1?: string; text2?: string }) => (
     <View style={{ width: TOAST_WIDTH }}>
-      <Card className="bg-primary m-4 w-full shadow-lg">
+      <Card className="bg-primary w-full shadow-lg">
         <CardContent>
           <Text className="text-primary-foreground text-xl font-semibold">
             {text1}
@@ -38,7 +38,7 @@ export const toastConfig = {
    */
   error: ({ text1, text2 }: { text1?: string; text2?: string }) => (
     <View style={{ width: TOAST_WIDTH }}>
-      <Card className="bg-destructive m-4 w-full shadow-lg">
+      <Card className="bg-destructive w-full shadow-lg">
         <CardContent>
           <Text className="text-destructive-foreground text-xl font-semibold">
             {text1}
@@ -55,7 +55,7 @@ export const toastConfig = {
    */
   info: ({ text1, text2 }: { text1?: string; text2?: string }) => (
     <View style={{ width: TOAST_WIDTH }}>
-      <Card className="bg-secondary m-4 w-full shadow-lg">
+      <Card className="bg-secondary w-full shadow-lg">
         <CardContent>
           <Text className="text-foreground text-xl font-semibold">{text1}</Text>
 

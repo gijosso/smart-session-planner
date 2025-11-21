@@ -81,7 +81,7 @@ export function showToast(options: ShowToastOptions): void {
  */
 export function showSuccessToast(
   message: string,
-  title?: string,
+  title = "Success",
   options?: Omit<ShowToastOptions, "type" | "message" | "title">,
 ): void {
   showToast({
@@ -98,13 +98,13 @@ export function showSuccessToast(
  */
 export function showErrorToast(
   message: string,
-  title?: string,
+  title = "Error",
   options?: Omit<ShowToastOptions, "type" | "message" | "title">,
 ): void {
   showToast({
     type: "error",
     message,
-    title: title ?? "Error",
+    title,
     ...options,
   });
 }
@@ -115,7 +115,7 @@ export function showErrorToast(
  */
 export function showInfoToast(
   message: string,
-  title?: string,
+  title = "Info",
   options?: Omit<ShowToastOptions, "type" | "message" | "title">,
 ): void {
   showToast({
