@@ -21,8 +21,8 @@ const FilterButton = React.memo<FilterButtonProps>(
       <Button
         variant="ghost"
         onPress={onPress}
-        textClassName="text-foreground text-md font-semibold"
-        className={cn("h-auto rounded-full px-6 py-1", selected && "bg-muted")}
+        textClassName="text-foreground text-md"
+        className={cn("h-auto rounded-full px-5 py-1", selected && "bg-muted")}
       >
         {label}
       </Button>
@@ -47,7 +47,6 @@ export const SessionRecapFilter = React.memo<SessionRecapFilterProps>(
           selected={filter === "today"}
           onPress={handleTodayPress}
         />
-
         <FilterButton
           label="Week"
           selected={filter === "week"}

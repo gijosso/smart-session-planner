@@ -137,17 +137,19 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
             <View className="flex flex-row items-center gap-2">
               <Ionicons name="time-outline" size={22} color="#71717A" />
 
-              <Text className="text-foreground">{formattedDate}</Text>
+              <Text className="text-secondary-foreground">{formattedDate}</Text>
 
               <View className="bg-muted-foreground h-1 w-1 rounded-full" />
 
-              <Text className="text-foreground">{formattedTimeRange}</Text>
+              <Text className="text-secondary-foreground">
+                {formattedTimeRange}
+              </Text>
             </View>
           </View>
         </CardContent>
 
         {suggestion.reasons.length > 0 && (
-          <Text className="text-foreground">{reasonsText}.</Text>
+          <Text className="text-secondary-foreground">{reasonsText}.</Text>
         )}
 
         <CardFooter>

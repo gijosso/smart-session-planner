@@ -2,7 +2,7 @@ import type React from "react";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Card } from "~/components";
+import { Card, CardContent } from "~/components";
 
 interface StatCardProps {
   iconName: keyof typeof Ionicons.glyphMap;
@@ -19,17 +19,17 @@ export const StatCard: React.FC<StatCardProps> = ({
   description,
 }) => {
   return (
-    <Card variant="outline" className="bg-card">
-      <View className="flex flex-row gap-2">
-        <View className="p-2">
+    <Card className="p-4">
+      <CardContent>
+        <View className="flex flex-row gap-4">
           <Ionicons name={iconName} size={22} />
-        </View>
 
-        <View>
-          <Text className="text-foreground text-2xl font-bold">{title}</Text>
-          <Text className="text-muted-foreground text-sm">{description}</Text>
+          <View className="gap-1">
+            <Text className="text-foreground text-xl">{title}</Text>
+            <Text className="text-muted-foreground text-md">{description}</Text>
+          </View>
         </View>
-      </View>
+      </CardContent>
     </Card>
   );
 };

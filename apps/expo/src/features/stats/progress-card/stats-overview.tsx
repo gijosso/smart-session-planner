@@ -9,7 +9,7 @@ interface StatBlockProps {
 const StatBlock: React.FC<StatBlockProps> = ({ value, label }) => (
   <View className="flex-1 items-center justify-center gap-2">
     <Text className="text-foreground text-4xl">{value}</Text>
-    <Text className="text-foreground">{label}</Text>
+    <Text className="text-secondary-foreground">{label}</Text>
   </View>
 );
 

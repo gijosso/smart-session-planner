@@ -27,7 +27,7 @@ export const SessionRecapCard = React.memo<SessionRecapCardProps>(
             </Text>
           </View>
 
-          <View className="bg-muted-foreground mx-4 h-1 w-1 rounded-full" />
+          <View className="bg-border h-1 w-1 rounded-full" />
 
           <View className="flex flex-row items-center">
             <Ionicons name="checkmark" size={22} color="#71717A" />

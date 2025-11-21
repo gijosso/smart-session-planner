@@ -23,9 +23,11 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
 
   return (
     <View className="gap-4">
-      <Text className="text-foreground text-md">Sessions by type</Text>
+      <Text className="text-secondary-foreground text-md">
+        Sessions by type
+      </Text>
 
-      <View className="bg-background h-2 flex-row gap-2 overflow-hidden rounded-full">
+      <View className="h-2 flex-row gap-2 overflow-hidden rounded-full">
         {activeTypes.map(([type, count]) => (
           <View
             key={type}
