@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import type { SessionType, SuggestedSession } from "@ssp/api/client";
 
+import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import type { SuggestionWithId } from "~/types";
 import { trpc } from "~/utils/api";
 
@@ -41,7 +42,7 @@ function removeSuggestionFromCache(
   },
 ): SuggestedSession[] | undefined {
   const queryOptions = trpc.session.suggest.queryOptions({
-    lookAheadDays: queryParams.lookAheadDays ?? 14,
+    lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
   });
 
   // Get current data
@@ -99,7 +100,7 @@ export function getSuggestionMutationOptions<
       }
 
       const queryOptions = trpc.session.suggest.queryOptions({
-        lookAheadDays: queryParams.lookAheadDays ?? 14,
+        lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
       });
 
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
@@ -128,7 +129,7 @@ export function getSuggestionMutationOptions<
       // If the mutation fails, rollback to the previous value
       if (context?.previousData) {
         const queryOptions = trpc.session.suggest.queryOptions({
-          lookAheadDays: queryParams.lookAheadDays ?? 14,
+          lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
         });
         queryClient.setQueryData(queryOptions.queryKey, context.previousData);
       }
@@ -136,7 +137,7 @@ export function getSuggestionMutationOptions<
     onSettled: () => {
       // Always refetch after error or success to ensure consistency
       const queryOptions = trpc.session.suggest.queryOptions({
-        lookAheadDays: queryParams.lookAheadDays ?? 14,
+        lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
       });
       void queryClient.invalidateQueries({ queryKey: queryOptions.queryKey });
     },
@@ -157,7 +158,7 @@ export function invalidateAllSuggestions(
   },
 ): void {
   const queryOptions = trpc.session.suggest.queryOptions({
-    lookAheadDays: queryParams.lookAheadDays ?? 14,
+    lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
   });
 
   void queryClient.invalidateQueries({ queryKey: queryOptions.queryKey });

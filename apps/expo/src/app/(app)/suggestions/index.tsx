@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button, LoadingScreen, Screen } from "~/components";
+import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { SuggestionsList } from "~/features/suggestions";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
@@ -20,15 +21,23 @@ export default function SuggestionsScreen() {
     refetch,
   } = useQuery(
     trpc.session.suggest.queryOptions({
-      lookAheadDays: 14,
+      lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
     }),
   );
 
   // Add idempotency IDs to suggestions for React Query tracking
-  const suggestions = useMemo(
-    () => (!rawSuggestions ? [] : addSuggestionIds(rawSuggestions)),
-    [rawSuggestions],
-  );
+  // Only process if data exists and hasn't been processed yet
+  const suggestions = useMemo(() => {
+    if (!rawSuggestions) return [];
+    // Check if IDs already exist (optimization to avoid unnecessary processing)
+    const hasIds = rawSuggestions.some(
+      (s) => "id" in s && typeof s.id === "string",
+    );
+    if (hasIds) {
+      return rawSuggestions as typeof rawSuggestions & { id: string }[];
+    }
+    return addSuggestionIds(rawSuggestions);
+  }, [rawSuggestions]);
 
   const handleRefresh = useCallback(() => {
     void refetch();

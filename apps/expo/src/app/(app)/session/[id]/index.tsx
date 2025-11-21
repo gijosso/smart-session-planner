@@ -1,16 +1,17 @@
+import { useCallback, useRef } from "react";
 import { Alert, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button, ErrorScreen, LoadingScreen } from "~/components";
+import { PRIORITY_LEVELS } from "~/constants/app";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useMutationError, useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
-
-const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
 
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -20,36 +21,33 @@ export default function Session() {
   );
   const queryError = useQueryError({ error });
 
+  // Use ref to store latest session data to avoid stale closure
+  const sessionDataRef = useRef(data);
+  sessionDataRef.current = data;
+
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
       onSettled: () => {
-        // Use current session data for invalidation (date hasn't changed, just completion status)
-        if (data) {
+        // Use ref to get latest session data for invalidation
+        const currentSession = sessionDataRef.current;
+        if (currentSession) {
           invalidateSessionQueries(queryClient, {
-            startTime: data.startTime,
-            id: data.id,
+            startTime: currentSession.startTime,
+            id: currentSession.id,
           });
         }
       },
-      onError: (error) => {
-        // Show error alert for mutation failures
-        Alert.alert(
-          "Error",
-          "Failed to update session. Please try again.",
-          [{ text: "OK" }],
-        );
-        if (process.env.NODE_ENV === "development") {
-          console.error("Toggle complete error:", error);
-        }
-      },
+      onError: createMutationErrorHandler({
+        errorMessage: "Failed to update session. Please try again.",
+      }),
     }),
   );
 
   const deleteMutation = useMutation(
     trpc.session.delete.mutationOptions({
       onSuccess: () => {
-        // Store session data before removing query (needed for cache invalidation)
-        const sessionData = data;
+        // Use ref to get latest session data (avoids stale closure)
+        const sessionData = sessionDataRef.current;
 
         // Remove the byId query from cache first to prevent refetch errors
         // This prevents React Query from trying to refetch a deleted session
@@ -69,21 +67,13 @@ export default function Session() {
         // Navigate back to home after successful deletion
         router.replace("/home");
       },
-      onError: (error) => {
-        // Show error alert for deletion failures
-        Alert.alert(
-          "Error",
-          "Failed to delete session. Please try again.",
-          [{ text: "OK" }],
-        );
-        if (process.env.NODE_ENV === "development") {
-          console.error("Delete session error:", error);
-        }
-      },
+      onError: createMutationErrorHandler({
+        errorMessage: "Failed to delete session. Please try again.",
+      }),
     }),
   );
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     Alert.alert(
       "Delete Session",
       `Are you sure you want to delete "${data?.title}"? This action cannot be undone.`,
@@ -103,7 +93,7 @@ export default function Session() {
         },
       ],
     );
-  };
+  }, [data?.title, id, deleteMutation]);
 
   if (isLoading) {
     return <LoadingScreen />;

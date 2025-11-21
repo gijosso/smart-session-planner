@@ -18,6 +18,7 @@ import {
   SuggestionItem,
 } from "./suggestion-item";
 import { ListEmptyComponent } from "./suggestions-list-empty";
+import { FLEX_1_STYLE } from "~/constants/app";
 
 type SuggestionsListProps = {
   suggestions: SuggestionWithId[];
@@ -71,6 +72,8 @@ export const SuggestionsList = memo<SuggestionsListProps>(
       ),
       [horizontal],
     );
+    // Note: renderItem doesn't need 'suggestions' in dependencies because
+    // it only uses 'item' from the render props, which is provided by LegendList
 
     const refreshControl = useRefreshControl({
       isLoading,
@@ -94,7 +97,7 @@ export const SuggestionsList = memo<SuggestionsListProps>(
         renderItem={renderItem}
         refreshControl={refreshControl}
         estimatedItemSize={estimatedItemSize}
-        style={{ flex: 1 }}
+        style={FLEX_1_STYLE}
         {...legendListProps}
       />
     );

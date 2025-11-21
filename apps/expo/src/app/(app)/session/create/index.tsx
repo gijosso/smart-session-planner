@@ -6,8 +6,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
+import {
+  DEFAULT_PRIORITY,
+  SUGGESTION_LOOK_AHEAD_DAYS,
+} from "~/constants/app";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { CreateSessionForm } from "~/features/session/forms";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 import {
   formatDateForInput,
@@ -33,7 +38,7 @@ export default function CreateSession() {
     suggestionId?: string; // ID of the suggestion this session is being created from
   }>();
 
-  // Validate route params
+  // Validate route params - type assertion is safe here because we validate against known values
   const validatedType: SessionType | undefined =
     params.type &&
     Object.values(SESSION_TYPES_DISPLAY).some((t) => t.value === params.type)
@@ -53,7 +58,9 @@ export default function CreateSession() {
     isPending,
   } = useMutation(
     trpc.session.create.mutationOptions({
-      ...getSuggestionMutationOptions(queryClient, { lookAheadDays: 14 }),
+      ...getSuggestionMutationOptions(queryClient, {
+        lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
+      }),
       onSuccess(data) {
         // Trigger form reset
         setResetKey((prev) => prev + 1);
@@ -65,20 +72,17 @@ export default function CreateSession() {
         });
 
         // Navigate to the created session
-        const sessionId = (data as { id?: string }).id;
-        if (sessionId) {
-          router.replace(`/session/${sessionId}`);
+        // Type-safe access - data should always have id from the API
+        if (data.id) {
+          router.replace(`/session/${data.id}`);
         } else {
           router.back();
         }
       },
-      onError: (error) => {
-        // Error is handled via serverError prop in form
-        // Additional logging for debugging
-        if (process.env.NODE_ENV === "development") {
-          console.error("Create session error:", error);
-        }
-      },
+      onError: createMutationErrorHandler({
+        // Error is handled via serverError prop in form, so don't show alert
+        showAlert: false,
+      }),
     }),
   );
 
@@ -115,7 +119,7 @@ export default function CreateSession() {
           startTime: formatTimeForInput(prefilledStartTime),
           endDate: formatDateForInput(prefilledEndTime),
           endTime: formatTimeForInput(prefilledEndTime),
-          priority: validatedPriority ?? 3,
+          priority: validatedPriority ?? DEFAULT_PRIORITY,
           description: params.description ?? "",
         }
       : undefined;

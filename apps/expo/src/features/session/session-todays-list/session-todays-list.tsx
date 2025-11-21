@@ -7,6 +7,7 @@ import {
   ItemSeparator,
 } from "~/components/list";
 import { SEPARATOR_SIZE } from "~/components/list/item-separator";
+import { FLEX_1_STYLE } from "~/constants/app";
 import { ListEmptyComponent } from "./list-empty";
 import { SESSION_ITEM_HEIGHT, SessionItem } from "./session-item";
 
@@ -38,6 +39,6 @@ export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
     keyExtractor={keyExtractor}
     renderItem={renderItem}
     scrollEnabled={false}
-    style={{ flex: 1 }}
+    style={FLEX_1_STYLE}
   />
 );

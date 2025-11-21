@@ -13,7 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components";
+import {
+  PRIORITY_LEVELS,
+  SUGGESTION_ITEM_HEIGHT,
+  SUGGESTION_ITEM_WIDTH,
+} from "~/constants/app";
 import { COLORS_MUTED } from "~/constants/colors";
+import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import {
@@ -27,9 +33,8 @@ interface SuggestionItemProps {
   horizontal?: boolean;
 }
 
-export const SUGGESTION_ITEM_WIDTH = 300 as const;
-export const SUGGESTION_ITEM_HEIGHT = 250 as const;
-const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
+// Re-export for backward compatibility
+export { SUGGESTION_ITEM_WIDTH, SUGGESTION_ITEM_HEIGHT };
 
 /**
  * Individual suggestion item component
@@ -43,7 +48,9 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
     // Create session mutation with React Query-native optimistic updates
     const createSessionMutation = useMutation(
       trpc.session.create.mutationOptions({
-        ...getSuggestionMutationOptions(queryClient, { lookAheadDays: 14 }),
+        ...getSuggestionMutationOptions(queryClient, {
+          lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
+        }),
         onSuccess: (data) => {
           // Invalidate queries based on session date (granular invalidation)
           invalidateSessionQueries(queryClient, {
@@ -54,6 +61,8 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
       }),
     );
 
+    // Optimize handleAccept - only depend on mutation and suggestion id
+    // The mutation will use the current suggestion values when called
     const handleAccept = useCallback(() => {
       createSessionMutation.mutate({
         title: suggestion.title,
@@ -65,17 +74,9 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         fromSuggestionId: suggestion.id,
         allowConflicts: false,
       });
-    }, [
-      suggestion.id,
-      suggestion.title,
-      suggestion.type,
-      suggestion.startTime,
-      suggestion.endTime,
-      suggestion.priority,
-      suggestion.description,
-      createSessionMutation,
-    ]);
+    }, [suggestion, createSessionMutation]);
 
+    // Optimize handleAdjust - only depend on router and suggestion id
     const handleAdjust = useCallback(() => {
       router.push({
         pathname: "/session/create",
@@ -91,16 +92,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
           }),
         },
       });
-    }, [
-      suggestion.id,
-      suggestion.title,
-      suggestion.type,
-      suggestion.startTime,
-      suggestion.endTime,
-      suggestion.priority,
-      suggestion.description,
-      router,
-    ]);
+    }, [suggestion, router]);
 
     // Memoize formatted date/time strings
     const formattedDate = useMemo(

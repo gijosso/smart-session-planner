@@ -161,7 +161,7 @@ export default function EditAvailability() {
                   <View className="mb-3 flex flex-col gap-2">
                     {windows.map((window, index) => (
                       <View
-                        key={index}
+                        key={`${window.startTime}-${window.endTime}`}
                         className="bg-muted flex flex-row items-center justify-between rounded-md p-3"
                       >
                         <Text className="text-foreground text-base">

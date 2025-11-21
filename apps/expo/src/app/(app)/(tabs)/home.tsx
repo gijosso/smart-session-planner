@@ -18,6 +18,7 @@ import {
 } from "~/features/session";
 import { ProgressCard } from "~/features/stats";
 import { SuggestionsList } from "~/features/suggestions";
+import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
@@ -28,7 +29,7 @@ export default function Home() {
   const todaySessionsForListQuery = useQuery(trpc.session.today.queryOptions());
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
-      lookAheadDays: 14,
+      lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
     }),
     placeholderData: (previousData) => previousData,
   });
@@ -39,8 +40,18 @@ export default function Home() {
   const suggestionsError = useQueryError(suggestionsQuery);
 
   // Add idempotency IDs to suggestions for React Query tracking
+  // Only process if data exists and hasn't been processed yet
   const suggestions = useMemo(() => {
     if (!suggestionsQuery.data) return [];
+    // Check if IDs already exist (optimization to avoid unnecessary processing)
+    const hasIds = suggestionsQuery.data.some(
+      (s) => "id" in s && typeof s.id === "string",
+    );
+    if (hasIds) {
+      return suggestionsQuery.data as typeof suggestionsQuery.data & {
+        id: string;
+      }[];
+    }
     return addSuggestionIds(suggestionsQuery.data);
   }, [suggestionsQuery.data]);
 
@@ -101,7 +112,7 @@ export default function Home() {
           </Button>
         </View>
       </Content>
-      <View style={{ flex: 1 }}>
+      <View style={FLEX_1_STYLE}>
         <SuggestionsList suggestions={suggestions} horizontal={true} />
       </View>
 
@@ -113,7 +124,7 @@ export default function Home() {
           <SessionAddButton />
         </View>
       </Content>
-      <View style={{ flex: 1 }}>
+      <View style={FLEX_1_STYLE}>
         <SessionTodaysList sessions={todaySessionsForListQuery.data} />
       </View>
 

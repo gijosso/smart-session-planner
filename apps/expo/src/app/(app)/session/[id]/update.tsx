@@ -7,6 +7,7 @@ import type { SessionType } from "@ssp/api/client";
 
 import { Button } from "~/components";
 import { UpdateSessionForm } from "~/features/session";
+import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueriesForUpdate } from "~/utils/session-cache";
@@ -16,8 +17,31 @@ export default function UpdateSession() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Validate route params
-  if (!id || typeof id !== "string" || id.trim() === "") {
+  const isValidId = typeof id === "string" && id.trim() !== "";
+
+  const {
+    data: session,
+    isLoading,
+    error,
+  } = useQuery({
+    ...trpc.session.byId.queryOptions({ id }),
+    enabled: isValidId,
+  });
+
+  const {
+    mutate,
+    error: mutationError,
+    isPending,
+  } = useMutation(
+    trpc.session.update.mutationOptions({
+      onError: createMutationErrorHandler({
+        // Error is handled via serverError prop in form, so don't show alert
+        showAlert: false,
+      }),
+    }),
+  );
+
+  if (!isValidId) {
     return (
       <SafeAreaView className="bg-background flex-1 items-center justify-center">
         <Stack.Screen options={{ title: "Update Session" }} />
@@ -36,28 +60,6 @@ export default function UpdateSession() {
       </SafeAreaView>
     );
   }
-
-  const {
-    data: session,
-    isLoading,
-    error,
-  } = useQuery(trpc.session.byId.queryOptions({ id }));
-
-  const {
-    mutate,
-    error: mutationError,
-    isPending,
-  } = useMutation(
-    trpc.session.update.mutationOptions({
-      onError: (error) => {
-        // Error is handled via serverError prop in form
-        // Additional logging for debugging
-        if (process.env.NODE_ENV === "development") {
-          console.error("Update session error:", error);
-        }
-      },
-    }),
-  );
 
   const handleSubmit = (values: {
     title?: string;

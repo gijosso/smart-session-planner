@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { trpc } from "~/utils/api";
 
 /**
@@ -18,7 +19,7 @@ export const usePrefetchHome = (isAuthenticated: boolean) => {
         queryClient.prefetchQuery(trpc.session.today.queryOptions()),
         queryClient.prefetchQuery(
           trpc.session.suggest.queryOptions({
-            lookAheadDays: 14,
+            lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
           }),
         ),
       ]);
