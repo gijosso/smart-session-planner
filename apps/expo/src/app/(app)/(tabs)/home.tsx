@@ -16,7 +16,11 @@ import {
   SkeletonCard,
   SkeletonList,
 } from "~/components/layout/skeleton-loader";
-import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
+import {
+  FLEX_1_STYLE,
+  SUGGESTION_ITEM_HEIGHT,
+  SUGGESTION_LOOK_AHEAD_DAYS,
+} from "~/constants/app";
 import { COLORS_MUTED } from "~/constants/colors";
 import {
   SessionAddButton,
@@ -134,7 +138,11 @@ export default function Home() {
             <SkeletonList count={3} />
           </View>
         ) : (
-          <SuggestionsList suggestions={suggestions} horizontal={true} />
+          <SuggestionsList
+            suggestions={suggestions}
+            horizontal={true}
+            style={{ height: SUGGESTION_ITEM_HEIGHT }}
+          />
         )}
       </View>
 

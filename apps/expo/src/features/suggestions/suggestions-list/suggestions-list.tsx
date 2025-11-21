@@ -1,5 +1,6 @@
 import type { LegendListProps } from "@legendapp/list";
 import type { ComponentRef } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import { memo, useCallback, useMemo, useRef } from "react";
 import { LegendList } from "@legendapp/list";
 
@@ -20,6 +21,7 @@ type SuggestionsListProps = {
   horizontal?: boolean;
   isLoading?: boolean;
   onRefresh?: () => void;
+  style?: StyleProp<ViewStyle>;
 } & Pick<
   LegendListProps<SuggestionWithId>,
   | "data"
