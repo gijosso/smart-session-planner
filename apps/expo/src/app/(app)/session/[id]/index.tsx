@@ -9,6 +9,8 @@ import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 
+const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
+
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -121,7 +123,7 @@ export default function Session() {
           <View className="mb-4">
             <Text className="text-muted-foreground mb-1 text-sm">Priority</Text>
             <View className="flex flex-row gap-2">
-              {[1, 2, 3, 4, 5].map((priority) => (
+              {PRIORITY_LEVELS.map((priority) => (
                 <View
                   key={priority}
                   className={`rounded-md border px-3 py-1 ${

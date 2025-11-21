@@ -4,7 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpc } from "~/utils/api";
-import { useRefreshAccessToken } from "../hooks/use-refresh-access-token";
+import { useRefreshAccessToken } from "../../hooks/use-refresh-access-token";
 
 const screenOptions = {
   headerShown: false,

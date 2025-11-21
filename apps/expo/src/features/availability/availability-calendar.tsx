@@ -1,4 +1,5 @@
 import type React from "react";
+import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import type { WeeklyAvailability } from "@ssp/api/client";
@@ -44,8 +45,19 @@ function generateTimeSlots(): string[] {
 export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   weeklyAvailability,
 }) => {
-  const timeSlots = generateTimeSlots();
+  const timeSlots = useMemo(() => generateTimeSlots(), []);
   const dayOrder = DAYS_OF_WEEK; // Already in order: MONDAY to SUNDAY
+
+  // Memoize windows per day to avoid repeated lookups
+  const windowsByDay = useMemo(() => {
+    const result: Record<string, Array<{ startTime: string; endTime: string }>> =
+      {};
+    for (const day of dayOrder) {
+      result[day] =
+        day in weeklyAvailability ? weeklyAvailability[day] : [];
+    }
+    return result;
+  }, [weeklyAvailability, dayOrder]);
 
   return (
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -88,8 +100,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
                 {/* Day columns */}
                 {dayOrder.map((day) => {
-                  const windows =
-                    day in weeklyAvailability ? weeklyAvailability[day] : [];
+                  const windows = windowsByDay[day] ?? [];
                   const slotMinutes = timeToMinutes(slotTime);
                   const nextSlotMinutes = timeToMinutes(nextSlotTime);
 

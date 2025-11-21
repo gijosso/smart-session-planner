@@ -17,6 +17,9 @@ import {
   isUnauthorizedError,
 } from "~/utils/formik";
 
+const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
+const SESSION_TYPES_ARRAY = Object.values(SESSION_TYPES_DISPLAY);
+
 interface UpdateSessionFormProps {
   initialValues: {
     title: string;
@@ -207,7 +210,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
       <View className="mb-4">
         <Text className="text-foreground mb-2 text-sm font-medium">Type *</Text>
         <View className="flex flex-row flex-wrap gap-2">
-          {Object.values(SESSION_TYPES_DISPLAY).map((sessionType) => (
+          {SESSION_TYPES_ARRAY.map((sessionType) => (
             <Pressable
               key={sessionType.value}
               onPress={() => formik.setFieldValue("type", sessionType.value)}
@@ -241,7 +244,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
           Priority *
         </Text>
         <View className="flex flex-row gap-2">
-          {[1, 2, 3, 4, 5].map((priority) => (
+          {PRIORITY_LEVELS.map((priority) => (
             <Pressable
               key={priority}
               onPress={() => formik.setFieldValue("priority", priority)}

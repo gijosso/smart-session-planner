@@ -26,6 +26,7 @@ interface SuggestionItemProps {
 }
 
 const CARD_CONTENT_STYLE = { width: 300 };
+const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
 
 /**
  * Individual suggestion item component
@@ -119,7 +120,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         <CardHeader>
           <View className="flex flex-1 flex-row items-center justify-end">
             <View className="flex flex-row items-center gap-1">
-              {[1, 2, 3, 4, 5].map((level) => (
+              {PRIORITY_LEVELS.map((level) => (
                 <View
                   key={level}
                   className={`h-2 w-2 rounded-full bg-black ${

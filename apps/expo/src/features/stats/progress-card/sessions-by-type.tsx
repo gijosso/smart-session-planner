@@ -1,4 +1,5 @@
 import type React from "react";
+import { useMemo } from "react";
 import { Text, View } from "react-native";
 
 import type { SessionType } from "@ssp/api/client";
@@ -13,9 +14,13 @@ interface SessionsByTypeProps {
  * Component displaying session breakdown by type with progress bar and legend
  */
 export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
-  const activeTypes = (Object.entries(byType) as [SessionType, number][])
-    .filter(([_, count]) => count > 0)
-    .sort(([_, a], [__, b]) => b - a); // Sort by count descending
+  const activeTypes = useMemo(
+    () =>
+      (Object.entries(byType) as [SessionType, number][])
+        .filter(([_, count]) => count > 0)
+        .sort(([_, a], [__, b]) => b - a), // Sort by count descending
+    [byType],
+  );
 
   if (activeTypes.length === 0) {
     return null;

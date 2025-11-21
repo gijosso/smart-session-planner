@@ -1,9 +1,10 @@
 import type React from "react";
-import { Text, View } from "react-native";
 import { LegendList } from "@legendapp/list";
 
 import type { RouterOutputs } from "~/utils/api";
-import { SessionItem } from "./session-item";
+import { SessionItem } from "../session-item";
+import { ItemSeparatorComponent } from "./item-separator";
+import { ListEmptyComponent } from "./list-empty";
 
 type Session = RouterOutputs["session"]["today"][number];
 
@@ -12,16 +13,6 @@ interface SessionTodaysListProps {
 }
 
 const keyExtractor = (item: Session) => item.id;
-
-const ItemSeparatorComponent = () => <View className="h-2" />;
-
-const ListEmptyComponent = () => (
-  <View className="py-4">
-    <Text className="text-muted-foreground text-center">
-      No sessions scheduled for today
-    </Text>
-  </View>
-);
 
 export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
   sessions = [],
@@ -37,3 +28,4 @@ export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
     />
   );
 };
+
