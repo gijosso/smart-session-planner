@@ -28,21 +28,23 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ stats }) => {
     <Card variant="muted" className="bg-progress-card">
       <CardHeader>
         <View className="flex flex-row items-center gap-2">
-          <Ionicons name="disc-outline" size={22} />
-          <Text className="text-foreground text-lg font-semibold">
-            Your Progress
-          </Text>
+          <Ionicons name="disc-outline" size={26} />
+          <Text className="text-foreground text-2xl">Your Progress</Text>
         </View>
       </CardHeader>
 
-      <CardContent>
-        <StatsOverview
-          total={stats.total}
-          completed={stats.completed}
-          completionRate={stats.completionRate}
-        />
+      <CardContent className="gap-6">
+        <View>
+          <View className="mb-6 py-4">
+            <StatsOverview
+              total={stats.total}
+              completed={stats.completed}
+              completionRate={stats.completionRate}
+            />
+          </View>
 
-        <SessionsByType byType={stats.byType} />
+          <SessionsByType byType={stats.byType} />
+        </View>
 
         <AverageSpacing averageSpacingHours={stats.averageSpacingHours} />
 

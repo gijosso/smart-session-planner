@@ -1,9 +1,9 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
-import { Card } from "~/components";
+import { Button, Card } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatTimeRange } from "~/utils/date";
 
@@ -20,9 +20,9 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
         params: { id: session.id },
       }}
     >
-      <Pressable className="grow">
+      <Button variant="ghost">
         <Card className="flex flex-row items-center gap-4">
-          <View className="bg-muted rounded-lg p-2">
+          <View className="bg-muted rounded-xl p-3">
             <Ionicons
               name={SESSION_TYPES_DISPLAY[session.type].icon}
               size={22}
@@ -30,13 +30,16 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
             />
           </View>
 
-          <View className="flex flex-1 flex-col">
-            <Text className="text-foreground text-lg font-semibold">
+          <View className="flex flex-1 flex-col gap-2">
+            <Text className="text-foreground text-xl">
               {SESSION_TYPES_DISPLAY[session.type].label}
             </Text>
-            <Text className="text-muted-foreground mt-1 text-sm">
-              {formatTimeRange(session.startTime, session.endTime)}
-            </Text>
+            <View className="flex flex-row items-center gap-2">
+              <Ionicons name="time-outline" size={18} color="#71717A" />
+              <Text className="text-muted-foreground text-md">
+                {formatTimeRange(session.startTime, session.endTime)}
+              </Text>
+            </View>
           </View>
 
           {session.completed && (
@@ -45,7 +48,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
             </View>
           )}
         </Card>
-      </Pressable>
+      </Button>
     </Link>
   );
 };

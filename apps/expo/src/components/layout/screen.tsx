@@ -4,8 +4,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cn } from "~/utils/cn";
 
-const CONTENT_CONTAINER_STYLE = { flexGrow: 1 } as const;
-
 export const Screen = React.memo<{
   children: React.ReactNode;
   className?: string;
@@ -13,10 +11,11 @@ export const Screen = React.memo<{
 }>(({ children, className, contentClassName }) => {
   const { top, bottom } = useSafeAreaInsets();
 
-  const style = useMemo(
+  const contentContainerStyle = useMemo(
     () => ({
       paddingTop: top,
       paddingBottom: bottom,
+      flexGrow: 1,
     }),
     [top, bottom],
   );
@@ -25,9 +24,9 @@ export const Screen = React.memo<{
     <View className={cn("bg-background flex-1", className)}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={CONTENT_CONTAINER_STYLE}
+        contentContainerStyle={contentContainerStyle}
       >
-        <View className={cn("flex-1", contentClassName)} style={style}>
+        <View className={cn("mt-8 flex-1 gap-4", contentClassName)}>
           {children}
         </View>
       </ScrollView>

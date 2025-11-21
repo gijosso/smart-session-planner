@@ -1,10 +1,10 @@
-import { useCallback, useMemo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useMemo } from "react";
+import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 
-import { Content, LoadingScreen, Screen } from "~/components";
+import { Button, Content, LoadingScreen, Screen } from "~/components";
 import { SessionAddButton } from "~/features/session/session-add-button";
 import { SessionRecap } from "~/features/session/session-recap";
 import { SessionTodaysList } from "~/features/session/session-todays-list";
@@ -13,27 +13,10 @@ import { Suggestions } from "~/features/suggestions/smart-suggestions";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 
-const SuggestionsHeaderButton = () => {
-  const handlePress = useCallback(() => {
-    router.push({
-      pathname: "/suggestions",
-    });
-  }, []);
-
-  return (
-    <Pressable onPress={handlePress}>
-      <Ionicons name="chevron-forward-outline" size={20} color="#71717A" />
-    </Pressable>
-  );
-};
-
 export default function Home() {
   // Fetch all shared data at route level
   const statsQuery = useQuery(trpc.stats.sessions.queryOptions());
-  // Limited data for list display (limit: 3)
-  const todaySessionsForListQuery = useQuery(
-    trpc.session.today.queryOptions({ limit: 3 }),
-  );
+  const todaySessionsForListQuery = useQuery(trpc.session.today.queryOptions());
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
       lookAheadDays: 14,
@@ -55,30 +38,40 @@ export default function Home() {
   }
 
   return (
-    <Screen contentClassName="space-y-4">
-      <Content>
-        <Text className="text-foreground text-3xl font-bold">Dashboard</Text>
+    <Screen>
+      <Content className="pb-0">
+        <Text className="text-foreground text-3xl font-semibold">
+          Dashboard
+        </Text>
       </Content>
 
       <Content>
         <SessionRecap stats={statsQuery.data} />
       </Content>
 
-      <Content>
-        <View className="mb-4 flex flex-row items-center justify-between">
-          <Text className="text-foreground text-xl font-bold">
-            Smart Suggestions
-          </Text>
-          <SuggestionsHeaderButton />
+      <Content className="pb-0">
+        <View className="flex flex-row items-center justify-between">
+          <Text className="text-foreground text-2xl">Smart Suggestions</Text>
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => router.push("/suggestions")}
+          >
+            <Ionicons
+              name="chevron-forward-outline"
+              size={20}
+              className="text-muted-foreground"
+            />
+          </Button>
         </View>
       </Content>
-      <Suggestions suggestions={suggestions} />
+      <View>
+        <Suggestions suggestions={suggestions} />
+      </View>
 
       <Content>
         <View className="mb-4 flex flex-row items-center justify-between">
-          <Text className="text-foreground text-xl font-bold">
-            Today's Sessions
-          </Text>
+          <Text className="text-foreground text-2xl">Today's Sessions</Text>
           <SessionAddButton />
         </View>
         <SessionTodaysList sessions={todaySessionsForListQuery.data} />

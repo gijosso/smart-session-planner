@@ -1,9 +1,9 @@
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { LoadingScreen } from "~/components";
+import { Button, LoadingScreen } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
@@ -169,55 +169,34 @@ export default function Session() {
             </View>
           )}
 
-          <Pressable
+          <Button
+            variant={data.completed ? "secondary" : "default"}
             onPress={() => toggleCompleteMutation.mutate({ id: data.id })}
             disabled={toggleCompleteMutation.isPending}
-            className={`mt-4 rounded-md border px-4 py-3 ${
-              data.completed
-                ? "bg-muted border-input"
-                : "bg-primary border-primary"
-            }`}
+            className="mt-4"
           >
-            <Text
-              className={`text-center text-base font-semibold ${
-                data.completed ? "text-foreground" : "text-primary-foreground"
-              }`}
-            >
-              {toggleCompleteMutation.isPending
-                ? "Updating..."
-                : data.completed
-                  ? "Mark as Incomplete"
-                  : "Mark as Complete"}
-            </Text>
-          </Pressable>
-          <Pressable
+            {toggleCompleteMutation.isPending
+              ? "Updating..."
+              : data.completed
+                ? "Mark as Incomplete"
+                : "Mark as Complete"}
+          </Button>
+          <Button
+            variant="default"
             onPress={() => router.push(`/session/${id}/update`)}
-            className="bg-primary border-primary mt-4 rounded-md border px-4 py-3"
+            className="mt-4"
           >
-            <Text className="text-primary-foreground text-center text-base font-semibold">
-              Update
-            </Text>
-          </Pressable>
+            Update
+          </Button>
 
-          <Pressable
+          <Button
+            variant="destructive"
             onPress={handleDelete}
             disabled={deleteMutation.isPending}
-            className={`mt-4 rounded-md border px-4 py-3 ${
-              deleteMutation.isPending
-                ? "bg-muted border-input opacity-50"
-                : "bg-destructive border-destructive"
-            }`}
+            className="mt-4"
           >
-            <Text
-              className={`text-center text-base font-semibold ${
-                deleteMutation.isPending
-                  ? "text-muted-foreground"
-                  : "text-destructive-foreground"
-              }`}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete Session"}
-            </Text>
-          </Pressable>
+            {deleteMutation.isPending ? "Deleting..." : "Delete Session"}
+          </Button>
         </View>
       </View>
     </SafeAreaView>

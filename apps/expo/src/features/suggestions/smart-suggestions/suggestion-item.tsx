@@ -115,55 +115,51 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
     );
 
     return (
-      <Card variant="muted" className="bg-suggestion-card">
-        <View className="flex flex-1 flex-row items-center justify-end gap-1">
-          <View className="flex flex-row items-center gap-1">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <View
-                key={level}
-                className={`h-1.5 w-1.5 rounded-full bg-black ${
-                  level <= suggestion.priority ? "bg-black" : "bg-gray-300"
-                }`}
-              />
-            ))}
-          </View>
-        </View>
-
+      <Card variant="muted" className="bg-suggestion-card p-6">
         <CardHeader>
+          <View className="flex flex-1 flex-row items-center justify-end">
+            <View className="flex flex-row items-center gap-1">
+              {[1, 2, 3, 4, 5].map((level) => (
+                <View
+                  key={level}
+                  className={`h-2 w-2 rounded-full bg-black ${
+                    level <= suggestion.priority ? "bg-black" : "bg-gray-300"
+                  }`}
+                />
+              ))}
+            </View>
+          </View>
           <CardTitle>{suggestion.title}</CardTitle>
         </CardHeader>
 
         <CardContent>
           <View style={CARD_CONTENT_STYLE}>
-            <View className="mb-3 flex flex-row items-center gap-2">
-              <Text className="text-muted-foreground text-sm">
-                <Ionicons name="time-outline" size={22} color="#71717A" />
-              </Text>
-              <Text className="text-foreground text-sm">
-                {formattedDate} · {formattedTimeRange}
-              </Text>
-            </View>
+            <View className="flex flex-row items-center gap-2">
+              <Ionicons name="time-outline" size={22} color="#71717A" />
 
-            {suggestion.reasons.length > 0 && (
-              <View className="mb-4">
-                <Text className="text-muted-foreground text-sm leading-5">
-                  {reasonsText}.
-                </Text>
-              </View>
-            )}
+              <Text className="text-foreground">{formattedDate}</Text>
+
+              <View className="bg-muted-foreground h-1 w-1 rounded-full" />
+
+              <Text className="text-foreground">{formattedTimeRange}</Text>
+            </View>
           </View>
         </CardContent>
+
+        {suggestion.reasons.length > 0 && (
+          <Text className="text-foreground">{reasonsText}.</Text>
+        )}
+
         <CardFooter>
           <Button
-            variant="default"
-            size="default"
+            size="lg"
             onPress={handleAccept}
             disabled={createSessionMutation.isPending}
             className="flex-1"
           >
             {createSessionMutation.isPending ? "Accepting..." : "Accept"}
           </Button>
-          <Button variant="secondary" size="default" onPress={handleAdjust}>
+          <Button variant="secondary" size="md" onPress={handleAdjust}>
             Adjust
           </Button>
         </CardFooter>

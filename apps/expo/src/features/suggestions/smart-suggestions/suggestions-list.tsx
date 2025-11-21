@@ -23,7 +23,7 @@ const ListEmptyComponent = React.memo(() => (
 ));
 ListEmptyComponent.displayName = "ListEmptyComponent";
 
-const CONTENT_CONTAINER_STYLE = { paddingHorizontal: 16 };
+const CONTENT_CONTAINER_STYLE = { paddingHorizontal: 20 };
 
 /**
  * Horizontal scrolling list of suggestions

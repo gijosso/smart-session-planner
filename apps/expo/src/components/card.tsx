@@ -16,6 +16,12 @@ const VARIANT_STYLES = {
   muted: "bg-muted border border-transparent",
 } as const;
 
+const SHADOW_STYLES = {
+  default: "shadow-none",
+  outline: "shadow-none",
+  muted: "shadow-none",
+} as const;
+
 /**
  * Card primitive component for Expo
  * A container component with consistent styling and variants
@@ -25,8 +31,9 @@ export const Card = React.memo<CardProps>(
     return (
       <View
         className={cn(
-          "rounded-xl p-4 shadow-sm",
+          "gap-6 rounded-3xl p-6",
           VARIANT_STYLES[variant],
+          SHADOW_STYLES[variant],
           className,
         )}
         {...props}
@@ -48,7 +55,7 @@ export interface CardHeaderProps extends ViewProps {
 export const CardHeader = React.memo<CardHeaderProps>(
   ({ className, children, ...props }) => {
     return (
-      <View className={cn("mb-2 flex flex-col gap-1", className)} {...props}>
+      <View className={cn("flex flex-col", className)} {...props}>
         {children}
       </View>
     );
@@ -67,7 +74,7 @@ export const CardTitle = React.memo<CardTitleProps>(
   ({ className, children }) => {
     return (
       <Text
-        className={cn("text-card-foreground text-lg font-semibold", className)}
+        className={cn("text-card-foreground text-2xl font-semibold", className)}
       >
         {children}
       </Text>
@@ -104,7 +111,7 @@ export interface CardContentProps extends ViewProps {
 export const CardContent = React.memo<CardContentProps>(
   ({ className, children, ...props }) => {
     return (
-      <View className={cn("pt-2", className)} {...props}>
+      <View className={cn("gap-2", className)} {...props}>
         {children}
       </View>
     );
@@ -123,7 +130,7 @@ export const CardFooter = React.memo<CardFooterProps>(
   ({ className, children, ...props }) => {
     return (
       <View
-        className={cn("mt-4 flex flex-row items-center gap-2", className)}
+        className={cn("flex flex-row items-center gap-2", className)}
         {...props}
       >
         {children}

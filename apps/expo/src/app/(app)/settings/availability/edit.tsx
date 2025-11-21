@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DayOfWeek, WeeklyAvailability } from "@ssp/api/client";
 import { DAYS_OF_WEEK } from "@ssp/api/client";
 
-import { Card, LoadingScreen } from "~/components";
+import { Button, Card, LoadingScreen } from "~/components";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
 import { trpc } from "~/utils/api";
 
@@ -144,18 +144,17 @@ export default function EditAvailability() {
                   <Text className="text-foreground text-lg font-semibold">
                     {DAYS_OF_WEEK_DISPLAY[day].label}
                   </Text>
-                  <Pressable
+                  <Button
+                    variant="default"
+                    size="sm"
                     onPress={() => setEditingDay(isEditing ? null : day)}
-                    className="bg-primary rounded-md px-3 py-1.5"
                   >
-                    <Text className="text-primary-foreground text-sm font-medium">
-                      {isEditing
-                        ? "Cancel"
-                        : windows.length === 0
-                          ? "Add"
-                          : "Edit"}
-                    </Text>
-                  </Pressable>
+                    {isEditing
+                      ? "Cancel"
+                      : windows.length === 0
+                        ? "Add"
+                        : "Edit"}
+                  </Button>
                 </View>
 
                 {windows.length > 0 && (
@@ -169,14 +168,13 @@ export default function EditAvailability() {
                           {formatTime(window.startTime)} -{" "}
                           {formatTime(window.endTime)}
                         </Text>
-                        <Pressable
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           onPress={() => handleDeleteWindow(day, index)}
-                          className="bg-destructive rounded-md px-3 py-1.5"
                         >
-                          <Text className="text-destructive-foreground text-sm font-medium">
-                            Delete
-                          </Text>
-                        </Pressable>
+                          Delete
+                        </Button>
                       </View>
                     ))}
                   </View>
@@ -208,7 +206,8 @@ export default function EditAvailability() {
                         placeholderTextColor="#71717A"
                       />
                     </View>
-                    <Pressable
+                    <Button
+                      variant="default"
                       onPress={() => {
                         handleAddWindow(day);
                         setEditingDay(null);
@@ -216,28 +215,24 @@ export default function EditAvailability() {
                         setNewEndTime("17:00");
                       }}
                       disabled={updateMutation.isPending}
-                      className="bg-primary rounded-md px-4 py-3"
                     >
-                      <Text className="text-primary-foreground text-center text-base font-semibold">
-                        {updateMutation.isPending ? "Adding..." : "Add Window"}
-                      </Text>
-                    </Pressable>
+                      {updateMutation.isPending ? "Adding..." : "Add Window"}
+                    </Button>
                   </View>
                 )}
               </Card>
             );
           })}
 
-          <Pressable
+          <Button
+            variant="secondary"
             onPress={() => {
               router.back();
             }}
-            className="bg-muted mt-4 rounded-md px-4 py-3"
+            className="mt-4"
           >
-            <Text className="text-foreground text-center text-base font-semibold">
-              Done
-            </Text>
-          </Pressable>
+            Done
+          </Button>
         </View>
       </ScrollView>
     </SafeAreaView>

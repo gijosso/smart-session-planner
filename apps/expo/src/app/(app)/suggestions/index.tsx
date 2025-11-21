@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
+import { Button } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
@@ -222,25 +223,23 @@ export default function SuggestionsScreen() {
                   )}
 
                   <View className="flex flex-row gap-3">
-                    <Pressable
+                    <Button
+                      variant="default"
                       onPress={() => handleAccept(suggestion)}
                       disabled={createSessionMutation.isPending}
-                      className="bg-foreground flex-1 rounded-lg px-4 py-3"
+                      className="flex-1"
                     >
-                      <Text className="text-background text-center text-sm font-semibold">
-                        {createSessionMutation.isPending
-                          ? "Accepting..."
-                          : "Accept"}
-                      </Text>
-                    </Pressable>
-                    <Pressable
+                      {createSessionMutation.isPending
+                        ? "Accepting..."
+                        : "Accept"}
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onPress={() => handleAdjust(suggestion)}
-                      className="border-foreground/20 bg-background flex-1 rounded-lg border px-4 py-3"
+                      className="flex-1"
                     >
-                      <Text className="text-foreground text-center text-sm font-semibold">
-                        Adjust
-                      </Text>
-                    </Pressable>
+                      Adjust
+                    </Button>
                   </View>
                 </View>
               );

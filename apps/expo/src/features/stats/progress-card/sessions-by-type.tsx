@@ -22,12 +22,10 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
   }
 
   return (
-    <View>
-      <Text className="text-foreground mb-3 text-base font-semibold">
-        Sessions by type
-      </Text>
+    <View className="gap-4">
+      <Text className="text-foreground text-md">Sessions by type</Text>
 
-      <View className="bg-background mb-3 h-2 flex-row gap-2 overflow-hidden rounded-full">
+      <View className="bg-background h-2 flex-row gap-2 overflow-hidden rounded-full">
         {activeTypes.map(([type, count]) => (
           <View
             key={type}
@@ -39,14 +37,17 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
         ))}
       </View>
 
-      <View className="flex flex-row items-center gap-4">
+      <View className="flex flex-row flex-wrap items-center gap-4">
         {activeTypes.map(([type, count]) => (
-          <View key={type} className="flex flex-row items-center">
-            <View className="bg-muted-foreground h-1 w-1 rounded-full" />
-
-            <Text className="text-foreground ml-2 text-sm">
-              {SESSION_TYPES_DISPLAY[type].label} · {count}
-            </Text>
+          <View key={type} className="flex flex-row items-center gap-3">
+            <View className="bg-muted-foreground h-3 w-3 rounded-full" />
+            <View className="flex flex-row items-center gap-2">
+              <Text className="text-foreground text-xl">
+                {SESSION_TYPES_DISPLAY[type].label}
+              </Text>
+              <View className="bg-muted-foreground h-0.5 w-0.5 rounded-full" />
+              <Text className="text-foreground text-xl">{count}</Text>
+            </View>
           </View>
         ))}
       </View>

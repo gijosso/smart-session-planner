@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
-import { Pressable, Text, View } from "react-native";
+import { View } from "react-native";
 
+import { Button } from "~/components";
 import { cn } from "~/utils/cn";
 
 interface SessionRecapFilterProps {
@@ -17,15 +18,14 @@ interface FilterButtonProps {
 const FilterButton = React.memo<FilterButtonProps>(
   ({ label, selected, onPress }) => {
     return (
-      <Pressable
+      <Button
+        variant="ghost"
         onPress={onPress}
-        className={cn(
-          "rounded-full px-6 py-1",
-          selected ? "bg-muted" : "bg-transparent",
-        )}
+        textClassName="text-foreground text-md font-semibold"
+        className={cn("h-auto rounded-full px-6 py-1", selected && "bg-muted")}
       >
-        <Text className="text-foreground text-sm font-medium">{label}</Text>
-      </Pressable>
+        {label}
+      </Button>
     );
   },
 );

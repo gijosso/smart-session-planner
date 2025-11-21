@@ -1,6 +1,18 @@
 import type React from "react";
 import { Text, View } from "react-native";
 
+interface StatBlockProps {
+  value: React.ReactNode;
+  label: string;
+}
+
+const StatBlock: React.FC<StatBlockProps> = ({ value, label }) => (
+  <View className="flex-1 items-center justify-center gap-2">
+    <Text className="text-foreground text-4xl">{value}</Text>
+    <Text className="text-foreground">{label}</Text>
+  </View>
+);
+
 interface StatsOverviewProps {
   total: number;
   completed: number;
@@ -18,20 +30,9 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 }) => {
   return (
     <View className="flex flex-row justify-between">
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-foreground text-3xl font-bold">{total}</Text>
-        <Text className="text-muted-foreground text-sm">Scheduled</Text>
-      </View>
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-foreground text-3xl font-bold">{completed}</Text>
-        <Text className="text-muted-foreground text-sm">Completed</Text>
-      </View>
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-foreground text-3xl font-bold">
-          {completionRate}%
-        </Text>
-        <Text className="text-muted-foreground text-sm">Rate</Text>
-      </View>
+      <StatBlock value={total} label="Scheduled" />
+      <StatBlock value={completed} label="Completed" />
+      <StatBlock value={`${completionRate}%`} label="Rate" />
     </View>
   );
 };

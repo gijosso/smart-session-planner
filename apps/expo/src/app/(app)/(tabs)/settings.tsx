@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { Card, Screen } from "~/components";
+import { Button, Card, Screen } from "~/components";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -30,7 +30,10 @@ export default function Settings() {
         <View className="flex flex-col gap-4">
           <Link href="/settings/availability" asChild>
             <Pressable>
-              <Card variant="outline" className="flex flex-row items-center justify-between">
+              <Card
+                variant="outline"
+                className="flex flex-row items-center justify-between"
+              >
                 <Text className="text-foreground font-semibold">
                   Availability
                 </Text>
@@ -43,15 +46,13 @@ export default function Settings() {
             </Pressable>
           </Link>
 
-          <Pressable
+          <Button
+            variant="destructive"
             onPress={handleSignOut}
-            className="bg-destructive flex items-center rounded-sm p-3"
             disabled={signOutMutation.isPending}
           >
-            <Text className="text-destructive-foreground font-semibold">
-              {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
-            </Text>
-          </Pressable>
+            {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
+          </Button>
         </View>
       </View>
     </Screen>

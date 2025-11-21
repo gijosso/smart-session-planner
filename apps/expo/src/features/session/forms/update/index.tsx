@@ -8,6 +8,7 @@ import type { SessionFormValues } from "@ssp/validators";
 import { sessionFormSchema } from "@ssp/validators";
 
 import type { ServerError } from "~/utils/formik";
+import { Button } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { formatDateForInput, formatTimeForInput } from "~/utils/date";
 import {
@@ -398,21 +399,13 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
         </Text>
       )}
 
-      <Pressable
+      <Button
+        variant="default"
         onPress={() => formik.handleSubmit()}
         disabled={isPending}
-        className={`rounded-md px-4 py-3 ${
-          !isPending ? "bg-primary" : "bg-muted opacity-50"
-        }`}
       >
-        <Text
-          className={`text-center text-base font-semibold ${
-            !isPending ? "text-primary-foreground" : "text-muted-foreground"
-          }`}
-        >
-          {isPending ? "Updating..." : "Update Session"}
-        </Text>
-      </Pressable>
+        {isPending ? "Updating..." : "Update Session"}
+      </Button>
     </ScrollView>
   );
 };

@@ -1,7 +1,8 @@
 import { useCallback } from "react";
-import { Pressable, Text } from "react-native";
+import { Text } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { Button } from "~/components";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
@@ -51,19 +52,17 @@ export const SignInButton = () => {
           ? `Hello, ${session.user.email}`
           : "Not logged in"}
       </Text>
-      <Pressable
+      <Button
+        variant="default"
         onPress={handleSignIn}
-        className="bg-primary flex items-center rounded-sm p-2"
         disabled={signInMutation.isPending || signOutMutation.isPending}
       >
-        <Text>
-          {signInMutation.isPending || signOutMutation.isPending
-            ? "Loading..."
-            : isSignedIn
-              ? "Sign Out"
-              : "Sign Up Anonymously"}
-        </Text>
-      </Pressable>
+        {signInMutation.isPending || signOutMutation.isPending
+          ? "Loading..."
+          : isSignedIn
+            ? "Sign Out"
+            : "Sign Up Anonymously"}
+      </Button>
     </>
   );
 };
