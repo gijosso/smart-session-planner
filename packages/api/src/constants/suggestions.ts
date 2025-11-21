@@ -7,13 +7,17 @@
  */
 export const PATTERN_DETECTION = {
   /** Minimum number of occurrences to consider a pattern valid */
-  MIN_PATTERN_FREQUENCY: 2,
+  MIN_PATTERN_FREQUENCY: 3,
+  /** Fuzzy time clustering window in minutes (±15 minutes) */
+  FUZZY_TIME_WINDOW_MINUTES: 15,
   /** Round to nearest 30 minutes for pattern matching (allows flexibility) */
   PATTERN_TIME_ROUNDING_MINUTES: 30,
   /** Threshold for considering success rates different (for sorting) */
   SUCCESS_RATE_DIFFERENCE_THRESHOLD: 0.1,
   /** High success rate threshold for bonus scoring */
   HIGH_SUCCESS_RATE_THRESHOLD: 0.8,
+  /** Recency decay half-life in days (patterns older than this get 50% weight) */
+  RECENCY_HALF_LIFE_DAYS: 30,
 } as const;
 
 /**
@@ -86,6 +90,7 @@ export const SUGGESTION_LIMITS = {
 
 /**
  * Scoring configuration
+ * All scores normalized to 0-100 scale before combining
  */
 export const SCORING = {
   /** Minimum score value */
@@ -96,29 +101,33 @@ export const SCORING = {
   BASE_PATTERN_SCORE: 40,
   /** Base score for default suggestions */
   BASE_DEFAULT_SCORE: 50,
-  /** Base score for spacing calculations */
-  BASE_SPACING_SCORE: 100,
-  /** Overlap penalty (full score deduction) */
+  /** Overlap penalty (normalized to 0-100 scale) */
   OVERLAP_PENALTY: 100,
-  /** Penalty multiplier for spacing violations */
+  /** Penalty multiplier for spacing violations (normalized) */
   SPACING_PENALTY_MULTIPLIER: 25,
-  /** Bonus for ideal spacing */
+  /** Bonus for ideal spacing (normalized) */
   IDEAL_SPACING_BONUS: 5,
-  /** Penalty for high-priority sessions too close */
+  /** Penalty for high-priority sessions too close (normalized) */
   HIGH_PRIORITY_CLOSE_PENALTY: 15,
-  /** Heavy penalty for consecutive suggestions */
+  /** Heavy penalty for consecutive suggestions (normalized) */
   CONSECUTIVE_SUGGESTION_PENALTY: 40,
-  /** Frequency bonus multiplier */
+  /** Frequency bonus multiplier (normalized to 0-100) */
   FREQUENCY_BONUS_MULTIPLIER: 4,
-  /** Maximum frequency bonus */
+  /** Maximum frequency bonus (normalized) */
   MAX_FREQUENCY_BONUS: 25,
-  /** Success rate bonus multiplier */
+  /** Success rate bonus multiplier (normalized to 0-100) */
   SUCCESS_RATE_BONUS_MULTIPLIER: 15,
-  /** Spacing score weight (as percentage) */
+  /** Spacing score weight (as percentage) - applied after normalization */
   SPACING_SCORE_WEIGHT: 0.3,
-  /** Priority bonus for high-priority patterns */
+  /** Pattern score weight (as percentage) */
+  PATTERN_SCORE_WEIGHT: 0.4,
+  /** Fatigue penalty weight (as percentage) */
+  FATIGUE_PENALTY_WEIGHT: 0.2,
+  /** Recency weight (as percentage) */
+  RECENCY_WEIGHT: 0.1,
+  /** Priority bonus for high-priority patterns (normalized) */
   HIGH_PRIORITY_BONUS: 3,
-  /** Near-term availability bonus */
+  /** Near-term availability bonus (normalized) */
   NEAR_TERM_BONUS: 5,
 } as const;
 

@@ -3,6 +3,27 @@ import type { DayOfWeek, WeeklyAvailability } from "@ssp/db/schema";
 import { timeRangesOverlap, timeToMinutes } from "../../utils/date";
 
 /**
+ * Cache for timezone formatters to avoid recreating them
+ */
+const availabilityFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getAvailabilityFormatter(timezone: string): Intl.DateTimeFormat {
+  if (!availabilityFormatterCache.has(timezone)) {
+    availabilityFormatterCache.set(
+      timezone,
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        weekday: "long",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: false,
+      }),
+    );
+  }
+  return availabilityFormatterCache.get(timezone)!;
+}
+
+/**
  * Check if a time slot is within user's availability windows
  */
 export function isWithinAvailability(
@@ -11,14 +32,8 @@ export function isWithinAvailability(
   weeklyAvailability: WeeklyAvailability,
   userTimezone: string,
 ): { valid: boolean; reason?: string } {
-  // Get day of week for the start time
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: userTimezone,
-    weekday: "long",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
-  });
+  // Get day of week for the start time (use cached formatter)
+  const formatter = getAvailabilityFormatter(userTimezone);
 
   const startParts = formatter.formatToParts(startTime);
   const weekday = startParts.find((p) => p.type === "weekday")?.value ?? "";

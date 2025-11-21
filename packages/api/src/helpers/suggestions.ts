@@ -22,8 +22,6 @@ import {
   hoursBetween,
   timeToMinutes,
 } from "../utils/date";
-import { logger } from "../utils/logger";
-import { checkSessionConflicts } from "./session";
 import { isWithinAvailability } from "./suggestions/availability";
 import { detectPatterns } from "./suggestions/pattern-detection";
 import {
@@ -72,6 +70,24 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   READING: "Reading",
   OTHER: "Other",
 };
+
+/**
+ * Check if a time slot conflicts with active sessions (in-memory)
+ * Two sessions overlap if: start1 < end2 AND start2 < end1
+ */
+function hasConflictWithSessions(
+  slotStart: Date,
+  slotEnd: Date,
+  activeSessions: {
+    startTime: Date;
+    endTime: Date;
+    priority: number;
+  }[],
+): boolean {
+  return activeSessions.some(
+    (session) => session.startTime < slotEnd && slotStart < session.endTime,
+  );
+}
 
 /**
  * Generate default suggestions when no patterns are detected
@@ -247,44 +263,12 @@ async function generateDefaultSuggestions(
           continue;
         }
 
-        // Check for conflicts
-        let conflicts: Awaited<ReturnType<typeof checkSessionConflicts>>;
-        try {
-          conflicts = await checkSessionConflicts(
-            database,
-            userId,
-            slotStart,
-            slotEnd,
-          );
-        } catch (error) {
-          // Log error with context - if conflict check fails, skip this slot
-          // rather than failing entire suggestion generation, but log for monitoring
-          logger.warn("Failed to check conflicts for suggestion slot", {
-            userId,
-            slotStart: slotStart.toISOString(),
-            slotEnd: slotEnd.toISOString(),
-            error: error instanceof Error ? error.message : String(error),
-            errorType:
-              error instanceof Error ? error.constructor.name : typeof error,
-          });
+        // Check for conflicts (in-memory, no database query)
+        if (hasConflictWithSessions(slotStart, slotEnd, activeSessions)) {
           continue;
         }
 
-        if (conflicts.length > 0) {
-          continue;
-        }
-
-        // Check spacing from other suggestions
-        const tooClose = suggestions.some((existing) => {
-          const hoursDiff = hoursBetween(slotStart, existing.startTime);
-          return hoursDiff < SESSION_SPACING.MIN_SPACING_HOURS;
-        });
-
-        if (tooClose) {
-          continue;
-        }
-
-        // Calculate spacing score
+        // Calculate spacing score (includes spacing from other suggestions)
         const spacingResult = calculateSpacingScore(
           slotStart,
           slotEnd,
@@ -294,6 +278,15 @@ async function generateDefaultSuggestions(
         );
 
         // Found a valid slot
+        // Normalize spacing score and combine with base score
+        const normalizedSpacing = Math.max(
+          SCORING.MIN_SCORE,
+          Math.min(SCORING.MAX_SCORE, spacingResult.score),
+        );
+        const finalScore = Math.round(
+          SCORING.BASE_DEFAULT_SCORE * 0.7 + normalizedSpacing * 0.3,
+        );
+
         suggestions.push({
           title,
           type,
@@ -301,8 +294,10 @@ async function generateDefaultSuggestions(
           endTime: slotEnd,
           priority: defaultPriority,
           description: undefined,
-          score:
-            SCORING.BASE_DEFAULT_SCORE + Math.floor(spacingResult.score / 2), // Base score + spacing
+          score: Math.max(
+            SCORING.MIN_SCORE,
+            Math.min(SCORING.MAX_SCORE, finalScore),
+          ),
           reasons: [
             "Default suggestion to get you started",
             ...spacingResult.reasons,
@@ -387,10 +382,33 @@ export async function suggestTimeSlots(
     priority: s.priority,
   }));
 
+  /**
+   * Check if a time slot conflicts with active sessions (in-memory)
+   * Two sessions overlap if: start1 < end2 AND start2 < end1
+   */
+  const hasConflict = (slotStart: Date, slotEnd: Date): boolean => {
+    return activeSessions.some(
+      (session) =>
+        session.startTime < slotEnd && slotStart < session.endTime,
+    );
+  };
+
   // Set defaults
   const startDate = options.startDate ?? new Date();
   const lookAheadDays =
     options.lookAheadDays ?? SUGGESTION_LIMITS.DEFAULT_LOOKAHEAD_DAYS;
+
+  // Validate inputs
+  if (lookAheadDays < SUGGESTION_LIMITS.MIN_LOOKAHEAD_DAYS) {
+    return [];
+  }
+  if (lookAheadDays > SUGGESTION_LIMITS.MAX_LOOKAHEAD_DAYS) {
+    return [];
+  }
+  if (startDate < new Date()) {
+    // If start date is in the past, use now instead
+    startDate.setTime(new Date().getTime());
+  }
 
   // If no patterns detected, generate default suggestions
   if (patterns.length === 0) {
@@ -484,37 +502,15 @@ export async function suggestTimeSlots(
         continue; // Skip slots outside availability
       }
 
-      // Check for conflicts
-      let conflicts: Awaited<ReturnType<typeof checkSessionConflicts>>;
-      try {
-        conflicts = await checkSessionConflicts(
-          database,
-          userId,
-          slotStart,
-          slotEnd,
-        );
-      } catch (error) {
-        // Log error with context - if conflict check fails, skip this slot
-        // rather than failing entire suggestion generation, but log for monitoring
-        logger.warn("Failed to check conflicts for suggestion slot", {
-          userId,
-          slotStart: slotStart.toISOString(),
-          slotEnd: slotEnd.toISOString(),
-          error: error instanceof Error ? error.message : String(error),
-          errorType:
-            error instanceof Error ? error.constructor.name : typeof error,
-        });
-        continue;
-      }
-
-      if (conflicts.length > 0) {
+      // Check for conflicts (in-memory, no database query)
+      if (hasConflict(slotStart, slotEnd)) {
         continue; // Skip conflicting slots
       }
 
       // Calculate day fatigue
       const fatigue = calculateDayFatigue(candidateDate, activeSessions);
 
-      // Calculate spacing score
+      // Calculate spacing score (includes spacing from other suggestions)
       const spacingResult = calculateSpacingScore(
         slotStart,
         slotEnd,
@@ -530,8 +526,14 @@ export async function suggestTimeSlots(
       );
 
       // Calculate overall score using the scoring module
+      // Spacing is already integrated into scoring, so no need for post-filtering
       const scoreResult = calculatePatternScore(
-        pattern,
+        {
+          frequency: pattern.frequency,
+          successRate: pattern.successRate,
+          priority: pattern.priority,
+          recencyWeight: pattern.recencyWeight,
+        },
         spacingResult,
         fatigue,
         daysFromNow,
@@ -559,19 +561,45 @@ export async function suggestTimeSlots(
   // Sort by score (highest first)
   const sortedSuggestions = suggestions.sort((a, b) => b.score - a.score);
 
-  // Filter out consecutive suggestions and apply final limits
+  // Enforce diversity across days/types and apply final limits
+  // Spacing is already integrated into scoring, so we just need diversity filtering
   const filteredSuggestions: SuggestedSession[] = [];
+  const selectedDays = new Map<string, number>(); // Track selected days (YYYY-MM-DD) -> count
+  const selectedTypes = new Map<SessionType, number>(); // Track type counts
 
   for (const suggestion of sortedSuggestions) {
-    // Check if this suggestion is too close to any already selected suggestion
+    // Check diversity constraints
+    const suggestionDate = new Date(suggestion.startTime);
+    const dateKey = `${suggestionDate.getFullYear()}-${String(suggestionDate.getMonth() + 1).padStart(2, "0")}-${String(suggestionDate.getDate()).padStart(2, "0")}`;
+    const typeCount = selectedTypes.get(suggestion.type) ?? 0;
+    const dayCount = selectedDays.get(dateKey) ?? 0;
+
+    // Enforce diversity: max 2 suggestions per day, max 3 per type
+    const maxPerDay = 2;
+    const maxPerType = 3;
+
+    if (dayCount >= maxPerDay) {
+      continue; // Skip if day already has enough suggestions
+    }
+
+    if (typeCount >= maxPerType) {
+      continue; // Skip if type already has enough suggestions
+    }
+
+    // Check spacing from already selected suggestions (additional safety check)
     const tooClose = filteredSuggestions.some((existing) => {
       const hoursDiff = hoursBetween(suggestion.startTime, existing.startTime);
       return hoursDiff < SESSION_SPACING.MIN_SPACING_HOURS;
     });
 
-    if (!tooClose) {
-      filteredSuggestions.push(suggestion);
+    if (tooClose) {
+      continue; // Skip if too close (spacing should be handled in scoring, but double-check)
     }
+
+    // Add suggestion
+    filteredSuggestions.push(suggestion);
+    selectedDays.set(dateKey, dayCount + 1);
+    selectedTypes.set(suggestion.type, typeCount + 1);
 
     // Limit total suggestions
     if (filteredSuggestions.length >= SUGGESTION_LIMITS.MAX_SUGGESTIONS) {

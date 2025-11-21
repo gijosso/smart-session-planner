@@ -87,10 +87,10 @@ export default function Session() {
   );
 
   const handleToggleComplete = useCallback(() => {
-    if (data?.id) {
-      toggleCompleteMutation.mutate({ id: data.id });
+    if (id) {
+      toggleCompleteMutation.mutate({ id });
     }
-  }, [data?.id, toggleCompleteMutation]);
+  }, [id, toggleCompleteMutation]);
 
   const handleUpdate = useCallback(() => {
     if (id) {
@@ -242,11 +242,7 @@ export default function Session() {
                 ? "Mark as Incomplete"
                 : "Mark as Complete"}
           </Button>
-          <Button
-            variant="default"
-            onPress={handleUpdate}
-            className="mt-4"
-          >
+          <Button variant="default" onPress={handleUpdate} className="mt-4">
             Update
           </Button>
 

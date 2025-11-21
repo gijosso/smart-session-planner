@@ -62,6 +62,7 @@ export function calculateDayFatigue(
 /**
  * Calculate spacing score for a time slot
  * Improved: Better spacing logic and considers priority
+ * Returns normalized score (0-100) where 100 is ideal spacing
  */
 export function calculateSpacingScore(
   proposedStart: Date,
@@ -75,7 +76,7 @@ export function calculateSpacingScore(
   otherSuggestions: SuggestedSession[],
 ): { score: number; reasons: string[] } {
   const reasons: string[] = [];
-  let score = SCORING.BASE_SPACING_SCORE;
+  let score = SCORING.MAX_SCORE; // Start with perfect score, deduct for issues
 
   // Check sessions on the same day
   const sameDaySessions = existingSessions.filter((session) =>
@@ -169,6 +170,7 @@ export function calculateSpacingScore(
     }
   }
 
+  // Normalize to 0-100 scale (score starts at 100, penalties reduce it)
   return {
     score: Math.max(SCORING.MIN_SCORE, Math.min(SCORING.MAX_SCORE, score)),
     reasons,
@@ -176,44 +178,76 @@ export function calculateSpacingScore(
 }
 
 /**
+ * Normalize a value from one scale to 0-100
+ */
+function normalizeToScore(value: number, min: number, max: number): number {
+  if (max === min) return SCORING.MAX_SCORE;
+  const normalized = ((value - min) / (max - min)) * SCORING.MAX_SCORE;
+  return Math.max(SCORING.MIN_SCORE, Math.min(SCORING.MAX_SCORE, normalized));
+}
+
+/**
  * Calculate overall score for a pattern-based suggestion
+ * All components normalized to 0-100 scale before combining
  */
 export function calculatePatternScore(
   pattern: {
     frequency: number;
     successRate: number;
     priority: number;
+    recencyWeight: number;
   },
   spacingResult: { score: number; reasons: string[] },
   fatigue: { fatigueScore: number; reasons: string[] },
   daysFromNow: number,
 ): { score: number; reasons: string[] } {
   const reasons: string[] = [];
+
+  // Normalize pattern frequency (assume max frequency of 20 for normalization)
+  const maxFrequency = 20;
+  const normalizedFrequency = normalizeToScore(
+    Math.min(pattern.frequency, maxFrequency),
+    0,
+    maxFrequency,
+  );
+
+  // Normalize success rate (already 0-1, convert to 0-100)
+  const normalizedSuccessRate = pattern.successRate * SCORING.MAX_SCORE;
+
+  // Normalize spacing score (already 0-100, but ensure it's properly normalized)
+  const normalizedSpacing = Math.max(
+    SCORING.MIN_SCORE,
+    Math.min(SCORING.MAX_SCORE, spacingResult.score),
+  );
+
+  // Normalize fatigue penalty (invert: high fatigue = low score)
+  // Fatigue score is typically 0-50+, normalize to 0-100 penalty
+  const maxFatigue = 100;
+  const normalizedFatiguePenalty = normalizeToScore(
+    Math.min(fatigue.fatigueScore, maxFatigue),
+    0,
+    maxFatigue,
+  );
+
+  // Normalize recency weight (already 0-1, convert to 0-100)
+  const normalizedRecency = pattern.recencyWeight * SCORING.MAX_SCORE;
+
+  // Combine normalized components with weights
   let score: number = SCORING.BASE_PATTERN_SCORE;
 
-  // Pattern frequency bonus (more frequent patterns score higher)
-  const frequencyBonus = Math.min(
-    pattern.frequency * SCORING.FREQUENCY_BONUS_MULTIPLIER,
-    SCORING.MAX_FREQUENCY_BONUS,
-  );
-  score += frequencyBonus;
+  // Pattern component (frequency + success rate + recency)
+  const patternComponent =
+    (normalizedFrequency * 0.4 +
+      normalizedSuccessRate * 0.4 +
+      normalizedRecency * 0.2) *
+    SCORING.PATTERN_SCORE_WEIGHT;
+  score += patternComponent;
 
-  // Success rate bonus (patterns with high completion rate score higher)
-  const successBonus = Math.round(
-    pattern.successRate * SCORING.SUCCESS_RATE_BONUS_MULTIPLIER,
-  );
-  score += successBonus;
-  if (pattern.successRate > PATTERN_DETECTION.HIGH_SUCCESS_RATE_THRESHOLD) {
-    reasons.push("High completion rate for this pattern");
-  }
+  // Spacing component (weighted)
+  score += normalizedSpacing * SCORING.SPACING_SCORE_WEIGHT;
 
-  // Spacing score (weighted)
-  score += Math.floor(spacingResult.score * SCORING.SPACING_SCORE_WEIGHT);
-  reasons.push(...spacingResult.reasons);
-
-  // Fatigue penalty
-  score -= fatigue.fatigueScore;
-  reasons.push(...fatigue.reasons);
+  // Fatigue penalty (subtract, weighted)
+  score -= normalizedFatiguePenalty * SCORING.FATIGUE_PENALTY_WEIGHT;
 
   // Bonus for earlier dates (sooner is better, but not too much)
   if (daysFromNow <= SUGGESTION_LIMITS.NEAR_TERM_BONUS_DAYS) {
@@ -221,10 +255,17 @@ export function calculatePatternScore(
     reasons.push("Available soon");
   }
 
-  // Priority bonus (higher priority patterns get slight bonus, but fatigue already penalizes clustering)
+  // Priority bonus (higher priority patterns get slight bonus)
   if (pattern.priority >= DAILY_SESSION_LIMITS.HIGH_PRIORITY_THRESHOLD) {
     score += SCORING.HIGH_PRIORITY_BONUS;
   }
+
+  // Add reasons
+  if (pattern.successRate > PATTERN_DETECTION.HIGH_SUCCESS_RATE_THRESHOLD) {
+    reasons.push("High completion rate for this pattern");
+  }
+  reasons.push(...spacingResult.reasons);
+  reasons.push(...fatigue.reasons);
 
   // Ensure score is within bounds
   score = Math.max(SCORING.MIN_SCORE, Math.min(SCORING.MAX_SCORE, score));
