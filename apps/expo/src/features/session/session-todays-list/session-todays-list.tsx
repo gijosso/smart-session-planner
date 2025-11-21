@@ -38,7 +38,7 @@ export const SessionTodaysList = memo<SessionTodaysListProps>(
     );
 
     return (
-      <LegendList
+      <LegendList<Session>
         data={sessions}
         estimatedItemSize={estimatedItemSize}
         contentContainerStyle={HORIZONTAL_CONTENT_CONTAINER_STYLE}

@@ -7,6 +7,8 @@ import type { AppRouter } from "@ssp/api";
 
 import {
   DEFAULT_RETRY_DELAY_MS,
+  MAX_MUTATION_RETRIES,
+  MAX_QUERY_RETRIES,
   MAX_REFRESH_RETRIES,
   MAX_RETRY_DELAY_MS,
   REFRESH_TIMEOUT_MS,
@@ -52,8 +54,8 @@ export const queryClient = new QueryClient({
             return false;
           }
         }
-        // Retry up to 3 times for network errors and 5xx server errors
-        return failureCount < 3;
+        // Retry up to MAX_QUERY_RETRIES times for network errors and 5xx server errors
+        return failureCount < MAX_QUERY_RETRIES;
       },
       retryDelay: (attemptIndex) => {
         // Exponential backoff: 1s, 2s, 4s
@@ -78,8 +80,8 @@ export const queryClient = new QueryClient({
       structuralSharing: true,
     },
     mutations: {
-      // Retry mutations once on network errors
-      retry: 1,
+      // Retry mutations on network errors
+      retry: MAX_MUTATION_RETRIES,
       retryDelay: DEFAULT_RETRY_DELAY_MS,
       // Network mode for mutations
       networkMode: "online",

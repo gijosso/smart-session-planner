@@ -50,12 +50,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         ...getSuggestionMutationOptions(queryClient, {
           lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
         }),
-        onSuccess: (
-          data,
-          _variables,
-          _onMutateResult: unknown,
-          _mutation: unknown,
-        ) => {
+        onSuccess: (data, _variables) => {
           // Invalidate queries based on session date (granular invalidation)
           invalidateSessionQueries(queryClient, {
             startTime: data.startTime,
@@ -63,12 +58,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
           });
           toast.success("Session created successfully");
         },
-        onError: (
-          error: unknown,
-          _variables: unknown,
-          _onMutateResult: unknown,
-          _mutation: unknown,
-        ) => {
+        onError: (error: unknown) => {
           createMutationErrorHandler({
             errorMessage: "Failed to create session. Please try again.",
           })(error);

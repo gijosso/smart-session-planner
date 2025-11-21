@@ -67,12 +67,7 @@ export function getSessionMutationOptions(
       );
       return { oldSession } satisfies SessionMutationContext;
     },
-    onSuccess: (
-      data: Session | undefined,
-      _variables: { id: string },
-      _onMutateResult: SessionMutationContext | undefined,
-      _mutation: unknown,
-    ) => {
+    onSuccess: (data: Session | undefined, _variables: { id: string }) => {
       if (!data) return;
       // Invalidate queries based on session date (granular invalidation)
       invalidateSessionQueries(
@@ -86,12 +81,7 @@ export function getSessionMutationOptions(
 
       onSuccess?.(data);
     },
-    onError: (
-      error: unknown,
-      _variables: { id: string },
-      _onMutateResult: SessionMutationContext | undefined,
-      _mutation: unknown,
-    ) => {
+    onError: (error: unknown) => {
       const errorHandler = createMutationErrorHandler({
         errorMessage,
         onError,

@@ -127,7 +127,8 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
     setValue,
     reset,
   } = useForm<SessionFormValues>({
-    resolver: zodResolver<SessionFormValues>(sessionFormSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(sessionFormSchema) as any,
     defaultValues: formattedInitialValues,
     mode: "onChange",
   });
@@ -192,12 +193,20 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
       }
 
       // Check if times have changed by comparing the Date objects
-      const initialStartTime = new Date(
-        `${formattedInitialValues.startDate}T${formattedInitialValues.startTime}:00`,
+      // Use parseLocalDateTime for consistency with form submission
+      const initialStartTime = parseLocalDateTime(
+        formattedInitialValues.startDate,
+        formattedInitialValues.startTime,
       );
-      const initialEndTime = new Date(
-        `${formattedInitialValues.endDate}T${formattedInitialValues.endTime}:00`,
+      const initialEndTime = parseLocalDateTime(
+        formattedInitialValues.endDate,
+        formattedInitialValues.endTime,
       );
+
+      // Skip comparison if dates are invalid
+      if (!initialStartTime || !initialEndTime) {
+        return;
+      }
 
       if (startTimeDate.getTime() !== initialStartTime.getTime()) {
         updates.startTime = startTimeDate;
@@ -327,7 +336,9 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
       <Button
         variant="default"
         size="lg"
-        onPress={handleSubmit(onSubmitForm)}
+        onPress={handleSubmit(
+          onSubmitForm as (data: SessionFormValues) => void,
+        )}
         disabled={isPending}
       >
         {isPending ? pendingText : buttonText}

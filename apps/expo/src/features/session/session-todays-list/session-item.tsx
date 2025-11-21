@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { Text, View } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,10 +15,17 @@ interface SessionItemProps {
 
 export const SESSION_ITEM_HEIGHT = 95 as const;
 
-export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
+export const SessionItem = memo<SessionItemProps>(({ session }) => {
   const sessionTypeLabel = SESSION_TYPES_DISPLAY[session.type].label;
-  const timeRange = formatTimeRange(session.startTime, session.endTime);
-  const accessibilityLabel = `${sessionTypeLabel} session from ${timeRange}${session.completed ? ", completed" : ""}`;
+  const timeRange = useMemo(
+    () => formatTimeRange(session.startTime, session.endTime),
+    [session.startTime, session.endTime],
+  );
+  const accessibilityLabel = useMemo(
+    () =>
+      `${sessionTypeLabel} session from ${timeRange}${session.completed ? ", completed" : ""}`,
+    [sessionTypeLabel, timeRange, session.completed],
+  );
 
   return (
     <Link
@@ -78,4 +86,6 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
       </Button>
     </Link>
   );
-};
+});
+
+SessionItem.displayName = "SessionItem";

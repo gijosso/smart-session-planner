@@ -5,7 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import type { SuggestionWithId } from "~/types";
 import { Content, ErrorScreen, LoadingScreen, Screen } from "~/components";
 import { SkeletonCard } from "~/components/layout/skeleton-loader";
-import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
+import {
+  FLEX_1_STYLE,
+  SUGGESTION_LOOK_AHEAD_DAYS,
+} from "~/constants/app";
+import {
+  STATS_STALE_TIME_MS,
+  SUGGESTIONS_STALE_TIME_MS,
+  TODAY_SESSIONS_STALE_TIME_MS,
+} from "~/constants/api";
 import {
   SessionAddButton,
   SessionRecap,
@@ -22,14 +30,14 @@ export default function Home() {
   // Load immediately with high priority
   const todaySessionsForListQuery = useQuery({
     ...trpc.session.today.queryOptions(),
-    staleTime: 30 * 1000, // Consider fresh for 30 seconds
+    staleTime: TODAY_SESSIONS_STALE_TIME_MS,
   });
 
   // Priority 2: Stats (important but can show skeleton while loading)
   // Load immediately but allow progressive rendering
   const statsQuery = useQuery({
     ...trpc.stats.sessions.queryOptions(),
-    staleTime: 60 * 1000, // Stats can be slightly stale (1 minute)
+    staleTime: STATS_STALE_TIME_MS,
   });
 
   // Priority 3: Suggestions (nice-to-have, lazy load after critical data)
@@ -43,7 +51,7 @@ export default function Home() {
       lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
     }),
     enabled: criticalQueriesHaveData, // Lazy load: only fetch after critical queries have data
-    staleTime: 5 * 60 * 1000, // Suggestions can be stale for 5 minutes
+    staleTime: SUGGESTIONS_STALE_TIME_MS,
     placeholderData: (previousData) => previousData, // Use cached data if available
   });
 

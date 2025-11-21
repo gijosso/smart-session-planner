@@ -139,7 +139,7 @@ export function getSuggestionMutationOptions<
       _data: unknown,
       _error: unknown,
       _variables: TVariables,
-      _onMutateResult: { previousData?: SuggestedSession[] } | undefined,
+      onMutateResult: unknown,
     ) => {
       // Always refetch after error or success to ensure consistency
       const queryOptions = trpc.session.suggest.queryOptions({

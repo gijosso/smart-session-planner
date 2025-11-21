@@ -23,7 +23,7 @@ import {
   getSessionDeleteMutationOptions,
   getSessionMutationOptions,
 } from "~/features/session/use-session-mutation";
-import { useQueryError } from "~/hooks/use-query-error";
+import { useErrorHandling } from "~/hooks/use-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import {
@@ -35,12 +35,12 @@ export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const {
-    data: session,
-    isLoading,
-    error,
-  } = useQuery(trpc.session.byId.queryOptions({ id }));
-  const queryError = useQueryError({ error });
+  const sessionQuery = useQuery(trpc.session.byId.queryOptions({ id }));
+  const { data: session, isLoading } = sessionQuery;
+  const { error, hasError, handleRetry, handleReset } = useErrorHandling({
+    query: sessionQuery,
+    title: "Failed to load session",
+  });
 
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
@@ -81,13 +81,7 @@ export default function Session() {
     }
   }, [id, toggleCompleteMutation]);
 
-  const handleRetry = useCallback(() => {
-    void queryClient.invalidateQueries(trpc.session.byId.queryFilter({ id }));
-  }, [id, queryClient]);
-
-  const handleReset = useCallback(() => {
-    router.back();
-  }, []);
+  // handleRetry and handleReset are provided by useErrorHandling
 
   const handleDelete = useCallback(() => {
     Alert.alert(
@@ -140,10 +134,10 @@ export default function Session() {
     return <LoadingScreen />;
   }
 
-  if (queryError.hasError && queryError.error) {
+  if (hasError && error) {
     return (
       <ErrorScreen
-        error={queryError.error}
+        error={error}
         onRetry={handleRetry}
         onReset={handleReset}
         title="Unable to load session"

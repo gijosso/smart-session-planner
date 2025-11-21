@@ -33,5 +33,5 @@ export const useScrollToTop = (
         rafId2Ref.current = null;
       }
     };
-  }, [horizontal, hasItems]); // Removed listRef from dependencies - refs are stable
+  }, [horizontal, hasItems, listRef]);
 };
