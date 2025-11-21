@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "~/components";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
@@ -7,7 +7,6 @@ import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
 
 export const SignInButton = () => {
-  const { data: session } = useQuery(trpc.auth.getSession.queryOptions());
   const queryClient = useQueryClient();
 
   const signInMutation = useMutation(
@@ -35,36 +34,20 @@ export const SignInButton = () => {
     }),
   );
 
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      await authClient.removeAccessToken();
-      await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
-    },
-    onError: createMutationErrorHandler({
-      errorMessage: "Failed to sign out. Please try again.",
-    }),
-  });
-
   const handleSignIn = useCallback(() => {
     signInMutation.mutate({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
   }, [signInMutation]);
 
-  const isSignedIn = session?.user;
-
   return (
     <Button
       variant="default"
       size="lg"
       onPress={handleSignIn}
-      disabled={signInMutation.isPending || signOutMutation.isPending}
+      disabled={signInMutation.isPending}
     >
-      {signInMutation.isPending || signOutMutation.isPending
-        ? "Loading..."
-        : isSignedIn
-          ? "Sign Out"
-          : "Sign Up Anonymously"}
+      {signInMutation.isPending ? "Loading..." : "Sign Up Anonymously"}
     </Button>
   );
 };

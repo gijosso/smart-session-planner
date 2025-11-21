@@ -5,6 +5,7 @@ import { Button } from "~/components";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
+import { clearRefreshQueue } from "~/utils/token-refresh-queue";
 
 export const SignOutButton = () => {
   const queryClient = useQueryClient();
@@ -13,6 +14,10 @@ export const SignOutButton = () => {
     mutationFn: async () => {
       await authClient.removeAccessToken();
       await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
+      // Clear all cache to prevent stale data from previous user
+      queryClient.clear();
+      // Clear token refresh queue
+      clearRefreshQueue();
     },
     onError: (
       error: unknown,
@@ -43,4 +48,3 @@ export const SignOutButton = () => {
     </Button>
   );
 };
-

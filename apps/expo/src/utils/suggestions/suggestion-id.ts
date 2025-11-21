@@ -83,7 +83,11 @@ export function invalidateSuggestionById(
 
 /**
  * Get React Query mutation options with optimistic updates for suggestion removal
- * Uses React Query's onMutate/onError/onSettled lifecycle hooks
+ * Uses React Query's onMutate/onError lifecycle hooks
+ *
+ * Note: We don't refetch suggestions after accepting/adjusting to avoid a corner case
+ * where the refetch happens before the backend updates availability windows.
+ * The optimistic update already removes the accepted suggestion from the cache.
  */
 export function getSuggestionMutationOptions<
   TVariables extends { fromSuggestionId?: string },
@@ -138,13 +142,6 @@ export function getSuggestionMutationOptions<
           onMutateResult.previousData,
         );
       }
-    },
-    onSettled: (_data: unknown, _error: unknown, _variables: TVariables) => {
-      // Always refetch after error or success to ensure consistency
-      const queryOptions = trpc.session.suggest.queryOptions({
-        lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
-      });
-      void queryClient.invalidateQueries({ queryKey: queryOptions.queryKey });
     },
   };
 }
