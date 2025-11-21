@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 
+import type { SuggestionWithId } from "~/types";
 import {
   Button,
   Content,
@@ -11,6 +12,7 @@ import {
   LoadingScreen,
   Screen,
 } from "~/components";
+import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import {
   SessionAddButton,
   SessionRecap,
@@ -18,7 +20,6 @@ import {
 } from "~/features/session";
 import { ProgressCard } from "~/features/stats";
 import { SuggestionsList } from "~/features/suggestions";
-import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
@@ -41,17 +42,9 @@ export default function Home() {
 
   // Add idempotency IDs to suggestions for React Query tracking
   // Only process if data exists and hasn't been processed yet
-  const suggestions = useMemo(() => {
-    if (!suggestionsQuery.data) return [];
-    // Check if IDs already exist (optimization to avoid unnecessary processing)
-    const hasIds = suggestionsQuery.data.some(
-      (s) => "id" in s && typeof s.id === "string",
-    );
-    if (hasIds) {
-      // Type assertion is safe here because we've verified all items have id property
-      return suggestionsQuery.data as typeof suggestionsQuery.data & {
-        id: string;
-      }[];
+  const suggestions: SuggestionWithId[] = useMemo(() => {
+    if (!suggestionsQuery.data) {
+      return [];
     }
     return addSuggestionIds(suggestionsQuery.data);
   }, [suggestionsQuery.data]);
@@ -60,8 +53,13 @@ export default function Home() {
   const isLoading = statsQuery.isLoading || todaySessionsForListQuery.isLoading;
 
   // Show error screen for critical errors (stats, today's sessions, or suggestions)
-  if (statsError.hasError || todaySessionsError.hasError || suggestionsError.hasError) {
-    const error = statsError.error ?? todaySessionsError.error ?? suggestionsError.error;
+  if (
+    statsError.hasError ||
+    todaySessionsError.hasError ||
+    suggestionsError.hasError
+  ) {
+    const error =
+      statsError.error ?? todaySessionsError.error ?? suggestionsError.error;
     if (error) {
       return (
         <ErrorScreen

@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import { Text, View } from "react-native";
+import { Text } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { Button, Card, Screen } from "~/components";
+import { Button, Card, Content, Screen } from "~/components";
 import { COLORS_MUTED } from "~/constants/colors";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
@@ -45,58 +45,56 @@ export default function Settings() {
 
   return (
     <Screen>
-      <View className="flex flex-col gap-4 p-4">
-        <Text className="text-foreground text-2xl font-bold">Settings</Text>
+      <Content>
+        <Text className="text-foreground text-3xl font-semibold">Settings</Text>
+      </Content>
 
-        <View className="flex flex-col gap-4">
-          <Link href="/settings/availability" asChild>
-            <Button
-              variant="ghost"
-              accessibilityLabel="Navigate to availability settings"
-              accessibilityRole="button"
-            >
-              <Card
-                variant="outline"
-                className="flex flex-1 flex-row items-center justify-between"
-              >
-                <Text
-                  className="text-foreground font-semibold"
-                  accessibilityRole="text"
-                >
-                  Availability
-                </Text>
-                <Ionicons
-                  name="chevron-forward-outline"
-                  size={20}
-                  color={COLORS_MUTED}
-                  accessibilityLabel="Navigate to availability settings"
-                />
-              </Card>
-            </Button>
-          </Link>
-
+      <Content>
+        <Link href="/settings/availability" asChild>
           <Button
-            variant="destructive"
-            onPress={handleSignOut}
-            disabled={signOutMutation.isPending}
-            accessibilityLabel="Sign out of your account"
+            variant="ghost"
+            accessibilityLabel="Navigate to availability settings"
             accessibilityRole="button"
           >
-            {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
+            <Card className="flex flex-1 flex-row items-center justify-between">
+              <Text
+                className="text-foreground font-semibold"
+                accessibilityRole="text"
+              >
+                Availability
+              </Text>
+              <Ionicons
+                name="chevron-forward-outline"
+                size={20}
+                color={COLORS_MUTED}
+                accessibilityLabel="Navigate to availability settings"
+              />
+            </Card>
           </Button>
+        </Link>
+      </Content>
 
-          {process.env.NODE_ENV === "development" && (
-            <Button
-              variant="outline"
-              onPress={handleTestToast}
-              accessibilityLabel="Test toast notifications"
-              accessibilityRole="button"
-            >
-              Test Toast
-            </Button>
-          )}
-        </View>
-      </View>
+      <Content>
+        <Button
+          variant="destructive"
+          onPress={handleSignOut}
+          disabled={signOutMutation.isPending}
+          accessibilityLabel="Sign out of your account"
+          accessibilityRole="button"
+        >
+          {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
+        </Button>
+        {process.env.NODE_ENV === "development" && (
+          <Button
+            variant="outline"
+            onPress={handleTestToast}
+            accessibilityLabel="Test toast notifications"
+            accessibilityRole="button"
+          >
+            Test Toast
+          </Button>
+        )}
+      </Content>
     </Screen>
   );
 }

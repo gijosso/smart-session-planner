@@ -11,14 +11,9 @@ import {
   useScrollToTop,
   VERTICAL_CONTENT_CONTAINER_STYLE,
 } from "~/components/list";
-import { SEPARATOR_SIZE } from "~/components/list/item-separator";
-import {
-  SUGGESTION_ITEM_HEIGHT,
-  SUGGESTION_ITEM_WIDTH,
-  SuggestionItem,
-} from "./suggestion-item";
+import { FLEX_1_STYLE, SUGGESTION_ITEM_HEIGHT } from "~/constants/app";
+import { SuggestionItem } from "./suggestion-item";
 import { ListEmptyComponent } from "./suggestions-list-empty";
-import { FLEX_1_STYLE } from "~/constants/app";
 
 type SuggestionsListProps = {
   suggestions: SuggestionWithId[];
@@ -40,8 +35,6 @@ type SuggestionsListProps = {
 
 const keyExtractor = (item: SuggestionWithId) => item.id;
 
-const itemSeparatorComponent = () => <ItemSeparator horizontal size="md" />;
-
 /**
  * List of suggestions - supports both horizontal and vertical layouts
  */
@@ -60,9 +53,7 @@ export const SuggestionsList = memo<SuggestionsListProps>(
         contentContainerStyle: horizontal
           ? HORIZONTAL_CONTENT_CONTAINER_STYLE
           : VERTICAL_CONTENT_CONTAINER_STYLE,
-        estimatedItemSize:
-          (horizontal ? SUGGESTION_ITEM_WIDTH : SUGGESTION_ITEM_HEIGHT) +
-          SEPARATOR_SIZE.md,
+        estimatedItemSize: SUGGESTION_ITEM_HEIGHT,
       }),
       [horizontal],
     );
@@ -72,8 +63,10 @@ export const SuggestionsList = memo<SuggestionsListProps>(
       ),
       [horizontal],
     );
-    // Note: renderItem doesn't need 'suggestions' in dependencies because
-    // it only uses 'item' from the render props, which is provided by LegendList
+    const ItemSeparatorComponent = useCallback(
+      () => <ItemSeparator horizontal={horizontal} size="md" />,
+      [horizontal],
+    );
 
     const refreshControl = useRefreshControl({
       isLoading,
@@ -91,7 +84,7 @@ export const SuggestionsList = memo<SuggestionsListProps>(
         horizontal={horizontal}
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={itemSeparatorComponent}
+        ItemSeparatorComponent={ItemSeparatorComponent}
         contentContainerStyle={contentContainerStyle}
         ListEmptyComponent={ListEmptyComponent}
         renderItem={renderItem}

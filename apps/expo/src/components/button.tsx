@@ -26,11 +26,10 @@ export interface ButtonProps extends Omit<PressableProps, "children"> {
 const VARIANT_STYLES = {
   default: "bg-primary active:bg-primary/90",
   destructive: "bg-destructive active:bg-destructive/90",
-  outline:
-    "bg-transparent border border-border active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50",
-  secondary: "bg-secondary active:bg-secondary/80 border border-border",
-  ghost: "bg-transparent active:bg-accent dark:active:bg-accent/50",
-  link: "bg-transparent",
+  outline: "bg-transparent border border-border",
+  secondary: "bg-secondary active:bg-secondary/90 border border-border",
+  ghost: "bg-transparent active:bg-primary/10",
+  link: "bg-transparent active:bg-primary/10",
 } as const;
 
 const TEXT_VARIANT_STYLES = {

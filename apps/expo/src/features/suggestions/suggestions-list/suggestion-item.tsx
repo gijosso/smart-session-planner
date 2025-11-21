@@ -35,9 +35,6 @@ interface SuggestionItemProps {
   horizontal?: boolean;
 }
 
-// Re-export for backward compatibility
-export { SUGGESTION_ITEM_WIDTH, SUGGESTION_ITEM_HEIGHT };
-
 /**
  * Individual suggestion item component
  * Displays a single suggestion in a horizontal scrolling list
@@ -121,10 +118,10 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
       <View
         style={{
           width: horizontal ? SUGGESTION_ITEM_WIDTH : undefined,
-          height: horizontal ? undefined : SUGGESTION_ITEM_HEIGHT,
+          height: SUGGESTION_ITEM_HEIGHT,
         }}
       >
-        <Card variant="muted" className="bg-suggestion-card p-6">
+        <Card variant="muted" className="bg-suggestion-card flex-1 p-6">
           <CardHeader>
             <View className="flex flex-1 flex-row items-center justify-end">
               <View className="flex flex-row items-center gap-1">
@@ -141,7 +138,7 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
             <CardTitle>{suggestion.title}</CardTitle>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="flex flex-1 flex-col justify-center gap-4">
             <View className="flex flex-row items-center gap-2">
               <Ionicons
                 name="time-outline"
@@ -158,11 +155,13 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
                 {formattedTimeRange}
               </Text>
             </View>
-          </CardContent>
 
-          {suggestion.reasons.length > 0 && (
-            <Text className="text-secondary-foreground">{reasonsText}.</Text>
-          )}
+            {suggestion.reasons.length > 0 && (
+              <Text className="text-secondary-foreground" numberOfLines={3}>
+                {reasonsText}.
+              </Text>
+            )}
+          </CardContent>
 
           <CardFooter className="flex flex-row gap-4">
             <Button

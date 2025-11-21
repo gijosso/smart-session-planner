@@ -17,4 +17,3 @@ export const MAX_PRIORITY = 5;
 
 // Inline styles (to avoid creating new objects on each render)
 export const FLEX_1_STYLE = { flex: 1 } as const;
-
