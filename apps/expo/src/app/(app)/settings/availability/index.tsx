@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -5,17 +6,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ErrorScreen, LoadingScreen } from "~/components";
 import { AvailabilityCalendar } from "~/features/availability";
-import { useQueryError } from "~/hooks/use-query-error";
+import { useQueryErrorHandling } from "~/hooks/use-error-handling";
 import { trpc } from "~/utils/api";
 
 export default function AvailabilityList() {
   const queryClient = useQueryClient();
-  const {
-    data: availability,
-    isLoading,
-    error,
-  } = useQuery(trpc.availability.get.queryOptions());
-  const queryError = useQueryError({ error });
+  const query = useQuery(trpc.availability.get.queryOptions());
+  const { availability, isLoading, error } = query;
+
+  const handleRetry = useCallback(() => {
+    void queryClient.invalidateQueries(trpc.availability.get.queryFilter());
+  }, [queryClient]);
+
+  const errorHandling = useQueryErrorHandling(query, {
+    onRetry: handleRetry,
+    title: "Unable to load availability",
+  });
 
   if (isLoading) {
     return (
@@ -26,17 +32,15 @@ export default function AvailabilityList() {
     );
   }
 
-  if (queryError.hasError && queryError.error) {
+  if (errorHandling.hasError && errorHandling.error) {
     return (
       <>
         <Stack.Screen options={{ title: "Availability" }} />
         <ErrorScreen
-          error={queryError.error}
-          onRetry={() => {
-            void queryClient.invalidateQueries(trpc.availability.get.queryFilter());
-          }}
-          onReset={() => router.back()}
-          title="Unable to load availability"
+          error={errorHandling.error}
+          onRetry={errorHandling.handleRetry}
+          onReset={errorHandling.handleReset}
+          title={errorHandling.errorTitle}
         />
       </>
     );

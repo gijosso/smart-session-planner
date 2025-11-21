@@ -7,8 +7,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WeeklyAvailability } from "@ssp/api/client";
 import { DAYS_OF_WEEK } from "@ssp/api/client";
 
-import { Button, Card, LoadingScreen } from "~/components";
+import { Button, Card, ErrorScreen, LoadingScreen } from "~/components";
 import { DAYS_OF_WEEK_DISPLAY } from "~/constants/activity";
+import { useQueryErrorHandling } from "~/hooks/use-error-handling";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
@@ -24,11 +25,12 @@ export default function EditAvailability() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const {
-    data: availability,
-    isLoading,
-    error,
-  } = useQuery(trpc.availability.get.queryOptions());
+  const query = useQuery(trpc.availability.get.queryOptions());
+  const { data: availability, isLoading } = query;
+
+  const errorHandling = useQueryErrorHandling(query, {
+    title: "Unable to load availability",
+  });
 
   const [editingDay, setEditingDay] = useState<string | null>(null);
   const [newStartTime, setNewStartTime] = useState("09:00");
@@ -85,7 +87,7 @@ export default function EditAvailability() {
 
       updateMutation.mutate({ weeklyAvailability: updated });
     },
-    [availability, newStartTime, newEndTime, updateMutation],
+    [availability, newStartTime, newEndTime, updateMutation, toast],
   );
 
   const handleDeleteWindow = useCallback(
@@ -131,15 +133,33 @@ export default function EditAvailability() {
     );
   }
 
-  if (error || !availability) {
+  if (errorHandling.hasError && errorHandling.error) {
+    return (
+      <>
+        <Stack.Screen options={{ title: "Edit Availability" }} />
+        <ErrorScreen
+          error={errorHandling.error}
+          onRetry={errorHandling.handleRetry}
+          onReset={errorHandling.handleReset}
+          title={errorHandling.errorTitle}
+        />
+      </>
+    );
+  }
+
+  if (!availability) {
     return (
       <SafeAreaView className="bg-background">
         <Stack.Screen options={{ title: "Edit Availability" }} />
-        <View className="h-full w-full p-4">
-          <Text className="text-destructive text-lg">
-            {error?.message ?? "Error loading availability"}
-          </Text>
-        </View>
+        <ErrorScreen
+          error={{
+            code: "NOT_FOUND",
+            message: "No availability data found",
+            retryable: false,
+          }}
+          onReset={errorHandling.handleReset}
+          title="Availability not found"
+        />
       </SafeAreaView>
     );
   }

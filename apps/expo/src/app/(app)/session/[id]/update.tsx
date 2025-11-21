@@ -1,13 +1,14 @@
 import { useCallback } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useGlobalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import { Button } from "~/components";
+import { ErrorScreen, LoadingScreen } from "~/components";
 import { UpdateSessionForm } from "~/features/session";
+import { useQueryErrorHandling } from "~/hooks/use-error-handling";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
@@ -22,14 +23,19 @@ export default function UpdateSession() {
 
   const isValidId = typeof id === "string" && id.trim() !== "";
 
-  const {
-    data: session,
-    isLoading,
-    error,
-  } = useQuery({
+  const query = useQuery({
     ...trpc.session.byId.queryOptions({ id }),
     enabled: isValidId,
   });
+  const { data: session, isLoading } = query;
+
+  const errorHandling = useQueryErrorHandling(query, {
+    title: "Unable to load session",
+  });
+
+  const handleGoBack = useCallback(() => {
+    router.back();
+  }, [router]);
 
   const {
     mutate,
@@ -84,31 +90,11 @@ export default function UpdateSession() {
         router.back();
       },
       onError: createMutationErrorHandler({
-        // Error is handled via serverError prop in form, so don't show alert
-        showAlert: false,
+        // Error is handled via serverError prop in form, so don't show toast
+        showToast: false,
       }),
     }),
   );
-
-  if (!isValidId) {
-    return (
-      <SafeAreaView className="bg-background flex-1 items-center justify-center">
-        <Stack.Screen options={{ title: "Update Session" }} />
-        <View className="h-full w-full p-4">
-          <Text className="text-destructive text-lg">
-            Invalid session ID. Please go back and try again.
-          </Text>
-          <Button
-            variant="outline"
-            onPress={handleGoBack}
-            className="mt-4"
-          >
-            Go Back
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   const handleSubmit = useCallback(
     (values: {
@@ -150,29 +136,60 @@ export default function UpdateSession() {
     [id, session, mutate],
   );
 
-  const handleGoBack = useCallback(() => {
-    router.back();
-  }, [router]);
-
-  if (isLoading) {
+  if (!isValidId) {
     return (
-      <SafeAreaView className="bg-background flex-1 items-center justify-center">
+      <>
         <Stack.Screen options={{ title: "Update Session" }} />
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
+        <ErrorScreen
+          error={{
+            code: "VALIDATION_ERROR",
+            message: "Invalid session ID. Please go back and try again.",
+            retryable: false,
+          }}
+          onReset={handleGoBack}
+          title="Invalid Session ID"
+        />
+      </>
     );
   }
 
-  if (error || !session) {
+  if (isLoading) {
     return (
-      <SafeAreaView className="bg-background">
+      <>
         <Stack.Screen options={{ title: "Update Session" }} />
-        <View className="h-full w-full p-4">
-          <Text className="text-destructive text-lg">
-            {error?.message ?? "Session not found"}
-          </Text>
-        </View>
-      </SafeAreaView>
+        <LoadingScreen />
+      </>
+    );
+  }
+
+  if (errorHandling.hasError && errorHandling.error) {
+    return (
+      <>
+        <Stack.Screen options={{ title: "Update Session" }} />
+        <ErrorScreen
+          error={errorHandling.error}
+          onRetry={errorHandling.handleRetry}
+          onReset={errorHandling.handleReset}
+          title={errorHandling.errorTitle}
+        />
+      </>
+    );
+  }
+
+  if (!session) {
+    return (
+      <>
+        <Stack.Screen options={{ title: "Update Session" }} />
+        <ErrorScreen
+          error={{
+            code: "NOT_FOUND",
+            message: "Session not found",
+            retryable: false,
+          }}
+          onReset={errorHandling.handleReset}
+          title="Session not found"
+        />
+      </>
     );
   }
 
