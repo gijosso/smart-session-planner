@@ -7,9 +7,11 @@
  * 3. Always use explicit timezone conversions (never rely on server timezone)
  * 4. Handle date boundaries carefully (what is "today" depends on timezone)
  *
- * NOTE: For production, consider using date-fns-tz library for more robust conversions:
- *   import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+ * Uses date-fns-tz for reliable timezone conversions that properly handle DST
+ * and edge cases.
  */
+
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 /**
  * Get user's timezone, defaulting to UTC if not set
@@ -36,74 +38,22 @@ export function getUserTimezone(
  */
 export function getStartOfDayInTimezone(date: Date, timezone: string): Date {
   // Get the date components in the target timezone
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  const zonedDate = toZonedTime(date, timezone);
 
-  // Format as YYYY-MM-DD in the target timezone
-  const dateStr = formatter.format(date);
-
-  // Create a date string representing midnight in the target timezone
-  // We'll use a trick: create the date string and let JavaScript parse it
-  // But we need to account for the timezone offset
-
-  // Now we need to find what time in UTC equals midnight in the target timezone
-  // We can do this by formatting midnightUTC in the target timezone and seeing the difference
-  const formatterWithTime = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-
-  // Try different UTC times until we find one that represents midnight in target timezone
-  // A simpler approach: use the fact that we can calculate the offset
-  const testDate = new Date(`${dateStr}T12:00:00Z`); // Noon UTC
-  const parts = formatterWithTime.formatToParts(testDate);
-  const hourInTz = parseInt(
-    parts.find((p) => p.type === "hour")?.value ?? "12",
+  // Create midnight in the target timezone (local time)
+  const startOfDayLocal = new Date(
+    zonedDate.getFullYear(),
+    zonedDate.getMonth(),
+    zonedDate.getDate(),
+    0,
+    0,
+    0,
+    0,
   );
 
-  // Calculate offset: if it's 12:00 UTC and 7:00 in target timezone (EST), offset is -5 hours
-  const offsetHours = 12 - hourInTz;
-
-  // Now create midnight in target timezone
-  // Start with midnight UTC, then adjust by the offset
-  const startOfDayUTC = new Date(`${dateStr}T00:00:00Z`);
-  startOfDayUTC.setHours(startOfDayUTC.getHours() - offsetHours);
-
-  // But wait, this doesn't account for DST properly. Let's use a better method:
-  // Format the date to get what day it is in the target timezone, then work backwards
-  const dateInTz = new Date(
-    date.toLocaleString("en-US", { timeZone: timezone }),
-  );
-
-  // Now we need to convert this "local" date back to UTC, but accounting for the target timezone
-  // The simplest reliable method: use Intl to format, then parse
-  const year = dateInTz.getFullYear();
-  const month = String(dateInTz.getMonth() + 1).padStart(2, "0");
-  const day = String(dateInTz.getDate()).padStart(2, "0");
-
-  // Create a date string for midnight in the target timezone
-  // We'll create it as if it's UTC, then calculate the actual UTC time
-  const dateString = `${year}-${month}-${day}T00:00:00`;
-
-  // Use Intl to get the UTC time that corresponds to midnight in target timezone
-  // We can do this by creating a date and using the timezone offset
-  const tempDate = new Date(dateString);
-  const utcTime = tempDate.getTime();
-  const tzTime = new Date(
-    tempDate.toLocaleString("en-US", { timeZone: timezone }),
-  ).getTime();
-  const offset = utcTime - tzTime;
-
-  return new Date(utcTime - offset);
+  // Convert back to UTC
+  // fromZonedTime converts a date representing a local time in the given timezone to UTC
+  return fromZonedTime(startOfDayLocal, timezone);
 }
 
 /**
@@ -136,25 +86,15 @@ export function getDateComponentsInTimezone(
   minutes: number;
   seconds: number;
 } {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-
-  const parts = formatter.formatToParts(date);
+  // Convert UTC date to zoned time
+  const zonedDate = toZonedTime(date, timezone);
 
   return {
-    year: parseInt(parts.find((p) => p.type === "year")?.value ?? "0"),
-    month: parseInt(parts.find((p) => p.type === "month")?.value ?? "0"),
-    day: parseInt(parts.find((p) => p.type === "day")?.value ?? "0"),
-    hours: parseInt(parts.find((p) => p.type === "hour")?.value ?? "0"),
-    minutes: parseInt(parts.find((p) => p.type === "minute")?.value ?? "0"),
-    seconds: parseInt(parts.find((p) => p.type === "second")?.value ?? "0"),
+    year: zonedDate.getFullYear(),
+    month: zonedDate.getMonth() + 1, // getMonth() returns 0-11
+    day: zonedDate.getDate(),
+    hours: zonedDate.getHours(),
+    minutes: zonedDate.getMinutes(),
+    seconds: zonedDate.getSeconds(),
   };
 }

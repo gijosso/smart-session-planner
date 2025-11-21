@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "catalog:",
+    "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.44.7",
     "drizzle-zod": "^0.8.3",
     "zod": "catalog:"
