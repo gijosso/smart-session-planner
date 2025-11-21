@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useMemo } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Text } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 
@@ -10,7 +10,12 @@ import { sessionFormSchema } from "@ssp/validators";
 
 import type { ServerError } from "~/utils/form";
 import { Button, Card, CardContent } from "~/components";
-import { PRIORITY_LEVELS } from "~/constants/app";
+import {
+  DateTimeInputGroup,
+  PrioritySelector,
+  SelectButtonGroup,
+  TextInputField,
+} from "~/components/forms/inputs";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import {
   formatDateForInput,
@@ -19,13 +24,13 @@ import {
   getTodayDate,
   parseLocalDateTime,
 } from "~/utils/date";
-import {
-  getFieldError,
-  getFieldErrorClassName,
-  isUnauthorizedError,
-} from "~/utils/form";
+import { isUnauthorizedError } from "~/utils/form";
 
 const SESSION_TYPES_ARRAY = Object.values(SESSION_TYPES_DISPLAY);
+const SESSION_TYPE_OPTIONS = SESSION_TYPES_ARRAY.map((type) => ({
+  value: type.value,
+  label: type.label,
+}));
 
 export type SessionFormMode = "create" | "update";
 
@@ -219,13 +224,6 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
     }
   };
 
-  // Helper to get field error using centralized utility
-  const getFieldErrorForField = (
-    fieldName: keyof SessionFormValues,
-  ): string | undefined => {
-    return getFieldError(fieldName, errors, isSubmitted, serverError);
-  };
-
   const buttonText = mode === "create" ? "Create Session" : "Update Session";
   const pendingText = mode === "create" ? "Creating..." : "Updating...";
   const unauthorizedMessage =
@@ -237,226 +235,85 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
     <>
       <Card>
         <CardContent className="gap-4">
-          <View>
-            <Text className="text-foreground mb-2 text-sm font-medium">
-              Title *
-            </Text>
-            <TextInput
-              className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                "title",
-                errors,
-                isSubmitted,
-                serverError,
-              )}`}
-              value={formValues.title}
-              onChangeText={(text) => setValue("title", text)}
-              placeholder="e.g., Morning Meditation"
-              maxLength={256}
-            />
-            {getFieldErrorForField("title") && (
-              <Text className="text-destructive mt-1 text-sm">
-                {getFieldErrorForField("title")}
-              </Text>
-            )}
-          </View>
+          <TextInputField
+            label="Title"
+            required
+            fieldName="title"
+            value={formValues.title ?? ""}
+            onChangeText={(text) => setValue("title", text)}
+            placeholder="e.g., Morning Meditation"
+            errors={errors}
+            isSubmitted={isSubmitted}
+            serverError={serverError}
+            maxLength={256}
+          />
 
-          <View>
-            <Text className="text-foreground mb-2 text-sm font-medium">
-              Type *
-            </Text>
-            <View className="flex flex-row flex-wrap gap-2">
-              {SESSION_TYPES_ARRAY.map((sessionType) => (
-                <Button
-                  key={sessionType.value}
-                  variant={
-                    formValues.type === sessionType.value
-                      ? "default"
-                      : "outline"
-                  }
-                  onPress={() => setValue("type", sessionType.value)}
-                  className={`rounded-md border px-3 py-2 ${
-                    formValues.type === sessionType.value
-                      ? "bg-primary border-primary"
-                      : "border-input bg-background"
-                  }`}
-                >
-                  <Text
-                    className={
-                      formValues.type === sessionType.value
-                        ? "text-primary-foreground text-sm font-medium"
-                        : "text-foreground text-sm"
-                    }
-                  >
-                    {sessionType.label}
-                  </Text>
-                </Button>
-              ))}
-            </View>
-            {getFieldErrorForField("type") && (
-              <Text className="text-destructive mt-1 text-sm">
-                {getFieldErrorForField("type")}
-              </Text>
-            )}
-          </View>
+          <SelectButtonGroup<SessionType>
+            label="Type"
+            required
+            fieldName="type"
+            value={formValues.type ?? "OTHER"}
+            options={SESSION_TYPE_OPTIONS}
+            onSelect={(value) => setValue("type", value)}
+            errors={errors}
+            isSubmitted={isSubmitted}
+            serverError={serverError}
+            layout="wrap"
+          />
 
-          <View>
-            <Text className="text-foreground mb-2 text-sm font-medium">
-              Priority *
-            </Text>
-            <View className="flex flex-row gap-2">
-              {PRIORITY_LEVELS.map((priority) => (
-                <Button
-                  key={priority}
-                  variant={
-                    formValues.priority === priority ? "default" : "outline"
-                  }
-                  onPress={() => setValue("priority", priority)}
-                  className={`flex-1 rounded-md border px-3 py-2 ${
-                    formValues.priority === priority
-                      ? "bg-primary border-primary"
-                      : "border-input bg-background"
-                  }`}
-                >
-                  <Text
-                    className={`text-center text-sm font-medium ${
-                      formValues.priority === priority
-                        ? "text-primary-foreground"
-                        : "text-foreground"
-                    }`}
-                  >
-                    {priority}
-                  </Text>
-                </Button>
-              ))}
-            </View>
-            {getFieldErrorForField("priority") && (
-              <Text className="text-destructive mt-1 text-sm">
-                {getFieldErrorForField("priority")}
-              </Text>
-            )}
-          </View>
+          <PrioritySelector
+            fieldName="priority"
+            value={formValues.priority ?? 3}
+            onChange={(priority) => setValue("priority", priority)}
+            errors={errors}
+            isSubmitted={isSubmitted}
+            serverError={serverError}
+          />
 
-          <View>
-            <Text className="text-foreground mb-2 text-sm font-medium">
-              Start Date & Time *
-            </Text>
-            <View className="flex flex-row gap-2">
-              <View className="flex-1">
-                <TextInput
-                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                    "startDate",
-                    errors,
-                    isSubmitted,
-                    serverError,
-                  )}`}
-                  value={formValues.startDate}
-                  onChangeText={(text) => setValue("startDate", text)}
-                  placeholder={
-                    mode === "create" ? getTodayDate() : "YYYY-MM-DD"
-                  }
-                  placeholderTextColor="#71717A"
-                />
-                <Text className="text-muted-foreground mt-1 text-xs">
-                  Format: YYYY-MM-DD
-                </Text>
-              </View>
-              <View className="flex-1">
-                <TextInput
-                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                    "startTime",
-                    errors,
-                    isSubmitted,
-                    serverError,
-                  )}`}
-                  value={formValues.startTime}
-                  onChangeText={(text) => setValue("startTime", text)}
-                  placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
-                  placeholderTextColor="#71717A"
-                />
-                <Text className="text-muted-foreground mt-1 text-xs">
-                  Format: HH:mm (24h)
-                </Text>
-              </View>
-            </View>
-            {(getFieldErrorForField("startDate") ??
-              getFieldErrorForField("startTime")) && (
-              <Text className="text-destructive mt-1 text-sm">
-                {getFieldErrorForField("startDate") ??
-                  getFieldErrorForField("startTime")}
-              </Text>
-            )}
-          </View>
+          <DateTimeInputGroup
+            label="Start Date & Time"
+            required
+            dateFieldName="startDate"
+            timeFieldName="startTime"
+            dateValue={formValues.startDate ?? ""}
+            timeValue={formValues.startTime ?? ""}
+            onDateChange={(text) => setValue("startDate", text)}
+            onTimeChange={(text) => setValue("startTime", text)}
+            datePlaceholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
+            timePlaceholder={mode === "create" ? getCurrentTime() : "HH:mm"}
+            errors={errors}
+            isSubmitted={isSubmitted}
+            serverError={serverError}
+          />
 
-          <View>
-            <Text className="text-foreground mb-2 text-sm font-medium">
-              End Date & Time *
-            </Text>
-            <View className="flex flex-row gap-2">
-              <View className="flex-1">
-                <TextInput
-                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                    "endDate",
-                    errors,
-                    isSubmitted,
-                    serverError,
-                  )}`}
-                  value={formValues.endDate}
-                  onChangeText={(text) => setValue("endDate", text)}
-                  placeholder={
-                    mode === "create" ? getTodayDate() : "YYYY-MM-DD"
-                  }
-                  placeholderTextColor="#71717A"
-                />
-                <Text className="text-muted-foreground mt-1 text-xs">
-                  Format: YYYY-MM-DD
-                </Text>
-              </View>
-              <View className="flex-1">
-                <TextInput
-                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                    "endTime",
-                    errors,
-                    isSubmitted,
-                    serverError,
-                  )}`}
-                  value={formValues.endTime}
-                  onChangeText={(text) => setValue("endTime", text)}
-                  placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
-                  placeholderTextColor="#71717A"
-                />
-                <Text className="text-muted-foreground mt-1 text-xs">
-                  Format: HH:mm (24h)
-                </Text>
-              </View>
-            </View>
-            {(getFieldErrorForField("endDate") ??
-              getFieldErrorForField("endTime")) && (
-              <Text className="text-destructive mt-1 text-sm">
-                {getFieldErrorForField("endDate") ??
-                  getFieldErrorForField("endTime")}
-              </Text>
-            )}
-          </View>
+          <DateTimeInputGroup
+            label="End Date & Time"
+            required
+            dateFieldName="endDate"
+            timeFieldName="endTime"
+            dateValue={formValues.endDate ?? ""}
+            timeValue={formValues.endTime ?? ""}
+            onDateChange={(text) => setValue("endDate", text)}
+            onTimeChange={(text) => setValue("endTime", text)}
+            datePlaceholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
+            timePlaceholder={mode === "create" ? getCurrentTime() : "HH:mm"}
+            errors={errors}
+            isSubmitted={isSubmitted}
+            serverError={serverError}
+          />
 
-          <View>
-            <Text className="text-foreground mb-2 text-sm font-medium">
-              Description
-            </Text>
-            <TextInput
-              className="border-input bg-background text-foreground h-24 min-h-24 rounded-md border px-3 py-2 text-base"
-              value={formValues.description}
-              onChangeText={(text) => setValue("description", text)}
-              placeholder="Optional notes or description"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-            {getFieldErrorForField("description") && (
-              <Text className="text-destructive mt-1 text-sm">
-                {getFieldErrorForField("description")}
-              </Text>
-            )}
-          </View>
+          <TextInputField
+            label="Description"
+            fieldName="description"
+            value={formValues.description ?? ""}
+            onChangeText={(text) => setValue("description", text)}
+            placeholder="Optional notes or description"
+            errors={errors}
+            isSubmitted={isSubmitted}
+            serverError={serverError}
+            multiline
+            numberOfLines={4}
+          />
 
           {isUnauthorizedError(serverError) && (
             <Text className="text-destructive text-center">
