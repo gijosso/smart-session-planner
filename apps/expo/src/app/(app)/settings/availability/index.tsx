@@ -12,7 +12,7 @@ import { trpc } from "~/utils/api";
 export default function AvailabilityList() {
   const queryClient = useQueryClient();
   const query = useQuery(trpc.availability.get.queryOptions());
-  const { availability, isLoading, error } = query;
+  const { data: availability, isLoading } = query;
 
   const handleRetry = useCallback(() => {
     void queryClient.invalidateQueries(trpc.availability.get.queryFilter());

@@ -3,6 +3,8 @@
   "compilerOptions": {
     "jsx": "react-native",
     "checkJs": false,
+    "module": "es2022",
+    "moduleResolution": "bundler",
     "moduleSuffixes": [".ios", ".android", ".native", ""],
     "paths": {
       "~/*": ["./src/*"]

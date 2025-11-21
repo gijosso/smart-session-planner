@@ -12,6 +12,10 @@ import {
   LoadingScreen,
   Screen,
 } from "~/components";
+import {
+  SkeletonCard,
+  SkeletonList,
+} from "~/components/layout/skeleton-loader";
 import { FLEX_1_STYLE, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { COLORS_MUTED } from "~/constants/colors";
 import {
@@ -50,8 +54,13 @@ export default function Home() {
     return addSuggestionIds(suggestionsQuery.data);
   }, [suggestionsQuery.data]);
 
-  // Show unified loading state
-  const isLoading = statsQuery.isLoading || todaySessionsForListQuery.isLoading;
+  // Show unified loading state (only for critical queries)
+  const isInitialLoading =
+    statsQuery.isLoading || todaySessionsForListQuery.isLoading;
+
+  // Progressive loading: show skeleton for individual sections while data loads
+  const isSuggestionsLoading =
+    suggestionsQuery.isLoading && !suggestionsQuery.data;
 
   // Memoize retry handler to prevent unnecessary re-renders
   const handleRetry = useCallback(() => {
@@ -78,7 +87,7 @@ export default function Home() {
     }
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return <LoadingScreen />;
   }
 
@@ -91,7 +100,11 @@ export default function Home() {
       </Content>
 
       <Content>
-        <SessionRecap stats={statsQuery.data} />
+        {statsQuery.isLoading ? (
+          <SkeletonCard />
+        ) : (
+          <SessionRecap stats={statsQuery.data} />
+        )}
       </Content>
 
       <Content>
@@ -116,7 +129,13 @@ export default function Home() {
         </View>
       </Content>
       <View style={FLEX_1_STYLE}>
-        <SuggestionsList suggestions={suggestions} horizontal={true} />
+        {isSuggestionsLoading ? (
+          <View className="p-4">
+            <SkeletonList count={3} />
+          </View>
+        ) : (
+          <SuggestionsList suggestions={suggestions} horizontal={true} />
+        )}
       </View>
 
       <Content>

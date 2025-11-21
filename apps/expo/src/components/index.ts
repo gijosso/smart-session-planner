@@ -4,3 +4,4 @@ export * from "./error";
 export * from "./layout/screen";
 export * from "./layout/content";
 export * from "./layout/loading-screen";
+export * from "./layout/skeleton-loader";

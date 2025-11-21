@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useGlobalSearchParams, useRouter } from "expo-router";
@@ -7,13 +7,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SessionType } from "@ssp/api/client";
 
 import { ErrorScreen, LoadingScreen } from "~/components";
-import { UpdateSessionForm } from "~/features/session";
 import { useQueryErrorHandling } from "~/hooks/use-error-handling";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueriesForUpdate } from "~/utils/sessions/session-cache";
+
+// Lazy load heavy form component for code splitting
+const UpdateSessionForm = lazy(() =>
+  import("~/features/session").then((module) => ({
+    default: module.UpdateSessionForm,
+  })),
+);
 
 export default function UpdateSession() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -197,19 +203,21 @@ export default function UpdateSession() {
     <SafeAreaView className="bg-background">
       <Stack.Screen options={{ title: "Update Session" }} />
       <View className="h-full w-full">
-        <UpdateSessionForm
-          initialValues={{
-            title: session.title,
-            type: session.type,
-            startTime: session.startTime,
-            endTime: session.endTime,
-            priority: session.priority,
-            description: session.description,
-          }}
-          onSubmit={handleSubmit}
-          isPending={isPending}
-          serverError={transformMutationError(mutationError)}
-        />
+        <Suspense fallback={<LoadingScreen />}>
+          <UpdateSessionForm
+            initialValues={{
+              title: session.title,
+              type: session.type,
+              startTime: session.startTime,
+              endTime: session.endTime,
+              priority: session.priority,
+              description: session.description,
+            }}
+            onSubmit={handleSubmit}
+            isPending={isPending}
+            serverError={transformMutationError(mutationError)}
+          />
+        </Suspense>
       </View>
     </SafeAreaView>
   );

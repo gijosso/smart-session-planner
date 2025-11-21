@@ -8,7 +8,7 @@ import { Button } from "..";
 
 export const BackButton = memo(() => {
   const colorScheme = useColorScheme();
-  const iconColor = getForegroundColor(colorScheme);
+  const iconColor = getForegroundColor(colorScheme ?? "light");
 
   return (
     <Button

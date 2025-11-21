@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -6,12 +6,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import {
-  DEFAULT_PRIORITY,
-  SUGGESTION_LOOK_AHEAD_DAYS,
-} from "~/constants/app";
-import { CreateSessionForm } from "~/features/session/forms";
+import { LoadingScreen } from "~/components";
+import { DEFAULT_PRIORITY, SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
+import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
 import {
   formatDateForInput,
@@ -20,9 +18,15 @@ import {
 } from "~/utils/date";
 import { transformMutationError } from "~/utils/formik";
 import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
-import { toSessionType } from "~/utils/type-guards";
 import { getSuggestionMutationOptions } from "~/utils/suggestions/suggestion-id";
-import { useToast } from "~/hooks/use-toast";
+import { toSessionType } from "~/utils/type-guards";
+
+// Lazy load heavy form component for code splitting
+const CreateSessionForm = lazy(() =>
+  import("~/features/session/forms").then((module) => ({
+    default: module.CreateSessionForm,
+  })),
+);
 
 export default function CreateSession() {
   const router = useRouter();
@@ -46,7 +50,9 @@ export default function CreateSession() {
   const validatedPriority: number | undefined = params.priority
     ? (() => {
         const parsed = Number.parseInt(params.priority, 10);
-        return !isNaN(parsed) && parsed >= 1 && parsed <= 5 ? parsed : undefined;
+        return !isNaN(parsed) && parsed >= 1 && parsed <= 5
+          ? parsed
+          : undefined;
       })()
     : undefined;
 
@@ -80,8 +86,8 @@ export default function CreateSession() {
         }
       },
       onError: createMutationErrorHandler({
-        // Error is handled via serverError prop in form, so don't show alert
-        showAlert: false,
+        // Error is handled via serverError prop in form, so don't show toast
+        showToast: false,
       }),
     }),
   );
@@ -130,13 +136,15 @@ export default function CreateSession() {
   return (
     <SafeAreaView className="bg-background">
       <View className="h-full w-full">
-        <CreateSessionForm
-          key={resetKey}
-          onSubmit={handleSubmit}
-          isPending={isPending}
-          serverError={transformMutationError(mutationError)}
-          initialValues={initialValues}
-        />
+        <Suspense fallback={<LoadingScreen />}>
+          <CreateSessionForm
+            key={resetKey}
+            onSubmit={handleSubmit}
+            isPending={isPending}
+            serverError={transformMutationError(mutationError)}
+            initialValues={initialValues}
+          />
+        </Suspense>
       </View>
     </SafeAreaView>
   );

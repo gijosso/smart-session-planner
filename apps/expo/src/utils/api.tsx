@@ -16,6 +16,7 @@ import { DEFAULT_QUERY_CACHE_TIME_MS, MS_PER_SECOND } from "~/constants/time";
 import { authClient } from "./auth";
 import { getBaseUrl } from "./base-url";
 import { safeParse } from "./safe-json";
+import { queueRequestForRefresh, startRefresh } from "./token-refresh-queue";
 
 /**
  * QueryClient configuration with sensible defaults for React Native
@@ -311,8 +312,15 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
           // If we get a 401, try to refresh the token and retry once
           if (response.status === 401) {
             try {
-              // Wait for any in-progress refresh or start a new one
-              await refreshAccessToken();
+              // Queue this request first (before checking if refresh is needed)
+              // This ensures all concurrent 401s wait for the same refresh
+              const queuePromise = queueRequestForRefresh();
+
+              // Start refresh if not already in progress (reuses existing if in progress)
+              const refreshPromise = startRefresh(() => refreshAccessToken());
+
+              // Wait for both queue and refresh to complete
+              await Promise.all([queuePromise, refreshPromise]);
 
               // Retry the request with the new token
               const newHeaders = new Headers(options?.headers);
