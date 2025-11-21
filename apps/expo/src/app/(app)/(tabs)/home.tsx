@@ -41,7 +41,7 @@ export default function Home() {
 
   return (
     <Screen>
-      <Content className="pb-0">
+      <Content>
         <Text className="text-foreground text-3xl font-semibold">
           Dashboard
         </Text>
@@ -51,7 +51,7 @@ export default function Home() {
         <SessionRecap stats={statsQuery.data} />
       </Content>
 
-      <Content className="pb-0">
+      <Content>
         <View className="flex flex-row items-center justify-between">
           <Text className="text-foreground text-2xl">Smart Suggestions</Text>
           <Button
@@ -61,7 +61,7 @@ export default function Home() {
           >
             <Ionicons
               name="chevron-forward-outline"
-              size={20}
+              size={22}
               className="text-muted-foreground"
             />
           </Button>
@@ -72,12 +72,14 @@ export default function Home() {
       </View>
 
       <Content>
-        <View className="mb-4 flex flex-row items-center justify-between">
+        <View className="flex flex-row items-center justify-between">
           <Text className="text-foreground text-2xl">Today's Sessions</Text>
           <SessionAddButton />
         </View>
-        <SessionTodaysList sessions={todaySessionsForListQuery.data} />
       </Content>
+      <View>
+        <SessionTodaysList sessions={todaySessionsForListQuery.data} />
+      </View>
 
       <Content>
         <ProgressCard stats={statsQuery.data} />

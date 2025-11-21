@@ -30,14 +30,15 @@ export const Screen = React.memo<{
     backButton = false,
     variant = "default",
   }) => {
-    const { top } = useSafeAreaInsets();
+    const { top, bottom } = useSafeAreaInsets();
 
     const contentContainerStyle = useMemo(
       () => ({
         paddingTop: top,
+        paddingBottom: variant === "list" ? 0 : bottom,
         flexGrow: 1,
       }),
-      [top],
+      [top, bottom, variant],
     );
 
     if (variant === "list") {
@@ -76,7 +77,7 @@ export const Screen = React.memo<{
           showsVerticalScrollIndicator={false}
           contentContainerStyle={contentContainerStyle}
         >
-          <View className={cn("mt-8 flex-1 gap-4", contentClassName)}>
+          <View className={cn("mt-8 flex-1 gap-8", contentClassName)}>
             {children}
           </View>
         </ScrollView>

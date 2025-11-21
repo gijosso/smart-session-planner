@@ -9,10 +9,6 @@ export interface ContentProps extends ViewProps {
   className?: string;
 }
 
-export const Content = React.memo<ContentProps>(
-  ({ children, className, ...props }) => (
-    <View className={cn("gap-2 px-6 py-6", className)} {...props}>
-      {children}
-    </View>
-  ),
-);
+export const Content = React.memo<ContentProps>(({ children, className }) => (
+  <View className={cn("gap-2 p-6 pb-0", className)}>{children}</View>
+));

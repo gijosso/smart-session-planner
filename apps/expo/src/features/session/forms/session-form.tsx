@@ -10,7 +10,12 @@ import { sessionFormSchema } from "@ssp/validators";
 import type { ServerError } from "~/utils/formik";
 import { Button } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
-import { formatDateForInput, formatTimeForInput } from "~/utils/date";
+import {
+  formatDateForInput,
+  formatTimeForInput,
+  getCurrentTime,
+  getTodayDate,
+} from "~/utils/date";
 import {
   getFieldError,
   getFieldErrorClassName,
@@ -20,7 +25,28 @@ import {
 const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
 const SESSION_TYPES_ARRAY = Object.values(SESSION_TYPES_DISPLAY);
 
-interface UpdateSessionFormProps {
+export type SessionFormMode = "create" | "update";
+
+interface SessionFormPropsBase {
+  isPending?: boolean;
+  serverError?: ServerError;
+}
+
+interface CreateSessionFormProps extends SessionFormPropsBase {
+  mode: "create";
+  onSubmit: (values: {
+    title: string;
+    type: SessionType;
+    startTime: Date;
+    endTime: Date;
+    priority: number;
+    description?: string;
+  }) => void;
+  initialValues?: Partial<SessionFormValues>;
+}
+
+interface UpdateSessionFormProps extends SessionFormPropsBase {
+  mode: "update";
   initialValues: {
     title: string;
     type: SessionType;
@@ -38,37 +64,52 @@ interface UpdateSessionFormProps {
     description?: string;
     completed?: boolean;
   }) => void;
-  isPending?: boolean;
-  serverError?: ServerError;
 }
 
-export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
-  initialValues,
-  onSubmit,
-  isPending = false,
-  serverError,
-}) => {
-  // Safely format dates, ensuring we have valid values
-  // Use useMemo to recalculate when initialValues change
+type SessionFormProps = CreateSessionFormProps | UpdateSessionFormProps;
+
+// Prop types for wrapper components (without mode)
+export type CreateSessionFormWrapperProps = Omit<
+  CreateSessionFormProps,
+  "mode"
+>;
+export type UpdateSessionFormWrapperProps = Omit<
+  UpdateSessionFormProps,
+  "mode"
+>;
+
+export const SessionForm: React.FC<SessionFormProps> = (props) => {
+  const { mode, onSubmit, isPending = false, serverError } = props;
+
+  // Format initial values based on mode
   const formattedInitialValues = useMemo<SessionFormValues>(() => {
-    return {
-      title: initialValues.title,
-      type: initialValues.type,
-      startDate: formatDateForInput(initialValues.startTime),
-      startTime: formatTimeForInput(initialValues.startTime),
-      endDate: formatDateForInput(initialValues.endTime),
-      endTime: formatTimeForInput(initialValues.endTime),
-      priority: initialValues.priority,
-      description: initialValues.description ?? "",
-    };
-  }, [
-    initialValues.title,
-    initialValues.type,
-    initialValues.startTime,
-    initialValues.endTime,
-    initialValues.priority,
-    initialValues.description,
-  ]);
+    if (mode === "create") {
+      const prefilledValues = props.initialValues;
+      return {
+        title: prefilledValues?.title ?? "",
+        type: prefilledValues?.type ?? "OTHER",
+        startDate: prefilledValues?.startDate ?? getTodayDate(),
+        startTime: prefilledValues?.startTime ?? getCurrentTime(),
+        endDate: prefilledValues?.endDate ?? getTodayDate(),
+        endTime: prefilledValues?.endTime ?? getCurrentTime(),
+        priority: prefilledValues?.priority ?? 3,
+        description: prefilledValues?.description ?? "",
+      };
+    } else {
+      // Update mode
+      const initialValues = props.initialValues;
+      return {
+        title: initialValues.title,
+        type: initialValues.type,
+        startDate: formatDateForInput(initialValues.startTime),
+        startTime: formatTimeForInput(initialValues.startTime),
+        endDate: formatDateForInput(initialValues.endTime),
+        endTime: formatTimeForInput(initialValues.endTime),
+        priority: initialValues.priority,
+        description: initialValues.description ?? "",
+      };
+    }
+  }, [mode, props]);
 
   const formik = useFormik<SessionFormValues>({
     initialValues: formattedInitialValues,
@@ -105,62 +146,74 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
         return;
       }
 
-      // Only send fields that have changed from initial values
-      const updates: {
-        title?: string;
-        type?: SessionType;
-        startTime?: Date;
-        endTime?: Date;
-        priority?: number;
-        description?: string;
-      } = {};
+      if (mode === "create") {
+        // Create mode: submit all required fields
+        onSubmit({
+          title: values.title,
+          type: values.type,
+          startTime: startTimeDate,
+          endTime: endTimeDate,
+          priority: values.priority,
+          description: values.description ?? undefined,
+        });
+      } else {
+        // Update mode: only submit changed fields
+        const updates: {
+          title?: string;
+          type?: SessionType;
+          startTime?: Date;
+          endTime?: Date;
+          priority?: number;
+          description?: string;
+        } = {};
 
-      // Compare with initial values to only send changed fields
-      if (values.title !== formattedInitialValues.title) {
-        updates.title = values.title;
-      }
-      if (values.type !== formattedInitialValues.type) {
-        updates.type = values.type;
-      }
-      if (values.priority !== formattedInitialValues.priority) {
-        updates.priority = values.priority;
-      }
-      if (values.description !== formattedInitialValues.description) {
-        // Send the description value directly (empty string clears, non-empty updates)
-        updates.description = values.description;
-      }
+        // Compare with initial values to only send changed fields
+        if (values.title !== formattedInitialValues.title) {
+          updates.title = values.title;
+        }
+        if (values.type !== formattedInitialValues.type) {
+          updates.type = values.type;
+        }
+        if (values.priority !== formattedInitialValues.priority) {
+          updates.priority = values.priority;
+        }
+        if (values.description !== formattedInitialValues.description) {
+          // Send the description value directly (empty string clears, non-empty updates)
+          updates.description = values.description;
+        }
 
-      // Check if times have changed by comparing the Date objects
-      const initialStartTime = new Date(
-        `${formattedInitialValues.startDate}T${formattedInitialValues.startTime}:00`,
-      );
-      const initialEndTime = new Date(
-        `${formattedInitialValues.endDate}T${formattedInitialValues.endTime}:00`,
-      );
+        // Check if times have changed by comparing the Date objects
+        const initialStartTime = new Date(
+          `${formattedInitialValues.startDate}T${formattedInitialValues.startTime}:00`,
+        );
+        const initialEndTime = new Date(
+          `${formattedInitialValues.endDate}T${formattedInitialValues.endTime}:00`,
+        );
 
-      if (startTimeDate.getTime() !== initialStartTime.getTime()) {
-        updates.startTime = startTimeDate;
-      }
-      if (endTimeDate.getTime() !== initialEndTime.getTime()) {
-        updates.endTime = endTimeDate;
-      }
+        if (startTimeDate.getTime() !== initialStartTime.getTime()) {
+          updates.startTime = startTimeDate;
+        }
+        if (endTimeDate.getTime() !== initialEndTime.getTime()) {
+          updates.endTime = endTimeDate;
+        }
 
-      // Validate that if both times are being updated, endTime > startTime
-      // (This matches server-side validation)
-      if (updates.startTime && updates.endTime) {
-        if (updates.endTime <= updates.startTime) {
-          // This should be caught by form validation, but double-check
+        // Validate that if both times are being updated, endTime > startTime
+        // (This matches server-side validation)
+        if (updates.startTime && updates.endTime) {
+          if (updates.endTime <= updates.startTime) {
+            // This should be caught by form validation, but double-check
+            return;
+          }
+        }
+
+        // Only submit if there are actual changes
+        if (Object.keys(updates).length === 0) {
+          // No changes, don't submit
           return;
         }
-      }
 
-      // Only submit if there are actual changes
-      if (Object.keys(updates).length === 0) {
-        // No changes, don't submit
-        return;
+        onSubmit(updates);
       }
-
-      onSubmit(updates);
     },
     enableReinitialize: true,
   });
@@ -176,6 +229,13 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
       serverError,
     );
   };
+
+  const buttonText = mode === "create" ? "Create Session" : "Update Session";
+  const pendingText = mode === "create" ? "Creating..." : "Updating...";
+  const unauthorizedMessage =
+    mode === "create"
+      ? "You need to be logged in to create a session"
+      : "You need to be logged in to update a session";
 
   return (
     <ScrollView
@@ -289,7 +349,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
               value={formik.values.startDate}
               onChangeText={formik.handleChange("startDate")}
               onBlur={formik.handleBlur("startDate")}
-              placeholder="YYYY-MM-DD"
+              placeholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -307,7 +367,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
               value={formik.values.startTime}
               onChangeText={formik.handleChange("startTime")}
               onBlur={formik.handleBlur("startTime")}
-              placeholder="HH:mm"
+              placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -340,7 +400,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
               value={formik.values.endDate}
               onChangeText={formik.handleChange("endDate")}
               onBlur={formik.handleBlur("endDate")}
-              placeholder="YYYY-MM-DD"
+              placeholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -358,7 +418,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
               value={formik.values.endTime}
               onChangeText={formik.handleChange("endTime")}
               onBlur={formik.handleBlur("endTime")}
-              placeholder="HH:mm"
+              placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
               placeholderTextColor="#71717A"
             />
             <Text className="text-muted-foreground mt-1 text-xs">
@@ -398,7 +458,7 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
 
       {isUnauthorizedError(serverError) && (
         <Text className="text-destructive mb-4 text-center">
-          You need to be logged in to update a session
+          {unauthorizedMessage}
         </Text>
       )}
 
@@ -407,8 +467,18 @@ export const UpdateSessionForm: React.FC<UpdateSessionFormProps> = ({
         onPress={() => formik.handleSubmit()}
         disabled={isPending}
       >
-        {isPending ? "Updating..." : "Update Session"}
+        {isPending ? pendingText : buttonText}
       </Button>
     </ScrollView>
   );
 };
+
+// Export convenience wrappers for backward compatibility
+// These wrappers automatically set the mode prop
+export const CreateSessionForm: React.FC<CreateSessionFormWrapperProps> = (
+  props,
+) => <SessionForm {...props} mode="create" />;
+
+export const UpdateSessionForm: React.FC<UpdateSessionFormWrapperProps> = (
+  props,
+) => <SessionForm {...props} mode="update" />;

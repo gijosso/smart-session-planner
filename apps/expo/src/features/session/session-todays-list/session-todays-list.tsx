@@ -2,7 +2,10 @@ import type React from "react";
 import { LegendList } from "@legendapp/list";
 
 import type { RouterOutputs } from "~/utils/api";
-import { ItemSeparator } from "~/components/list";
+import {
+  HORIZONTAL_CONTENT_CONTAINER_STYLE,
+  ItemSeparator,
+} from "~/components/list";
 import { SEPARATOR_SIZE } from "~/components/list/item-separator";
 import { ListEmptyComponent } from "./list-empty";
 import { SESSION_ITEM_HEIGHT, SessionItem } from "./session-item";
@@ -29,9 +32,11 @@ export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
   <LegendList
     data={sessions}
     estimatedItemSize={estimatedItemSize}
+    contentContainerStyle={HORIZONTAL_CONTENT_CONTAINER_STYLE}
     ItemSeparatorComponent={itemSeparatorComponent}
     ListEmptyComponent={ListEmptyComponent}
     keyExtractor={keyExtractor}
     renderItem={renderItem}
+    scrollEnabled={false}
   />
 );
