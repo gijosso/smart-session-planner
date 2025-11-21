@@ -6,6 +6,6 @@ interface ItemSeparatorComponentProps {
 }
 
 export const ItemSeparatorComponent = React.memo<ItemSeparatorComponentProps>(
-  ({ horizontal = true }) => <View className={horizontal ? "w-4" : "h-4"} />,
+  ({ horizontal = true }) => <View className={horizontal ? "w-6" : "h-6"} />,
 );
 ItemSeparatorComponent.displayName = "ItemSeparatorComponent";

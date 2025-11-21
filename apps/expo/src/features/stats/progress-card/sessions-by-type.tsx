@@ -17,7 +17,7 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
   const activeTypes = useMemo(
     () =>
       (Object.entries(byType) as [SessionType, number][])
-        .filter(([_, count]) => count > 0)
+    .filter(([_, count]) => count > 0)
         .sort(([_, a], [__, b]) => b - a), // Sort by count descending
     [byType],
   );
