@@ -5,5 +5,6 @@ export const HORIZONTAL_CONTENT_CONTAINER_STYLE: ViewStyle = {
 };
 
 export const VERTICAL_CONTENT_CONTAINER_STYLE: ViewStyle = {
-  padding: 22,
+  paddingTop: 22,
+  paddingHorizontal: 22,
 };
