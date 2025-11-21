@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { SuggestionWithId } from "~/types";
+import type { AppError } from "~/utils/error/types";
 import { Button, Content } from "~/components";
 import { SkeletonList } from "~/components/layout/skeleton-loader";
 import { FLEX_1_STYLE, SUGGESTION_ITEM_HEIGHT } from "~/constants/app";
@@ -13,6 +14,8 @@ import { SuggestionsList } from "./suggestions-list";
 type SmartSuggestionsSectionProps = {
   suggestions: SuggestionWithId[];
   isLoading?: boolean;
+  error?: AppError;
+  onRetry?: () => void;
 };
 
 /**
@@ -23,13 +26,15 @@ type SmartSuggestionsSectionProps = {
 export function SmartSuggestionsSection({
   suggestions,
   isLoading = false,
+  error,
+  onRetry,
 }: SmartSuggestionsSectionProps) {
   const handleNavigateToSuggestions = useCallback(() => {
     router.push("/suggestions");
   }, []);
 
-  // Hide section if not loading and no suggestions
-  if (!isLoading && suggestions.length === 0) {
+  // Hide section if not loading, no suggestions, and no error
+  if (!isLoading && suggestions.length === 0 && !error) {
     return null;
   }
 
@@ -63,6 +68,17 @@ export function SmartSuggestionsSection({
         {isLoading ? (
           <View className="p-4">
             <SkeletonList count={3} />
+          </View>
+        ) : error ? (
+          <View className="flex items-center justify-center p-4">
+            <Text className="text-muted-foreground mb-2 text-center text-sm">
+              {error.userMessage ?? error.message ?? "Failed to load suggestions"}
+            </Text>
+            {onRetry && (
+              <Button variant="outline" size="sm" onPress={onRetry}>
+                <Text className="text-sm">Retry</Text>
+              </Button>
+            )}
           </View>
         ) : (
           <SuggestionsList

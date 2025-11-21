@@ -21,7 +21,12 @@ export function ClearAllSessionsButton() {
 
   const clearAllSessionsMutation = useMutation(
     trpc.session.deleteAll.mutationOptions({
-      onSuccess: () => {
+      onSuccess: (
+        _data: unknown,
+        _variables: void,
+        _onMutateResult: unknown,
+        _mutation: unknown,
+      ) => {
         // Invalidate all session-related queries comprehensively
         // Since we're deleting ALL sessions, we need to invalidate everything
 
@@ -55,9 +60,16 @@ export function ClearAllSessionsButton() {
 
         toast.success("All sessions cleared successfully", "Sessions Cleared");
       },
-      onError: createMutationErrorHandler({
-        errorMessage: "Failed to clear all sessions. Please try again.",
-      }),
+      onError: (
+        error: unknown,
+        _variables: void,
+        _onMutateResult: unknown,
+        _mutation: unknown,
+      ) => {
+        createMutationErrorHandler({
+          errorMessage: "Failed to clear all sessions. Please try again.",
+        })(error);
+      },
     }),
   );
 

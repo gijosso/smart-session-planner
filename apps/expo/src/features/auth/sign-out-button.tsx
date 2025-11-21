@@ -14,9 +14,16 @@ export const SignOutButton = () => {
       await authClient.removeAccessToken();
       await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
     },
-    onError: createMutationErrorHandler({
-      errorMessage: "Failed to sign out. Please try again.",
-    }),
+    onError: (
+      error: unknown,
+      _variables: void,
+      _onMutateResult: unknown,
+      _mutation: unknown,
+    ) => {
+      createMutationErrorHandler({
+        errorMessage: "Failed to sign out. Please try again.",
+      })(error);
+    },
   });
 
   const handleSignOut = useCallback(() => {

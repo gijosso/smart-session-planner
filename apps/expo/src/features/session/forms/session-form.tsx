@@ -125,8 +125,7 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
     setValue,
     reset,
   } = useForm<SessionFormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-    resolver: zodResolver(sessionFormSchema) as any,
+    resolver: zodResolver<SessionFormValues>(sessionFormSchema),
     defaultValues: formattedInitialValues,
     mode: "onChange",
   });

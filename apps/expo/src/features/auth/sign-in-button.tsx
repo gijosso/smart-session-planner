@@ -12,12 +12,17 @@ export const SignInButton = () => {
 
   const signInMutation = useMutation(
     trpc.auth.signUpAnonymously.mutationOptions({
-      async onSuccess(data: {
-        user: { id: string; email: string; emailVerified: boolean };
-        accessToken: string;
-        refreshToken: string | null;
-        expiresAt: number | null;
-      }) {
+      async onSuccess(
+        data: {
+          user: { id: string; email: string; emailVerified: boolean };
+          accessToken: string;
+          refreshToken: string | null;
+          expiresAt: number | null;
+        },
+        _variables: { timezone: string },
+        _onMutateResult: unknown,
+        _mutation: unknown,
+      ) {
         // Store the session tokens securely
         await authClient.setSession({
           accessToken: data.accessToken,
@@ -27,9 +32,16 @@ export const SignInButton = () => {
         // Invalidate session query to refetch with new token
         await queryClient.invalidateQueries(trpc.auth.getSession.queryFilter());
       },
-      onError: createMutationErrorHandler({
-        errorMessage: "Failed to sign in. Please try again.",
-      }),
+      onError: (
+        error: unknown,
+        _variables: { timezone: string },
+        _onMutateResult: unknown,
+        _mutation: unknown,
+      ) => {
+        createMutationErrorHandler({
+          errorMessage: "Failed to sign in. Please try again.",
+        })(error);
+      },
     }),
   );
 

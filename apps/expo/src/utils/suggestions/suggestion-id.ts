@@ -124,17 +124,23 @@ export function getSuggestionMutationOptions<
     onError: (
       _err: unknown,
       _variables: TVariables,
-      context: { previousData?: SuggestedSession[] } | undefined,
+      onMutateResult: { previousData?: SuggestedSession[] } | undefined,
+      _mutation: unknown,
     ) => {
       // If the mutation fails, rollback to the previous value
-      if (context?.previousData) {
+      if (onMutateResult?.previousData) {
         const queryOptions = trpc.session.suggest.queryOptions({
           lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
         });
-        queryClient.setQueryData(queryOptions.queryKey, context.previousData);
+        queryClient.setQueryData(queryOptions.queryKey, onMutateResult.previousData);
       }
     },
-    onSettled: () => {
+    onSettled: (
+      _data: unknown,
+      _error: unknown,
+      _variables: TVariables,
+      _onMutateResult: { previousData?: SuggestedSession[] } | undefined,
+    ) => {
       // Always refetch after error or success to ensure consistency
       const queryOptions = trpc.session.suggest.queryOptions({
         lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,

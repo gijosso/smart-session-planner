@@ -38,14 +38,26 @@ export default function EditAvailability() {
 
   const updateMutation = useMutation(
     trpc.availability.setWeekly.mutationOptions({
-      onSuccess: () => {
+      onSuccess: (
+        _data: unknown,
+        _variables: { weeklyAvailability: WeeklyAvailability },
+        _onMutateResult: unknown,
+        _mutation: unknown,
+      ) => {
         void queryClient.invalidateQueries(trpc.availability.get.queryFilter());
         toast.success("Availability updated successfully");
         router.back();
       },
-      onError: createMutationErrorHandler({
-        errorMessage: "Failed to update availability. Please try again.",
-      }),
+      onError: (
+        error: unknown,
+        _variables: { weeklyAvailability: WeeklyAvailability },
+        _onMutateResult: unknown,
+        _mutation: unknown,
+      ) => {
+        createMutationErrorHandler({
+          errorMessage: "Failed to update availability. Please try again.",
+        })(error);
+      },
     }),
   );
 

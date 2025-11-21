@@ -18,14 +18,33 @@ import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";
 
 export default function Home() {
-  // Fetch all shared data at route level
-  const statsQuery = useQuery(trpc.stats.sessions.queryOptions());
-  const todaySessionsForListQuery = useQuery(trpc.session.today.queryOptions());
+  // Priority 1: Today's sessions (most critical - user needs to see schedule immediately)
+  // Load immediately with high priority
+  const todaySessionsForListQuery = useQuery({
+    ...trpc.session.today.queryOptions(),
+    staleTime: 30 * 1000, // Consider fresh for 30 seconds
+  });
+
+  // Priority 2: Stats (important but can show skeleton while loading)
+  // Load immediately but allow progressive rendering
+  const statsQuery = useQuery({
+    ...trpc.stats.sessions.queryOptions(),
+    staleTime: 60 * 1000, // Stats can be slightly stale (1 minute)
+  });
+
+  // Priority 3: Suggestions (nice-to-have, lazy load after critical data)
+  // Only load after critical queries have initial data (not just when not loading)
+  // This ensures we don't block suggestions on refetches
+  const criticalQueriesHaveData =
+    todaySessionsForListQuery.data !== undefined &&
+    statsQuery.data !== undefined;
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
       lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
     }),
-    placeholderData: (previousData) => previousData,
+    enabled: criticalQueriesHaveData, // Lazy load: only fetch after critical queries have data
+    staleTime: 5 * 60 * 1000, // Suggestions can be stale for 5 minutes
+    placeholderData: (previousData) => previousData, // Use cached data if available
   });
 
   // Handle errors consistently
@@ -50,23 +69,22 @@ export default function Home() {
   const isSuggestionsLoading =
     suggestionsQuery.isLoading && !suggestionsQuery.data;
 
-  // Memoize retry handler to prevent unnecessary re-renders
-  const handleRetry = useCallback(() => {
+  // Memoize retry handlers - separate for critical vs non-critical
+  const handleRetryCritical = useCallback(() => {
     void statsQuery.refetch();
     void todaySessionsForListQuery.refetch();
-    void suggestionsQuery.refetch();
-  }, [statsQuery, todaySessionsForListQuery, suggestionsQuery]);
+  }, [statsQuery, todaySessionsForListQuery]);
 
-  // Show error screen for critical errors (stats, today's sessions, or suggestions)
-  if (
-    statsError.hasError ||
-    todaySessionsError.hasError ||
-    suggestionsError.hasError
-  ) {
-    const error =
-      statsError.error ?? todaySessionsError.error ?? suggestionsError.error;
+  const handleRetrySuggestions = useCallback(() => {
+    void suggestionsQuery.refetch();
+  }, [suggestionsQuery]);
+
+  // Show error screen only for critical errors (stats or today's sessions)
+  // Suggestions errors are handled inline
+  if (statsError.hasError || todaySessionsError.hasError) {
+    const error = statsError.error ?? todaySessionsError.error;
     if (error) {
-      return <ErrorScreen error={error} onRetry={handleRetry} />;
+      return <ErrorScreen error={error} onRetry={handleRetryCritical} />;
     }
   }
 
@@ -93,6 +111,8 @@ export default function Home() {
       <SmartSuggestionsSection
         suggestions={suggestions}
         isLoading={isSuggestionsLoading}
+        error={suggestionsError.hasError ? suggestionsError.error : undefined}
+        onRetry={handleRetrySuggestions}
       />
 
       <Content>
