@@ -82,16 +82,21 @@ export default function Home() {
 
       <Content>
         <View className="flex flex-row items-center justify-between">
-          <Text className="text-foreground text-2xl">Smart Suggestions</Text>
+          <Text className="text-foreground text-2xl" accessibilityRole="header">
+            Smart Suggestions
+          </Text>
           <Button
             variant="ghost"
             size="icon"
             onPress={() => router.push("/suggestions")}
+            accessibilityLabel="View all suggestions"
+            accessibilityRole="button"
           >
             <Ionicons
               name="chevron-forward-outline"
               size={22}
               className="text-muted-foreground"
+              accessibilityLabel="Navigate to suggestions"
             />
           </Button>
         </View>
@@ -102,7 +107,9 @@ export default function Home() {
 
       <Content>
         <View className="flex flex-row items-center justify-between">
-          <Text className="text-foreground text-2xl">Today's Sessions</Text>
+          <Text className="text-foreground text-2xl" accessibilityRole="header">
+            Today's Sessions
+          </Text>
           <SessionAddButton />
         </View>
       </Content>

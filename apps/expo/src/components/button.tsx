@@ -20,6 +20,7 @@ export interface ButtonProps extends Omit<PressableProps, "children"> {
   children: React.ReactNode;
   className?: string;
   textClassName?: string;
+  // Accessibility props are passed through via PressableProps
 }
 
 const VARIANT_STYLES = {

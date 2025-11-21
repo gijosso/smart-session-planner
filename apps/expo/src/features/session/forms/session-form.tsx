@@ -15,6 +15,7 @@ import {
   formatTimeForInput,
   getCurrentTime,
   getTodayDate,
+  parseLocalDateTime,
 } from "~/utils/date";
 import {
   getFieldError,
@@ -132,16 +133,13 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
     validateOnChange: true,
     validateOnBlur: true,
     onSubmit: (values) => {
-      // Combine date and time strings into ISO format
-      const startDateTime = `${values.startDate}T${values.startTime}:00`;
-      const endDateTime = `${values.endDate}T${values.endTime}:00`;
-
-      // Create Date objects - JavaScript will interpret these in local timezone
-      const startTimeDate = new Date(startDateTime);
-      const endTimeDate = new Date(endDateTime);
+      // Parse date and time strings into Date objects in local timezone
+      // This ensures proper timezone handling and validation
+      const startTimeDate = parseLocalDateTime(values.startDate, values.startTime);
+      const endTimeDate = parseLocalDateTime(values.endDate, values.endTime);
 
       // Validate dates before submitting
-      if (isNaN(startTimeDate.getTime()) || isNaN(endTimeDate.getTime())) {
+      if (!startTimeDate || !endTimeDate) {
         // Dates are invalid, don't submit
         return;
       }

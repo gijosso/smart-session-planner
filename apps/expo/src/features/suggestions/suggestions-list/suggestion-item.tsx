@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components";
+import { COLORS_MUTED } from "~/constants/colors";
 import { trpc } from "~/utils/api";
 import { invalidateSessionQueries } from "~/utils/session-cache";
 import {
@@ -143,7 +144,12 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
 
           <CardContent>
             <View className="flex flex-row items-center gap-2">
-              <Ionicons name="time-outline" size={22} color="#71717A" />
+              <Ionicons
+                name="time-outline"
+                size={22}
+                color={COLORS_MUTED}
+                accessibilityLabel="Time icon"
+              />
 
               <Text className="text-secondary-foreground">{formattedDate}</Text>
 
@@ -165,10 +171,18 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
               onPress={handleAccept}
               disabled={createSessionMutation.isPending}
               className="flex-1"
+              accessibilityLabel={`Accept suggestion: ${suggestion.title}`}
+              accessibilityRole="button"
             >
               {createSessionMutation.isPending ? "Accepting..." : "Accept"}
             </Button>
-            <Button variant="secondary" size="md" onPress={handleAdjust}>
+            <Button
+              variant="secondary"
+              size="md"
+              onPress={handleAdjust}
+              accessibilityLabel={`Adjust suggestion: ${suggestion.title}`}
+              accessibilityRole="button"
+            >
               Adjust
             </Button>
           </CardFooter>

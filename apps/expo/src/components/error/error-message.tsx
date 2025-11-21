@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { COLORS_DESTRUCTIVE } from "~/constants/colors";
 import type { AppError } from "~/utils/error/types";
 import { getUserErrorMessage } from "~/utils/error/types";
 
@@ -36,13 +37,18 @@ export const ErrorMessage = React.memo<ErrorMessageProps>(
     if (!message) return null;
 
     return (
-      <View className={`flex flex-row items-center gap-2 ${className ?? ""}`}>
+      <View
+        className={`flex flex-row items-center gap-2 ${className ?? ""}`}
+        accessibilityRole="alert"
+        accessibilityLabel={`Error: ${message}`}
+      >
         {showIcon && (
           <Ionicons
-          name="alert-circle"
-          size={size === "sm" ? 16 : size === "md" ? 18 : 20}
-          color="#EF4444"
-        />
+            name="alert-circle"
+            size={size === "sm" ? 16 : size === "md" ? 18 : 20}
+            color={COLORS_DESTRUCTIVE}
+            accessibilityLabel="Error icon"
+          />
         )}
         <Text className={`text-destructive ${SIZE_STYLES[size]} ${textClassName ?? ""}`}>
           {message}

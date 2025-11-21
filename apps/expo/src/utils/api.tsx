@@ -5,8 +5,16 @@ import superjson from "superjson";
 
 import type { AppRouter } from "@ssp/api";
 
+import {
+  DEFAULT_RETRY_DELAY_MS,
+  MAX_REFRESH_RETRIES,
+  MAX_RETRY_DELAY_MS,
+  REFRESH_TIMEOUT_MS,
+  STALE_REFRESH_THRESHOLD_MS,
+} from "~/constants/api";
 import { authClient } from "./auth";
 import { getBaseUrl } from "./base-url";
+import { safeParse } from "./safe-json";
 
 /**
  * QueryClient configuration with sensible defaults for React Native
@@ -47,7 +55,7 @@ export const queryClient = new QueryClient({
       },
       retryDelay: (attemptIndex) => {
         // Exponential backoff: 1s, 2s, 4s
-        return Math.min(1000 * 2 ** attemptIndex, 30000);
+        return Math.min(DEFAULT_RETRY_DELAY_MS * 2 ** attemptIndex, MAX_RETRY_DELAY_MS);
       },
       // Stale time: how long data is considered fresh
       // Default to 0 (always refetch) - individual queries can override
@@ -67,16 +75,14 @@ export const queryClient = new QueryClient({
     mutations: {
       // Retry mutations once on network errors
       retry: 1,
-      retryDelay: 1000,
+      retryDelay: DEFAULT_RETRY_DELAY_MS,
       // Network mode for mutations
       networkMode: "online",
     },
   },
 });
 
-// Token refresh configuration
-const REFRESH_TIMEOUT_MS = 10000; // 10 seconds timeout
-const MAX_REFRESH_RETRIES = 2;
+// Token refresh configuration - imported from constants
 
 // Track if a refresh is in progress to avoid multiple simultaneous refreshes
 interface RefreshState {
@@ -127,10 +133,10 @@ async function fetchWithTimeout(
  * - Proper error handling and cleanup
  */
 export async function refreshAccessToken(): Promise<void> {
-  // If a refresh is already in progress and recent (within last 5 seconds), wait for it
+  // If a refresh is already in progress and recent, wait for it
   if (refreshState) {
     const age = Date.now() - refreshState.timestamp;
-    if (age < 5000) {
+    if (age < STALE_REFRESH_THRESHOLD_MS) {
       // Recent refresh in progress, wait for it
       return refreshState.promise;
     }
@@ -171,7 +177,9 @@ export async function refreshAccessToken(): Promise<void> {
           throw new Error(`Token refresh failed: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as {
+        // Safely parse JSON response with error handling
+        const responseText = await response.text();
+        const data = safeParse<{
           result: {
             data: {
               json: {
@@ -181,7 +189,11 @@ export async function refreshAccessToken(): Promise<void> {
               };
             };
           };
-        };
+        }>(responseText);
+
+        if (!data) {
+          throw new Error("Invalid JSON response from token refresh endpoint");
+        }
 
         const result = data.result.data.json;
         if (!result.accessToken) {

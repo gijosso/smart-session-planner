@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import type { RouterOutputs } from "~/utils/api";
 import { Card, CardContent } from "~/components";
+import { COLORS_MUTED } from "~/constants/colors";
 import { formatDateShort } from "~/utils/date";
 import { SessionRecapFilter } from "./session-recap-filter";
 
@@ -47,20 +48,30 @@ export const SessionRecap: React.FC<SessionRecapProps> = ({ stats }) => {
       </View>
 
       <Card className="flex flex-row items-center">
-        <CardContent>
+        <CardContent accessibilityRole="summary">
           <View className="flex flex-row items-center">
             <View className="flex flex-row items-center gap-2">
-              <Ionicons name="time-outline" size={22} color="#71717A" />
-              <Text className="text-foreground text-md">
+              <Ionicons
+                name="time-outline"
+                size={22}
+                color={COLORS_MUTED}
+                accessibilityLabel="Total sessions icon"
+              />
+              <Text className="text-foreground text-md" accessibilityRole="text">
                 {totalSessions} {totalSessions === 1 ? "session" : "sessions"}
               </Text>
             </View>
 
-            <View className="bg-muted mx-4 h-1 w-1 rounded-full" />
+            <View className="bg-muted mx-4 h-1 w-1 rounded-full" accessibilityRole="none" />
 
             <View className="flex flex-row items-center gap-2">
-              <Ionicons name="checkmark" size={22} color="#71717A" />
-              <Text className="text-foreground text-md">
+              <Ionicons
+                name="checkmark"
+                size={22}
+                color={COLORS_MUTED}
+                accessibilityLabel="Completed sessions icon"
+              />
+              <Text className="text-foreground text-md" accessibilityRole="text">
                 {completedSessions} done
               </Text>
             </View>

@@ -176,3 +176,57 @@ export const dateToISOString = (date: Date | null | undefined): string => {
     return "";
   }
 };
+
+/**
+ * Parse date and time strings into a Date object in the user's local timezone
+ * Properly handles timezone conversion to ensure dates are interpreted correctly
+ * 
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @param timeStr - Time string in HH:mm format
+ * @returns Date object in local timezone, or null if invalid
+ */
+export function parseLocalDateTime(
+  dateStr: string,
+  timeStr: string,
+): Date | null {
+  if (!dateStr || !timeStr) return null;
+
+  try {
+    // Split time string to get hours and minutes
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    
+    if (isNaN(hours) || isNaN(minutes)) {
+      return null;
+    }
+
+    // Split date string to get year, month, day
+    const [year, month, day] = dateStr.split("-").map(Number);
+    
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      return null;
+    }
+
+    // Create date in local timezone (month is 0-indexed in Date constructor)
+    const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    
+    // Validate the date
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+
+    // Verify the date components match (handles invalid dates like Feb 30)
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day ||
+      date.getHours() !== hours ||
+      date.getMinutes() !== minutes
+    ) {
+      return null;
+    }
+
+    return date;
+  } catch {
+    return null;
+  }
+}

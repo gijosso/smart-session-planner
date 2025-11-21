@@ -3,10 +3,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 
+import { REFRESH_INTERVAL_MS } from "~/constants/api";
 import { refreshAccessToken, trpc } from "~/utils/api";
 import { authClient } from "~/utils/auth";
-
-const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
 export const useRefreshAccessToken = () => {
   const { data: session, isLoading } = useQuery(
