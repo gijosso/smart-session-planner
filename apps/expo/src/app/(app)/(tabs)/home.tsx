@@ -94,7 +94,7 @@ export default function Home() {
           </Button>
         </View>
       </Content>
-      <View>
+      <View style={{ flex: 1 }}>
         <SuggestionsList suggestions={suggestions} horizontal={true} />
       </View>
 
@@ -104,7 +104,7 @@ export default function Home() {
           <SessionAddButton />
         </View>
       </Content>
-      <View>
+      <View style={{ flex: 1 }}>
         <SessionTodaysList sessions={todaySessionsForListQuery.data} />
       </View>
 

@@ -94,6 +94,7 @@ export const SuggestionsList = memo<SuggestionsListProps>(
         renderItem={renderItem}
         refreshControl={refreshControl}
         estimatedItemSize={estimatedItemSize}
+        style={{ flex: 1 }}
         {...legendListProps}
       />
     );

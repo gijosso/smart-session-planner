@@ -53,6 +53,7 @@
     "@ssp/prettier-config": "workspace:*",
     "@ssp/tailwind-config": "workspace:*",
     "@ssp/tsconfig": "workspace:*",
+    "@tanstack/react-query-devtools": "catalog:",
     "@types/react": "catalog:react19",
     "eslint": "catalog:",
     "prettier": "catalog:",

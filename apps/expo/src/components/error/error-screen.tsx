@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Button } from "~/components";
+import { Button } from "~/components/button";
 import type { AppError } from "~/utils/error/types";
 import { ERROR_MESSAGES } from "~/utils/error/types";
 

@@ -74,75 +74,156 @@ export const queryClient = new QueryClient({
   },
 });
 
+// Token refresh configuration
+const REFRESH_TIMEOUT_MS = 10000; // 10 seconds timeout
+const MAX_REFRESH_RETRIES = 2;
+
 // Track if a refresh is in progress to avoid multiple simultaneous refreshes
-let refreshPromise: Promise<void> | null = null;
+interface RefreshState {
+  promise: Promise<void>;
+  timestamp: number;
+  retryCount: number;
+}
+
+let refreshState: RefreshState | null = null;
+
+/**
+ * Create a timeout promise that rejects after the specified duration
+ */
+function createTimeoutPromise(ms: number): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Token refresh timed out after ${ms}ms`));
+    }, ms);
+  });
+}
 
 /**
  * Refresh the access token using the stored refresh token
  * Exported for use in components that need to manually trigger refresh
+ * 
+ * Features:
+ * - Prevents concurrent refresh attempts (race condition protection)
+ * - Timeout protection (10 seconds)
+ * - Retry logic with exponential backoff
+ * - Proper error handling and cleanup
  */
 export async function refreshAccessToken(): Promise<void> {
-  // If a refresh is already in progress, wait for it
-  if (refreshPromise) {
-    return refreshPromise;
+  // If a refresh is already in progress and recent (within last 5 seconds), wait for it
+  if (refreshState) {
+    const age = Date.now() - refreshState.timestamp;
+    if (age < 5000) {
+      // Recent refresh in progress, wait for it
+      return refreshState.promise;
+    }
+    // Stale refresh promise, reset and start fresh
+    refreshState = null;
   }
 
-  refreshPromise = (async () => {
-    try {
-      const refreshToken = await authClient.getRefreshToken();
-      if (!refreshToken) {
-        // No refresh token available, clear session
-        await authClient.removeAccessToken();
-        return;
-      }
+  // Create new refresh promise with timeout protection
+  const refreshPromise = (async (): Promise<void> => {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt <= MAX_REFRESH_RETRIES; attempt++) {
+      try {
+        const refreshToken = await authClient.getRefreshToken();
+        if (!refreshToken) {
+          // No refresh token available, clear session
+          await authClient.removeAccessToken();
+          throw new Error("No refresh token available");
+        }
 
-      // Call refresh endpoint directly using fetch to avoid typing issues
-      const baseUrl = getBaseUrl();
-      const response = await fetch(`${baseUrl}/api/trpc/auth.refreshToken`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          json: { refreshToken },
-        }),
-      });
+        // Call refresh endpoint with timeout protection
+        const baseUrl = getBaseUrl();
+        const fetchPromise = fetch(`${baseUrl}/api/trpc/auth.refreshToken`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            json: { refreshToken },
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Token refresh failed: ${response.statusText}`);
-      }
+        // Race between fetch and timeout
+        const response = await Promise.race([
+          fetchPromise,
+          createTimeoutPromise(REFRESH_TIMEOUT_MS),
+        ]);
 
-      const data = (await response.json()) as {
-        result: {
-          data: {
-            json: {
-              accessToken: string;
-              refreshToken: string | null;
-              expiresAt: number | null;
+        if (!response.ok) {
+          throw new Error(`Token refresh failed: ${response.statusText}`);
+        }
+
+        const data = (await response.json()) as {
+          result: {
+            data: {
+              json: {
+                accessToken: string;
+                refreshToken: string | null;
+                expiresAt: number | null;
+              };
             };
           };
         };
-      };
 
-      const result = data.result.data.json;
-      if (!result.accessToken) {
-        throw new Error("No result returned from token refresh");
+        const result = data.result.data.json;
+        if (!result.accessToken) {
+          throw new Error("No result returned from token refresh");
+        }
+
+        // Store the new session tokens
+        await authClient.setSession({
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken ?? null,
+          expiresAt: result.expiresAt ?? null,
+        });
+
+        // Success - exit retry loop
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // Don't retry on certain errors (e.g., no refresh token, invalid response)
+        if (
+          lastError.message.includes("No refresh token") ||
+          lastError.message.includes("No result returned")
+        ) {
+          await authClient.removeAccessToken();
+          throw lastError;
+        }
+
+        // If this was the last attempt, throw the error
+        if (attempt === MAX_REFRESH_RETRIES) {
+          await authClient.removeAccessToken();
+          throw lastError;
+        }
+
+        // Exponential backoff: wait before retrying (1s, 2s)
+        const delay = 1000 * (attempt + 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
-
-      // Store the new session tokens
-      await authClient.setSession({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken ?? null,
-        expiresAt: result.expiresAt ?? null,
-      });
-    } catch (error) {
-      // Refresh failed, clear session
-      await authClient.removeAccessToken();
-      throw error;
-    } finally {
-      refreshPromise = null;
     }
+
+    // Should never reach here, but TypeScript needs it
+    throw lastError ?? new Error("Token refresh failed after all retries");
   })();
+
+  // Track the refresh state
+  refreshState = {
+    promise: refreshPromise,
+    timestamp: Date.now(),
+    retryCount: 0,
+  };
+
+  // Clean up state when promise resolves or rejects
+  refreshPromise
+    .then(() => {
+      refreshState = null;
+    })
+    .catch(() => {
+      refreshState = null;
+    });
 
   return refreshPromise;
 }
@@ -199,19 +280,29 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
           // If we get a 401, try to refresh the token and retry once
           if (response.status === 401) {
             try {
+              // Wait for any in-progress refresh or start a new one
               await refreshAccessToken();
+              
               // Retry the request with the new token
               const newHeaders = new Headers(options?.headers);
               const authHeader = await authClient.getAuthHeader();
               if (authHeader) {
                 newHeaders.set("Authorization", authHeader);
+              } else {
+                // Fallback to cookies if Authorization header is not available
+                const cookies = await authClient.getCookie();
+                if (cookies) {
+                  newHeaders.set("Cookie", cookies);
+                }
               }
+              
               return fetch(url, {
                 ...options,
                 headers: newHeaders,
               });
-            } catch {
+            } catch (error) {
               // Refresh failed, return original 401 response
+              // Error is already logged/handled in refreshAccessToken
               return response;
             }
           }

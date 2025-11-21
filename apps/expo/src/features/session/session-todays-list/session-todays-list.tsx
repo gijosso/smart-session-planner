@@ -38,5 +38,6 @@ export const SessionTodaysList: React.FC<SessionTodaysListProps> = ({
     keyExtractor={keyExtractor}
     renderItem={renderItem}
     scrollEnabled={false}
+    style={{ flex: 1 }}
   />
 );
