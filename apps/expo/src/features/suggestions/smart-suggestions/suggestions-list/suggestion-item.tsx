@@ -23,9 +23,11 @@ import { getSuggestionMutationOptions } from "~/utils/suggestion-id";
 
 interface SuggestionItemProps {
   suggestion: SuggestionWithId;
+  horizontal?: boolean;
 }
 
-const CARD_CONTENT_STYLE = { width: 300 };
+export const SUGGESTION_ITEM_WIDTH = 300 as const;
+export const SUGGESTION_ITEM_HEIGHT = 250 as const;
 const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
 
 /**
@@ -33,7 +35,7 @@ const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
  * Displays a single suggestion in a horizontal scrolling list
  */
 export const SuggestionItem = React.memo<SuggestionItemProps>(
-  ({ suggestion }) => {
+  ({ suggestion, horizontal = false }) => {
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -116,25 +118,30 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
     );
 
     return (
-      <Card variant="muted" className="bg-suggestion-card p-6">
-        <CardHeader>
-          <View className="flex flex-1 flex-row items-center justify-end">
-            <View className="flex flex-row items-center gap-1">
-              {PRIORITY_LEVELS.map((level) => (
-                <View
-                  key={level}
-                  className={`h-2 w-2 rounded-full bg-black ${
-                    level <= suggestion.priority ? "bg-black" : "bg-gray-300"
-                  }`}
-                />
-              ))}
+      <View
+        style={{
+          width: horizontal ? SUGGESTION_ITEM_WIDTH : undefined,
+          height: horizontal ? undefined : SUGGESTION_ITEM_HEIGHT,
+        }}
+      >
+        <Card variant="muted" className="bg-suggestion-card p-6">
+          <CardHeader>
+            <View className="flex flex-1 flex-row items-center justify-end">
+              <View className="flex flex-row items-center gap-1">
+                {PRIORITY_LEVELS.map((level) => (
+                  <View
+                    key={level}
+                    className={`h-2 w-2 rounded-full bg-black ${
+                      level <= suggestion.priority ? "bg-black" : "bg-gray-300"
+                    }`}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
-          <CardTitle>{suggestion.title}</CardTitle>
-        </CardHeader>
+            <CardTitle>{suggestion.title}</CardTitle>
+          </CardHeader>
 
-        <CardContent>
-          <View style={CARD_CONTENT_STYLE}>
+          <CardContent>
             <View className="flex flex-row items-center gap-2">
               <Ionicons name="time-outline" size={22} color="#71717A" />
 
@@ -146,27 +153,27 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
                 {formattedTimeRange}
               </Text>
             </View>
-          </View>
-        </CardContent>
+          </CardContent>
 
-        {suggestion.reasons.length > 0 && (
-          <Text className="text-secondary-foreground">{reasonsText}.</Text>
-        )}
+          {suggestion.reasons.length > 0 && (
+            <Text className="text-secondary-foreground">{reasonsText}.</Text>
+          )}
 
-        <CardFooter>
-          <Button
-            size="lg"
-            onPress={handleAccept}
-            disabled={createSessionMutation.isPending}
-            className="flex-1"
-          >
-            {createSessionMutation.isPending ? "Accepting..." : "Accept"}
-          </Button>
-          <Button variant="secondary" size="md" onPress={handleAdjust}>
-            Adjust
-          </Button>
-        </CardFooter>
-      </Card>
+          <CardFooter className="flex flex-row gap-4">
+            <Button
+              size="lg"
+              onPress={handleAccept}
+              disabled={createSessionMutation.isPending}
+              className="flex-1"
+            >
+              {createSessionMutation.isPending ? "Accepting..." : "Accept"}
+            </Button>
+            <Button variant="secondary" size="md" onPress={handleAdjust}>
+              Adjust
+            </Button>
+          </CardFooter>
+        </Card>
+      </View>
     );
   },
 );

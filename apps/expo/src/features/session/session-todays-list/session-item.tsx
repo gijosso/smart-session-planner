@@ -11,6 +11,8 @@ interface SessionItemProps {
   session: RouterOutputs["session"]["today"][number];
 }
 
+export const SESSION_ITEM_HEIGHT = 95 as const;
+
 export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
   return (
     <Link
@@ -19,6 +21,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
         pathname: "/session/[id]",
         params: { id: session.id },
       }}
+      style={{ height: SESSION_ITEM_HEIGHT }}
     >
       <Button variant="ghost">
         <Card className="flex flex-row items-center gap-4">
@@ -44,7 +47,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
 
           {session.completed && (
             <View className="bg-foreground items-center justify-center rounded-full p-1">
-              <Ionicons name="checkmark-outline" size={12} color="white" />
+              <Ionicons name="checkmark-outline" size={14} color="white" />
             </View>
           )}
         </Card>

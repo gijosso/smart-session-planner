@@ -1,14 +1,23 @@
 import type { LegendListProps } from "@legendapp/list";
 import type { ComponentRef } from "react";
-import type { ViewStyle } from "react-native";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { RefreshControl } from "react-native";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { LegendList } from "@legendapp/list";
 
 import type { SuggestionWithId } from "~/types";
-import { SuggestionItem } from "../suggestion-item";
-import { ItemSeparatorComponent } from "./item-separator";
+import {
+  HORIZONTAL_CONTENT_CONTAINER_STYLE,
+  ItemSeparator,
+  useRefreshControl,
+  useScrollToTop,
+  VERTICAL_CONTENT_CONTAINER_STYLE,
+} from "~/components/list";
+import { SEPARATOR_SIZE } from "~/components/list/item-separator";
 import { ListEmptyComponent } from "./list-empty";
+import {
+  SUGGESTION_ITEM_HEIGHT,
+  SUGGESTION_ITEM_WIDTH,
+  SuggestionItem,
+} from "./suggestion-item";
 
 type SuggestionsListProps = {
   suggestions: SuggestionWithId[];
@@ -30,13 +39,7 @@ type SuggestionsListProps = {
 
 const keyExtractor = (item: SuggestionWithId) => item.id;
 
-const HORIZONTAL_CONTENT_CONTAINER_STYLE: ViewStyle = {
-  paddingHorizontal: 22,
-};
-
-const VERTICAL_CONTENT_CONTAINER_STYLE: ViewStyle = {
-  padding: 22,
-};
+const itemSeparatorComponent = () => <ItemSeparator horizontal size="md" />;
 
 /**
  * List of suggestions - supports both horizontal and vertical layouts
@@ -51,46 +54,31 @@ export const SuggestionsList = memo<SuggestionsListProps>(
   }) => {
     const listRef =
       useRef<ComponentRef<typeof LegendList<SuggestionWithId>>>(null);
-
-    const renderItem = useCallback(
-      ({ item: suggestion }: { item: SuggestionWithId }) => (
-        <SuggestionItem suggestion={suggestion} />
-      ),
-      [],
-    );
-
-    const defaultContentStyle = useMemo(
-      () =>
-        horizontal
+    const { contentContainerStyle, estimatedItemSize } = useMemo(
+      () => ({
+        contentContainerStyle: horizontal
           ? HORIZONTAL_CONTENT_CONTAINER_STYLE
           : VERTICAL_CONTENT_CONTAINER_STYLE,
+        estimatedItemSize:
+          (horizontal ? SUGGESTION_ITEM_WIDTH : SUGGESTION_ITEM_HEIGHT) +
+          SEPARATOR_SIZE.md,
+      }),
+      [horizontal],
+    );
+    const renderItem = useCallback(
+      ({ item }: { item: SuggestionWithId }) => (
+        <SuggestionItem suggestion={item} horizontal={horizontal} />
+      ),
       [horizontal],
     );
 
-    const refreshControl = useMemo(() => {
-      if (!onRefresh || horizontal) {
-        return undefined;
-      }
-      return <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />;
-    }, [isLoading, onRefresh, horizontal]);
+    const refreshControl = useRefreshControl({
+      isLoading,
+      onRefresh,
+      horizontal,
+    });
 
-    // Scroll to top when component mounts or when suggestions change
-    useEffect(() => {
-      if (!horizontal && listRef.current && suggestions.length > 0) {
-        // Use requestAnimationFrame to ensure the list is fully laid out
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            // Double RAF to ensure layout is complete
-            listRef.current?.scrollToOffset({ offset: 0, animated: false });
-          });
-        });
-      }
-    }, [horizontal, suggestions.length]);
-
-    const itemSeparatorComponent = useCallback(
-      () => <ItemSeparatorComponent horizontal={horizontal} />,
-      [horizontal],
-    );
+    useScrollToTop(listRef, horizontal, suggestions.length > 0);
 
     return (
       <LegendList<SuggestionWithId>
@@ -99,11 +87,13 @@ export const SuggestionsList = memo<SuggestionsListProps>(
         keyExtractor={keyExtractor}
         horizontal={horizontal}
         showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={itemSeparatorComponent}
-        contentContainerStyle={defaultContentStyle}
+        contentContainerStyle={contentContainerStyle}
         ListEmptyComponent={ListEmptyComponent}
         renderItem={renderItem}
         refreshControl={refreshControl}
+        estimatedItemSize={estimatedItemSize}
         {...legendListProps}
       />
     );

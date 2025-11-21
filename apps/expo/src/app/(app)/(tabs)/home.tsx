@@ -9,7 +9,7 @@ import { SessionAddButton } from "~/features/session/session-add-button";
 import { SessionRecap } from "~/features/session/session-recap";
 import { SessionTodaysList } from "~/features/session/session-todays-list";
 import { ProgressCard } from "~/features/stats/progress-card";
-import { Suggestions } from "~/features/suggestions/smart-suggestions";
+import { SuggestionsList } from "~/features/suggestions/smart-suggestions/suggestions-list";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 
@@ -66,7 +66,7 @@ export default function Home() {
         </View>
       </Content>
       <View>
-        <Suggestions suggestions={suggestions} />
+        <SuggestionsList suggestions={suggestions} horizontal={true} />
       </View>
 
       <Content>
