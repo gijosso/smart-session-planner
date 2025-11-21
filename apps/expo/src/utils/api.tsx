@@ -8,10 +8,68 @@ import type { AppRouter } from "@ssp/api";
 import { authClient } from "./auth";
 import { getBaseUrl } from "./base-url";
 
+/**
+ * QueryClient configuration with sensible defaults for React Native
+ *
+ * Defaults are optimized for mobile apps:
+ * - Retry failed requests with exponential backoff
+ * - Refetch on reconnect
+ * - Reasonable cache times for offline support
+ * - Network-aware behavior
+ */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // ...
+      // Retry configuration
+      retry: (failureCount, error) => {
+        // Don't retry on client errors (4xx) or authentication errors
+        if (typeof error === "object" && "data" in error) {
+          const errorData = error.data as
+            | { code?: string; httpStatus?: number }
+            | undefined;
+
+          // Don't retry authentication errors
+          if (errorData?.code === "UNAUTHORIZED") {
+            return false;
+          }
+
+          // Don't retry on 4xx client errors (bad request, not found, etc.)
+          if (
+            errorData?.httpStatus &&
+            errorData.httpStatus >= 400 &&
+            errorData.httpStatus < 500
+          ) {
+            return false;
+          }
+        }
+        // Retry up to 3 times for network errors and 5xx server errors
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => {
+        // Exponential backoff: 1s, 2s, 4s
+        return Math.min(1000 * 2 ** attemptIndex, 30000);
+      },
+      // Stale time: how long data is considered fresh
+      // Default to 0 (always refetch) - individual queries can override
+      staleTime: 0,
+      // Cache time (gcTime in v5): how long unused data stays in cache
+      // 5 minutes default - allows offline viewing of recently accessed data
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      // Refetch behavior
+      refetchOnWindowFocus: false, // Mobile apps don't have window focus
+      refetchOnReconnect: true, // Refetch when network reconnects
+      refetchOnMount: true, // Refetch when component mounts (can be overridden)
+      // Network mode
+      networkMode: "online", // Only run queries when online
+      // Structural sharing: enabled by default, helps with performance
+      structuralSharing: true,
+    },
+    mutations: {
+      // Retry mutations once on network errors
+      retry: 1,
+      retryDelay: 1000,
+      // Network mode for mutations
+      networkMode: "online",
     },
   },
 });
