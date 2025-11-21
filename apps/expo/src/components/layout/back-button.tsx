@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { getForegroundColor } from "~/constants/colors";
-import { Button } from "..";
+import { Button } from "~/components/button";
 
 export const BackButton = memo(() => {
   const colorScheme = useColorScheme();

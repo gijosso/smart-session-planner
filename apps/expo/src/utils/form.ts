@@ -1,21 +1,9 @@
 import type { FieldErrors } from "react-hook-form";
 
-/**
- * Form utilities for working with React Hook Form
- * Centralized helpers for error handling, validation, and form state
- */
+import type { ServerError } from "~/utils/form/type-guards";
+import { isTRPCZodError } from "~/utils/form/type-guards";
 
-/**
- * Server error structure from tRPC mutations
- */
-export interface ServerError {
-  data?: {
-    zodError?: {
-      fieldErrors?: Record<string, string[]>;
-    };
-    code?: string;
-  };
-}
+export type { ServerError } from "~/utils/form/type-guards";
 
 /**
  * Get field error combining React Hook Form errors and server errors
@@ -41,12 +29,6 @@ export const getFieldError = <T extends Record<string, unknown>>(
 /**
  * Check if a field has an error
  * Useful for conditional styling
- *
- * @param fieldName - The name of the form field
- * @param formErrors - React Hook Form's errors object
- * @param isSubmitted - Whether the form has been submitted
- * @param serverError - Optional server error from mutation
- * @returns True if the field has an error
  */
 export const hasFieldError = <T extends Record<string, unknown>>(
   fieldName: keyof T,
@@ -62,12 +44,6 @@ export const hasFieldError = <T extends Record<string, unknown>>(
 /**
  * Get error class name for a field
  * Returns "border-destructive" if field has error, empty string otherwise
- *
- * @param fieldName - The name of the form field
- * @param formErrors - React Hook Form's errors object
- * @param isSubmitted - Whether the form has been submitted
- * @param serverError - Optional server error from mutation
- * @returns CSS class name for error styling
  */
 export const getFieldErrorClassName = <T extends Record<string, unknown>>(
   fieldName: keyof T,
@@ -82,10 +58,6 @@ export const getFieldErrorClassName = <T extends Record<string, unknown>>(
 
 /**
  * Check if form has any errors
- *
- * @param formErrors - React Hook Form's errors object
- * @param serverError - Optional server error from mutation
- * @returns True if form has any errors
  */
 export const hasFormErrors = <T extends Record<string, unknown>>(
   formErrors: FieldErrors<T>,
@@ -106,9 +78,6 @@ export const hasFormErrors = <T extends Record<string, unknown>>(
 
 /**
  * Check if form is in an unauthorized state
- *
- * @param serverError - Optional server error from mutation
- * @returns True if error indicates unauthorized access
  */
 export const isUnauthorizedError = (serverError?: ServerError): boolean => {
   return serverError?.data?.code === "UNAUTHORIZED";
@@ -117,11 +86,6 @@ export const isUnauthorizedError = (serverError?: ServerError): boolean => {
 /**
  * Get all field errors as a flat object
  * Useful for displaying all errors at once
- *
- * @param formErrors - React Hook Form's errors object
- * @param isSubmitted - Whether the form has been submitted
- * @param serverError - Optional server error from mutation
- * @returns Object with all field errors
  */
 export const getAllFieldErrors = <T extends Record<string, unknown>>(
   formErrors: FieldErrors<T>,
@@ -159,39 +123,30 @@ export const getAllFieldErrors = <T extends Record<string, unknown>>(
 /**
  * Transform tRPC mutation error to ServerError format
  * Converts the tRPC error structure to the format expected by form components
- *
- * @param mutationError - The error from tRPC mutation (can be null or undefined)
- * @returns ServerError format or undefined if no error
+ * Uses type guards for safe type checking
  */
 export const transformMutationError = (
-  mutationError:
-    | {
-        data?: {
-          zodError?: {
-            fieldErrors?: Record<string, string[] | undefined>;
-          } | null;
-          code?: string;
-        } | null;
-      }
-    | null
-    | undefined,
+  mutationError: unknown,
 ): ServerError | undefined => {
-  if (!mutationError?.data) {
+  // Use type guard to validate the error structure
+  if (!isTRPCZodError(mutationError) || !mutationError.data) {
     return undefined;
   }
 
+  const data = mutationError.data;
+
   return {
     data: {
-      zodError: mutationError.data.zodError
+      zodError: data.zodError
         ? {
             fieldErrors: Object.fromEntries(
-              Object.entries(
-                mutationError.data.zodError.fieldErrors ?? {},
-              ).filter(([, value]) => Array.isArray(value)),
+              Object.entries(data.zodError.fieldErrors ?? {}).filter(
+                ([, value]) => Array.isArray(value) && value.length > 0,
+              ),
             ) as Record<string, string[]>,
           }
         : undefined,
-      code: mutationError.data.code,
+      code: data.code,
     },
   };
 };

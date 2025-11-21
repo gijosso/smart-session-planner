@@ -9,7 +9,9 @@ import type { SessionFormValues } from "@ssp/validators";
 import { sessionFormSchema } from "@ssp/validators";
 
 import type { ServerError } from "~/utils/form";
-import { Button, Card, CardContent } from "~/components";
+import { Button } from "~/components/button";
+import { Card } from "~/components/card";
+import { CardContent } from "~/components/card/card-content";
 import {
   DateTimeInputGroup,
   PrioritySelector,

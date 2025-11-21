@@ -1,7 +1,9 @@
 import type { FieldErrors } from "react-hook-form";
 import { Text, View } from "react-native";
 
-import { Button } from "~/components";
+import { Button } from "~/components/button";
+import type { ServerError } from "~/utils/form";
+import { isFieldErrors, isServerError } from "~/utils/form/type-guards";
 import { FormField } from "./form-field";
 
 export interface SelectOption<T extends string | number> {
@@ -40,18 +42,23 @@ export function SelectButtonGroup<T extends string | number>({
   const containerClassName =
     layout === "wrap" ? "flex flex-row flex-wrap gap-2" : "flex flex-row gap-2";
 
+  // Use type guards to safely validate error types
+  const validatedErrors = isFieldErrors<Record<string, unknown>>(errors)
+    ? errors
+    : ({} as FieldErrors<Record<string, unknown>>);
+
+  const validatedServerError: ServerError | undefined = isServerError(serverError)
+    ? serverError
+    : undefined;
+
   return (
     <FormField
       label={label}
       required={required}
       fieldName={fieldName}
-      errors={errors as FieldErrors<Record<string, unknown>>}
+      errors={validatedErrors}
       isSubmitted={isSubmitted}
-      serverError={
-        serverError as
-          | { data?: { zodError?: { fieldErrors?: Record<string, string[]> } } }
-          | undefined
-      }
+      serverError={validatedServerError}
     >
       <View className={containerClassName}>
         {options.map((option) => {

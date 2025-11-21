@@ -2,7 +2,7 @@ import type React from "react";
 import { Text, View } from "react-native";
 import type { FieldErrors } from "react-hook-form";
 
-import { Button } from "~/components";
+import { Button } from "~/components/button";
 import { PRIORITY_LEVELS } from "~/constants/app";
 import type { ServerError } from "~/utils/form";
 
