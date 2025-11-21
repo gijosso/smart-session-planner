@@ -1,6 +1,6 @@
 import type React from "react";
+import type { FieldErrors, UseFormSetValue } from "react-hook-form";
 import { Text } from "react-native";
-import type { FieldErrors } from "react-hook-form";
 
 import type { SessionType } from "@ssp/api/client";
 import type { SessionFormValues } from "@ssp/validators";
@@ -31,7 +31,7 @@ interface SessionFormFieldsProps {
   errors: FieldErrors<SessionFormValues>;
   isSubmitted: boolean;
   serverError?: ServerError;
-  setValue: (name: keyof SessionFormValues, value: unknown) => void;
+  setValue: UseFormSetValue<SessionFormValues>;
 }
 
 /**
@@ -70,7 +70,7 @@ export const SessionFormFields: React.FC<SessionFormFieldsProps> = ({
         label="Type"
         required
         fieldName="type"
-        value={(formValues.type ?? "OTHER") as SessionType}
+        value={formValues.type ?? "OTHER"}
         options={SESSION_TYPE_OPTIONS}
         onSelect={(value) => setValue("type", value)}
         errors={errors}
@@ -141,4 +141,3 @@ export const SessionFormFields: React.FC<SessionFormFieldsProps> = ({
     </CardContent>
   );
 };
-

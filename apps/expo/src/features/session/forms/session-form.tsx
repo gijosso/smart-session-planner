@@ -6,9 +6,9 @@ import type { SessionFormValues } from "@ssp/validators";
 import type { ServerError } from "~/utils/form";
 import { Button } from "~/components/button";
 import { Card } from "~/components/card";
+import { SessionFormFields } from "./session-form-fields";
 import { useSessionFormLogic } from "./use-session-form-logic";
 import { useSessionFormSubmission } from "./use-session-form-submission";
-import { SessionFormFields } from "./session-form-fields";
 
 export type SessionFormMode = "create" | "update";
 
@@ -105,9 +105,7 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
       <Button
         variant="default"
         size="lg"
-        onPress={handleSubmit(
-          onSubmitForm as (data: SessionFormValues) => void,
-        )}
+        onPress={handleSubmit(onSubmitForm)}
         disabled={isPending}
       >
         {isPending ? pendingText : buttonText}

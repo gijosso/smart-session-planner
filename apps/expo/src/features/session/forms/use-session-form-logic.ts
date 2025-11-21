@@ -1,3 +1,4 @@
+import type { UseFormHandleSubmit } from "react-hook-form";
 import { useEffect, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
@@ -95,7 +96,8 @@ export function useSessionFormLogic(initialValues: SessionFormInitialValues) {
   const formValues = useWatch({ control });
 
   return {
-    handleSubmit,
+    handleSubmit:
+      handleSubmit as unknown as UseFormHandleSubmit<SessionFormValues>,
     errors,
     isSubmitted,
     formValues,
