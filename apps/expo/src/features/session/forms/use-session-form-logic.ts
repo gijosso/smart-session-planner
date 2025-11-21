@@ -8,6 +8,7 @@ import type { SessionFormValues } from "@ssp/validators";
 import { sessionFormSchema } from "@ssp/validators";
 
 import {
+  addMinutesToDateTime,
   formatDateForInput,
   formatTimeForInput,
   getCurrentTime,
@@ -48,13 +49,19 @@ export function useSessionFormLogic(initialValues: SessionFormInitialValues) {
   const formattedInitialValues = useMemo<SessionFormValues>(() => {
     if (mode === "create") {
       const prefilledValues = initialValues.initialValues;
+      const startDate = prefilledValues?.startDate ?? getTodayDate();
+      const startTime = prefilledValues?.startTime ?? getCurrentTime();
+      
+      // Calculate end date/time as start date/time + 30 minutes
+      const endDateTime = addMinutesToDateTime(startDate, startTime, 30);
+      
       return {
         title: prefilledValues?.title ?? "",
         type: prefilledValues?.type ?? "OTHER",
-        startDate: prefilledValues?.startDate ?? getTodayDate(),
-        startTime: prefilledValues?.startTime ?? getCurrentTime(),
-        endDate: prefilledValues?.endDate ?? getTodayDate(),
-        endTime: prefilledValues?.endTime ?? getCurrentTime(),
+        startDate,
+        startTime,
+        endDate: prefilledValues?.endDate ?? endDateTime?.endDate ?? getTodayDate(),
+        endTime: prefilledValues?.endTime ?? endDateTime?.endTime ?? getCurrentTime(),
         priority: prefilledValues?.priority ?? 3,
         description: prefilledValues?.description ?? "",
       };

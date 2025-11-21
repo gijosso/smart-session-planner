@@ -271,6 +271,30 @@ export function parseLocalDateTime(
 }
 
 /**
+ * Add minutes to a date/time combination and return formatted date and time strings
+ * Used for calculating end date/time from start date/time
+ *
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @param timeStr - Time string in HH:mm format
+ * @param minutesToAdd - Number of minutes to add (default: 30)
+ * @returns Object with endDate and endTime strings, or null if input is invalid
+ */
+export function addMinutesToDateTime(
+  dateStr: string,
+  timeStr: string,
+  minutesToAdd: number = 30,
+): { endDate: string; endTime: string } | null {
+  const startDate = parseLocalDateTime(dateStr, timeStr);
+  if (!startDate) return null;
+
+  const endDate = new Date(startDate.getTime() + minutesToAdd * 60 * 1000);
+  return {
+    endDate: formatDateForInput(endDate),
+    endTime: formatTimeForInput(endDate),
+  };
+}
+
+/**
  * Format a date to display as "Today", "Tomorrow", "Yesterday", or date
  * Used for suggestion and session date displays
  */
