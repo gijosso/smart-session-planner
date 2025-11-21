@@ -1,14 +1,16 @@
-import React, { useMemo, useEffect } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useForm } from "react-hook-form";
+import type React from "react";
+import { useEffect, useMemo } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
 
 import type { SessionType } from "@ssp/api/client";
 import type { SessionFormValues } from "@ssp/validators";
 import { sessionFormSchema } from "@ssp/validators";
 
 import type { ServerError } from "~/utils/form";
-import { Button } from "~/components";
+import { Button, Card, CardContent } from "~/components";
+import { PRIORITY_LEVELS } from "~/constants/app";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import {
   formatDateForInput,
@@ -23,7 +25,6 @@ import {
   isUnauthorizedError,
 } from "~/utils/form";
 
-const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const;
 const SESSION_TYPES_ARRAY = Object.values(SESSION_TYPES_DISPLAY);
 
 export type SessionFormMode = "create" | "update";
@@ -115,10 +116,11 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
   const {
     handleSubmit,
     formState: { errors, isSubmitted },
-    watch,
+    control,
     setValue,
     reset,
   } = useForm<SessionFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     resolver: zodResolver(sessionFormSchema) as any,
     defaultValues: formattedInitialValues,
     mode: "onChange",
@@ -130,12 +132,15 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
   }, [formattedInitialValues, reset]);
 
   // Watch form values for controlled inputs
-  const formValues = watch();
+  const formValues = useWatch({ control });
 
   const onSubmitForm = (values: SessionFormValues) => {
     // Parse date and time strings into Date objects in local timezone
     // This ensures proper timezone handling and validation
-    const startTimeDate = parseLocalDateTime(values.startDate, values.startTime);
+    const startTimeDate = parseLocalDateTime(
+      values.startDate,
+      values.startTime,
+    );
     const endTimeDate = parseLocalDateTime(values.endDate, values.endTime);
 
     // Validate dates before submitting
@@ -229,238 +234,247 @@ export const SessionForm: React.FC<SessionFormProps> = (props) => {
       : "You need to be logged in to update a session";
 
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-      showsVerticalScrollIndicator={true}
-      className="flex-1"
-    >
-      <View className="mb-4">
-        <Text className="text-foreground mb-2 text-sm font-medium">
-          Title *
-        </Text>
-        <TextInput
-          className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-            "title",
-            errors,
-            isSubmitted,
-            serverError,
-          )}`}
-          value={formValues.title}
-          onChangeText={(text) => setValue("title", text)}
-          onBlur={() => {}}
-          placeholder="e.g., Morning Meditation"
-          maxLength={256}
-        />
-        {getFieldErrorForField("title") && (
-          <Text className="text-destructive mt-1 text-sm">
-            {getFieldErrorForField("title")}
-          </Text>
-        )}
-      </View>
-
-      <View className="mb-4">
-        <Text className="text-foreground mb-2 text-sm font-medium">Type *</Text>
-        <View className="flex flex-row flex-wrap gap-2">
-          {SESSION_TYPES_ARRAY.map((sessionType) => (
-            <Pressable
-              key={sessionType.value}
-              onPress={() => setValue("type", sessionType.value)}
-              className={`rounded-md border px-3 py-2 ${
-                formValues.type === sessionType.value
-                  ? "bg-primary border-primary"
-                  : "border-input bg-background"
-              }`}
-            >
-              <Text
-                className={
-                  formValues.type === sessionType.value
-                    ? "text-primary-foreground text-sm font-medium"
-                    : "text-foreground text-sm"
-                }
-              >
-                {sessionType.label}
+    <>
+      <Card>
+        <CardContent className="gap-4">
+          <View>
+            <Text className="text-foreground mb-2 text-sm font-medium">
+              Title *
+            </Text>
+            <TextInput
+              className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
+                "title",
+                errors,
+                isSubmitted,
+                serverError,
+              )}`}
+              value={formValues.title}
+              onChangeText={(text) => setValue("title", text)}
+              placeholder="e.g., Morning Meditation"
+              maxLength={256}
+            />
+            {getFieldErrorForField("title") && (
+              <Text className="text-destructive mt-1 text-sm">
+                {getFieldErrorForField("title")}
               </Text>
-            </Pressable>
-          ))}
-        </View>
-        {getFieldErrorForField("type") && (
-          <Text className="text-destructive mt-1 text-sm">
-            {getFieldErrorForField("type")}
-          </Text>
-        )}
-      </View>
+            )}
+          </View>
 
-      <View className="mb-4">
-        <Text className="text-foreground mb-2 text-sm font-medium">
-          Priority *
-        </Text>
-        <View className="flex flex-row gap-2">
-          {PRIORITY_LEVELS.map((priority) => (
-            <Pressable
-              key={priority}
-              onPress={() => setValue("priority", priority)}
-              className={`flex-1 rounded-md border px-3 py-2 ${
-                formValues.priority === priority
-                  ? "bg-primary border-primary"
-                  : "border-input bg-background"
-              }`}
-            >
-              <Text
-                className={`text-center text-sm font-medium ${
-                  formValues.priority === priority
-                    ? "text-primary-foreground"
-                    : "text-foreground"
-                }`}
-              >
-                {priority}
+          <View>
+            <Text className="text-foreground mb-2 text-sm font-medium">
+              Type *
+            </Text>
+            <View className="flex flex-row flex-wrap gap-2">
+              {SESSION_TYPES_ARRAY.map((sessionType) => (
+                <Button
+                  key={sessionType.value}
+                  variant={
+                    formValues.type === sessionType.value
+                      ? "default"
+                      : "outline"
+                  }
+                  onPress={() => setValue("type", sessionType.value)}
+                  className={`rounded-md border px-3 py-2 ${
+                    formValues.type === sessionType.value
+                      ? "bg-primary border-primary"
+                      : "border-input bg-background"
+                  }`}
+                >
+                  <Text
+                    className={
+                      formValues.type === sessionType.value
+                        ? "text-primary-foreground text-sm font-medium"
+                        : "text-foreground text-sm"
+                    }
+                  >
+                    {sessionType.label}
+                  </Text>
+                </Button>
+              ))}
+            </View>
+            {getFieldErrorForField("type") && (
+              <Text className="text-destructive mt-1 text-sm">
+                {getFieldErrorForField("type")}
               </Text>
-            </Pressable>
-          ))}
-        </View>
-        {getFieldErrorForField("priority") && (
-          <Text className="text-destructive mt-1 text-sm">
-            {getFieldErrorForField("priority")}
-          </Text>
-        )}
-      </View>
-
-      <View className="mb-4">
-        <Text className="text-foreground mb-2 text-sm font-medium">
-          Start Date & Time *
-        </Text>
-        <View className="flex flex-row gap-2">
-          <View className="flex-1">
-            <TextInput
-              className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                "startDate",
-                errors,
-                isSubmitted,
-                serverError,
-              )}`}
-              value={formValues.startDate}
-              onChangeText={(text) => setValue("startDate", text)}
-              onBlur={() => {}}
-              placeholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
-              placeholderTextColor="#71717A"
-            />
-            <Text className="text-muted-foreground mt-1 text-xs">
-              Format: YYYY-MM-DD
-            </Text>
+            )}
           </View>
-          <View className="flex-1">
-            <TextInput
-              className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                "startTime",
-                errors,
-                isSubmitted,
-                serverError,
-              )}`}
-              value={formValues.startTime}
-              onChangeText={(text) => setValue("startTime", text)}
-              onBlur={() => {}}
-              placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
-              placeholderTextColor="#71717A"
-            />
-            <Text className="text-muted-foreground mt-1 text-xs">
-              Format: HH:mm (24h)
-            </Text>
-          </View>
-        </View>
-        {(getFieldErrorForField("startDate") ??
-          getFieldErrorForField("startTime")) && (
-          <Text className="text-destructive mt-1 text-sm">
-            {getFieldErrorForField("startDate") ??
-              getFieldErrorForField("startTime")}
-          </Text>
-        )}
-      </View>
 
-      <View className="mb-4">
-        <Text className="text-foreground mb-2 text-sm font-medium">
-          End Date & Time *
-        </Text>
-        <View className="flex flex-row gap-2">
-          <View className="flex-1">
-            <TextInput
-              className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                "endDate",
-                errors,
-                isSubmitted,
-                serverError,
-              )}`}
-              value={formValues.endDate}
-              onChangeText={(text) => setValue("endDate", text)}
-              onBlur={() => {}}
-              placeholder={mode === "create" ? getTodayDate() : "YYYY-MM-DD"}
-              placeholderTextColor="#71717A"
-            />
-            <Text className="text-muted-foreground mt-1 text-xs">
-              Format: YYYY-MM-DD
+          <View>
+            <Text className="text-foreground mb-2 text-sm font-medium">
+              Priority *
             </Text>
+            <View className="flex flex-row gap-2">
+              {PRIORITY_LEVELS.map((priority) => (
+                <Button
+                  key={priority}
+                  variant={
+                    formValues.priority === priority ? "default" : "outline"
+                  }
+                  onPress={() => setValue("priority", priority)}
+                  className={`flex-1 rounded-md border px-3 py-2 ${
+                    formValues.priority === priority
+                      ? "bg-primary border-primary"
+                      : "border-input bg-background"
+                  }`}
+                >
+                  <Text
+                    className={`text-center text-sm font-medium ${
+                      formValues.priority === priority
+                        ? "text-primary-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {priority}
+                  </Text>
+                </Button>
+              ))}
+            </View>
+            {getFieldErrorForField("priority") && (
+              <Text className="text-destructive mt-1 text-sm">
+                {getFieldErrorForField("priority")}
+              </Text>
+            )}
           </View>
-          <View className="flex-1">
-            <TextInput
-              className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
-                "endTime",
-                errors,
-                isSubmitted,
-                serverError,
-              )}`}
-              value={formValues.endTime}
-              onChangeText={(text) => setValue("endTime", text)}
-              onBlur={() => {}}
-              placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
-              placeholderTextColor="#71717A"
-            />
-            <Text className="text-muted-foreground mt-1 text-xs">
-              Format: HH:mm (24h)
+
+          <View>
+            <Text className="text-foreground mb-2 text-sm font-medium">
+              Start Date & Time *
             </Text>
+            <View className="flex flex-row gap-2">
+              <View className="flex-1">
+                <TextInput
+                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
+                    "startDate",
+                    errors,
+                    isSubmitted,
+                    serverError,
+                  )}`}
+                  value={formValues.startDate}
+                  onChangeText={(text) => setValue("startDate", text)}
+                  placeholder={
+                    mode === "create" ? getTodayDate() : "YYYY-MM-DD"
+                  }
+                  placeholderTextColor="#71717A"
+                />
+                <Text className="text-muted-foreground mt-1 text-xs">
+                  Format: YYYY-MM-DD
+                </Text>
+              </View>
+              <View className="flex-1">
+                <TextInput
+                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
+                    "startTime",
+                    errors,
+                    isSubmitted,
+                    serverError,
+                  )}`}
+                  value={formValues.startTime}
+                  onChangeText={(text) => setValue("startTime", text)}
+                  placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
+                  placeholderTextColor="#71717A"
+                />
+                <Text className="text-muted-foreground mt-1 text-xs">
+                  Format: HH:mm (24h)
+                </Text>
+              </View>
+            </View>
+            {(getFieldErrorForField("startDate") ??
+              getFieldErrorForField("startTime")) && (
+              <Text className="text-destructive mt-1 text-sm">
+                {getFieldErrorForField("startDate") ??
+                  getFieldErrorForField("startTime")}
+              </Text>
+            )}
           </View>
-        </View>
-        {(getFieldErrorForField("endDate") ??
-          getFieldErrorForField("endTime")) && (
-          <Text className="text-destructive mt-1 text-sm">
-            {getFieldErrorForField("endDate") ??
-              getFieldErrorForField("endTime")}
-          </Text>
-        )}
-      </View>
 
-      <View className="mb-6">
-        <Text className="text-foreground mb-2 text-sm font-medium">
-          Description
-        </Text>
-        <TextInput
-          className="border-input bg-background text-foreground rounded-md border px-3 py-2 text-base"
-          value={formValues.description}
-          onChangeText={(text) => setValue("description", text)}
-          onBlur={() => {}}
-          placeholder="Optional notes or description"
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
-        {getFieldErrorForField("description") && (
-          <Text className="text-destructive mt-1 text-sm">
-            {getFieldErrorForField("description")}
-          </Text>
-        )}
-      </View>
+          <View>
+            <Text className="text-foreground mb-2 text-sm font-medium">
+              End Date & Time *
+            </Text>
+            <View className="flex flex-row gap-2">
+              <View className="flex-1">
+                <TextInput
+                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
+                    "endDate",
+                    errors,
+                    isSubmitted,
+                    serverError,
+                  )}`}
+                  value={formValues.endDate}
+                  onChangeText={(text) => setValue("endDate", text)}
+                  placeholder={
+                    mode === "create" ? getTodayDate() : "YYYY-MM-DD"
+                  }
+                  placeholderTextColor="#71717A"
+                />
+                <Text className="text-muted-foreground mt-1 text-xs">
+                  Format: YYYY-MM-DD
+                </Text>
+              </View>
+              <View className="flex-1">
+                <TextInput
+                  className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${getFieldErrorClassName(
+                    "endTime",
+                    errors,
+                    isSubmitted,
+                    serverError,
+                  )}`}
+                  value={formValues.endTime}
+                  onChangeText={(text) => setValue("endTime", text)}
+                  placeholder={mode === "create" ? getCurrentTime() : "HH:mm"}
+                  placeholderTextColor="#71717A"
+                />
+                <Text className="text-muted-foreground mt-1 text-xs">
+                  Format: HH:mm (24h)
+                </Text>
+              </View>
+            </View>
+            {(getFieldErrorForField("endDate") ??
+              getFieldErrorForField("endTime")) && (
+              <Text className="text-destructive mt-1 text-sm">
+                {getFieldErrorForField("endDate") ??
+                  getFieldErrorForField("endTime")}
+              </Text>
+            )}
+          </View>
 
-      {isUnauthorizedError(serverError) && (
-        <Text className="text-destructive mb-4 text-center">
-          {unauthorizedMessage}
-        </Text>
-      )}
+          <View>
+            <Text className="text-foreground mb-2 text-sm font-medium">
+              Description
+            </Text>
+            <TextInput
+              className="border-input bg-background text-foreground h-24 min-h-24 rounded-md border px-3 py-2 text-base"
+              value={formValues.description}
+              onChangeText={(text) => setValue("description", text)}
+              placeholder="Optional notes or description"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            {getFieldErrorForField("description") && (
+              <Text className="text-destructive mt-1 text-sm">
+                {getFieldErrorForField("description")}
+              </Text>
+            )}
+          </View>
+
+          {isUnauthorizedError(serverError) && (
+            <Text className="text-destructive text-center">
+              {unauthorizedMessage}
+            </Text>
+          )}
+        </CardContent>
+      </Card>
 
       <Button
         variant="default"
-        onPress={handleSubmit(onSubmitForm as any)}
+        size="lg"
+        onPress={handleSubmit(onSubmitForm)}
         disabled={isPending}
       >
         {isPending ? pendingText : buttonText}
       </Button>
-    </ScrollView>
+    </>
   );
 };
 

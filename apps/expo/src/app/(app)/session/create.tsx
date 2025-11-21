@@ -1,10 +1,12 @@
 import { useCallback } from "react";
+import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { SessionType } from "@ssp/api/client";
 
-import { Screen } from "~/components";
+import { Content, Screen } from "~/components";
+import { BackButton } from "~/components/layout/back-button";
 import { CreateSessionForm } from "~/features/session/forms/session-form";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useToast } from "~/hooks/use-toast";
@@ -56,11 +58,17 @@ export default function CreateSession() {
 
   return (
     <Screen backButton variant="default">
-      <CreateSessionForm
-        onSubmit={handleSubmit}
-        isPending={createMutation.isPending}
-        serverError={transformMutationError(createMutation.error)}
-      />
+      <Content className="gap-8">
+        <View className="flex flex-row items-center gap-2">
+          <BackButton />
+          <Text className="text-foreground text-2xl">Create Session</Text>
+        </View>
+        <CreateSessionForm
+          onSubmit={handleSubmit}
+          isPending={createMutation.isPending}
+          serverError={transformMutationError(createMutation.error)}
+        />
+      </Content>
     </Screen>
   );
 }
