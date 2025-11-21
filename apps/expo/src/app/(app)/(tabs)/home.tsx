@@ -4,7 +4,13 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 
-import { Button, Content, LoadingScreen, Screen } from "~/components";
+import {
+  Button,
+  Content,
+  ErrorScreen,
+  LoadingScreen,
+  Screen,
+} from "~/components";
 import {
   SessionAddButton,
   SessionRecap,
@@ -12,6 +18,7 @@ import {
 } from "~/features/session";
 import { ProgressCard } from "~/features/stats";
 import { SuggestionsList } from "~/features/suggestions";
+import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { addSuggestionIds } from "~/utils/suggestion-id";
 
@@ -26,6 +33,10 @@ export default function Home() {
     placeholderData: (previousData) => previousData,
   });
 
+  // Handle errors consistently
+  const statsError = useQueryError(statsQuery);
+  const todaySessionsError = useQueryError(todaySessionsForListQuery);
+
   // Add idempotency IDs to suggestions for React Query tracking
   const suggestions = useMemo(() => {
     if (!suggestionsQuery.data) return [];
@@ -34,6 +45,22 @@ export default function Home() {
 
   // Show unified loading state
   const isLoading = statsQuery.isLoading || todaySessionsForListQuery.isLoading;
+
+  // Show error screen for critical errors (stats or today's sessions)
+  if (statsError.hasError || todaySessionsError.hasError) {
+    const error = statsError.error ?? todaySessionsError.error;
+    if (error) {
+      return (
+        <ErrorScreen
+          error={error}
+          onRetry={() => {
+            void statsQuery.refetch();
+            void todaySessionsForListQuery.refetch();
+          }}
+        />
+      );
+    }
+  }
 
   if (isLoading) {
     return <LoadingScreen />;

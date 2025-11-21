@@ -1,19 +1,12 @@
-import { useCallback } from "react";
-import ErrorBoundary from "react-native-error-boundary";
-import { reloadAppAsync } from "expo";
 import { QueryClientProvider } from "@tanstack/react-query";
 
+import { AppErrorBoundary } from "~/components/error";
 import { queryClient } from "~/utils/api";
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
-  const handleError = useCallback((error: Error, stackTrace: string) => {
-    console.error(error, stackTrace);
-    void reloadAppAsync();
-  }, []);
-
   return (
-    <ErrorBoundary onError={handleError}>
+    <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </ErrorBoundary>
+    </AppErrorBoundary>
   );
 };

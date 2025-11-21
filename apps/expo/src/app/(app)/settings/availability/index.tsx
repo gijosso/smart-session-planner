@@ -1,18 +1,21 @@
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { LoadingScreen } from "~/components";
+import { ErrorScreen, LoadingScreen } from "~/components";
 import { AvailabilityCalendar } from "~/features/availability";
+import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 
 export default function AvailabilityList() {
+  const queryClient = useQueryClient();
   const {
     data: availability,
     isLoading,
     error,
   } = useQuery(trpc.availability.get.queryOptions());
+  const queryError = useQueryError({ error });
 
   if (isLoading) {
     return (
@@ -23,16 +26,19 @@ export default function AvailabilityList() {
     );
   }
 
-  if (error) {
+  if (queryError.hasError && queryError.error) {
     return (
-      <SafeAreaView className="bg-background">
+      <>
         <Stack.Screen options={{ title: "Availability" }} />
-        <View className="h-full w-full p-4">
-          <Text className="text-destructive text-lg">
-            Error loading availability: {error.message}
-          </Text>
-        </View>
-      </SafeAreaView>
+        <ErrorScreen
+          error={queryError.error}
+          onRetry={() => {
+            void queryClient.invalidateQueries(trpc.availability.get.queryFilter());
+          }}
+          onReset={() => router.back()}
+          title="Unable to load availability"
+        />
+      </>
     );
   }
 

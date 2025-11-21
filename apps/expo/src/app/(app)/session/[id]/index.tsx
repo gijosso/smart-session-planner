@@ -3,8 +3,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack, useGlobalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Button, LoadingScreen } from "~/components";
+import { Button, ErrorScreen, LoadingScreen } from "~/components";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
+import { useQueryError } from "~/hooks/use-query-error";
 import { trpc } from "~/utils/api";
 import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/session-cache";
@@ -17,6 +18,7 @@ export default function Session() {
   const { data, isLoading, error } = useQuery(
     trpc.session.byId.queryOptions({ id }),
   );
+  const queryError = useQueryError({ error });
 
   const toggleCompleteMutation = useMutation(
     trpc.session.toggleComplete.mutationOptions({
@@ -85,16 +87,30 @@ export default function Session() {
     return <LoadingScreen />;
   }
 
-  if (error || !data) {
+  if (queryError.hasError && queryError.error) {
     return (
-      <SafeAreaView className="bg-background">
-        <Stack.Screen options={{ title: "Session" }} />
-        <View className="h-full w-full p-4">
-          <Text className="text-destructive text-lg">
-            {error?.message ?? "Session not found"}
-          </Text>
-        </View>
-      </SafeAreaView>
+      <ErrorScreen
+        error={queryError.error}
+        onRetry={() => {
+          void queryClient.invalidateQueries(trpc.session.byId.queryFilter({ id }));
+        }}
+        onReset={() => router.back()}
+        title="Unable to load session"
+      />
+    );
+  }
+
+  if (!data) {
+    return (
+      <ErrorScreen
+        error={{
+          code: "NOT_FOUND",
+          message: "Session not found",
+          retryable: false,
+        }}
+        onReset={() => router.back()}
+        title="Session not found"
+      />
     );
   }
 
