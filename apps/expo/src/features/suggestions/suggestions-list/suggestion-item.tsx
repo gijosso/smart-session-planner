@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { Text, View } from "react-native";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -77,6 +78,21 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
         allowConflicts: false,
       });
     }, [suggestion, createSessionMutation]);
+
+    // Handle adjust - navigates to create page with suggestion data as initial values
+    const handleAdjust = useCallback(() => {
+      router.push({
+        pathname: "/session/create",
+        params: {
+          title: suggestion.title,
+          type: suggestion.type,
+          startTime: suggestion.startTime.toISOString(),
+          endTime: suggestion.endTime.toISOString(),
+          priority: String(suggestion.priority),
+          description: suggestion.description ?? "",
+        },
+      });
+    }, [suggestion]);
 
     // Memoize formatted date/time strings
     const formattedDate = useMemo(
@@ -162,6 +178,16 @@ export const SuggestionItem = React.memo<SuggestionItemProps>(
               accessibilityRole="button"
             >
               {createSessionMutation.isPending ? "Accepting..." : "Accept"}
+            </Button>
+            <Button
+              size="md"
+              variant="secondary"
+              onPress={handleAdjust}
+              disabled={createSessionMutation.isPending}
+              accessibilityLabel={`Adjust suggestion: ${suggestion.title}`}
+              accessibilityRole="button"
+            >
+              Adjust
             </Button>
           </CardFooter>
         </Card>
