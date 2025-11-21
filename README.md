@@ -1,286 +1,582 @@
-# create-t3-turbo
+# Smart Session Planner
 
-> [!NOTE]
->
-> create-t3-turbo now includes the option to use Tanstack Start for the web app!
+A productivity-focused mobile application built with React Native (Expo) that helps users plan and track their work sessions. The app features AI-powered time slot suggestions based on user patterns, availability management, and comprehensive session tracking with statistics.
 
-## Installation
+## Tech Stack
 
-> [!NOTE]
->
-> Make sure to follow the system requirements specified in [`package.json#engines`](./package.json#L4) before proceeding.
+- **Monorepo**: Turborepo with pnpm workspaces
+- **Mobile App**: Expo (React Native) with Expo Router
+- **Backend**: tRPC API with Next.js
+- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **Authentication**: Supabase
+- **Styling**: NativeWind (Tailwind CSS for React Native)
+- **State Management**: TanStack Query (React Query)
+- **Validation**: Zod schemas
 
-There are two ways of initializing an app using the `create-t3-turbo` starter. You can either use this repository as a template:
+## Setup Instructions
 
-![use-as-template](https://github.com/t3-oss/create-t3-turbo/assets/51714798/bb6c2e5d-d8b6-416e-aeb3-b3e50e2ca994)
+### Prerequisites
 
-or use Turbo's CLI to init your project (use PNPM as package manager):
+- Node.js `^22.21.0`
+- pnpm `^10.19.0`
+- PostgreSQL database (Neon recommended)
+- Supabase account for authentication
 
-```bash
-npx create-turbo@latest -e https://github.com/t3-oss/create-t3-turbo
-```
+### Installation
 
-## About
+1. **Clone the repository**
 
-Ever wondered how to migrate your T3 application into a monorepo? Stop right here! This is the perfect starter repo to get you running with the perfect stack!
+   ```bash
+   git clone <repository-url>
+   cd smart-session-planner
+   ```
 
-It uses [Turborepo](https://turborepo.com) and contains:
+2. **Install dependencies**
 
-```text
-.github
-  └─ workflows
-        └─ CI with pnpm cache setup
-.vscode
-  └─ Recommended extensions and settings for VSCode users
-apps
-  ├─ expo
-  │   ├─ Expo SDK 54
-  │   ├─ React Native 0.81 using React 19
-  │   ├─ Navigation using Expo Router
-  │   ├─ Tailwind CSS v4 using NativeWind v5
-  │   └─ Typesafe API calls using tRPC
-  ├─ nextjs
-  │   ├─ Next.js 15
-  │   ├─ React 19
-  │   ├─ Tailwind CSS v4
-  │   └─ E2E Typesafe API Server & Client
-  └─ tanstack-start
-      ├─ Tanstack Start v1 (rc)
-      ├─ React 19
-      ├─ Tailwind CSS v4
-      └─ E2E Typesafe API Server & Client
-packages
-  ├─ api
-  │   └─ tRPC v11 router definition
-  ├─ auth
-  │   └─ Authentication using better-auth.
-  ├─ db
-  │   └─ Typesafe db calls using Drizzle & Supabase
-  └─ ui
-      └─ Start of a UI package for the webapp using shadcn-ui
-tooling
-  ├─ eslint
-  │   └─ shared, fine-grained, eslint presets
-  ├─ prettier
-  │   └─ shared prettier configuration
-  ├─ tailwind
-  │   └─ shared tailwind theme and configuration
-  └─ typescript
-      └─ shared tsconfig you can extend from
-```
+   ```bash
+   pnpm install
+   ```
 
-> In this template, we use `@ssp` as a placeholder for package names. As a user, you might want to replace it with your own organization or project name. You can use find-and-replace to change all the instances of `@ssp` to something like `@my-company` or `@project-name`.
+3. **Configure environment variables**
 
-## Quick Start
+   Create a `.env` file in the root directory with the following variables:
 
-> **Note**
-> The [db](./packages/db) package is preconfigured to use Supabase and is **edge-bound** with the [Vercel Postgres](https://github.com/vercel/storage/tree/main/packages/postgres) driver. If you're using something else, make the necessary modifications to the [schema](./packages/db/src/schema/*.ts) as well as the [client](./packages/db/src/index.ts) and the [drizzle config](./packages/db/drizzle.config.ts). If you want to switch to non-edge database driver, remove `export const runtime = "edge";` [from all pages and api routes](https://github.com/t3-oss/create-t3-turbo/issues/634#issuecomment-1730240214).
+   ```env
+   # Database
+   POSTGRES_URL=postgresql://user:password@host:port/database
 
-To get it running, follow the steps below:
+   # Supabase Configuration
+   SUPABASE_URL=your-supabase-url
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
 
-### 1. Setup dependencies
+4. **Push database schema**
 
-> [!NOTE]
->
-> While the repo does contain both a Next.js and Tanstack Start version of a web app, you can pick which one you like to use and delete the other folder before starting the setup.
+   ```bash
+   pnpm db:push
+   ```
+
+5. **Start development servers**
+
+   ```bash
+   # Start all apps (Expo + Next.js)
+   pnpm dev
+
+   # Or start individually
+   pnpm dev:next  # Start Next.js backend only
+   cd apps/expo && pnpm dev  # Start Expo app only
+   ```
+
+### Expo App Configuration
+
+The Expo app can be run on iOS or Android:
+
+- **iOS**: Requires Xcode and iOS Simulator
+
+  ```bash
+   cd apps/expo
+   pnpm dev:ios
+  ```
+
+- **Android**: Requires Android Studio and Android Emulator
+  ```bash
+  cd apps/expo
+  pnpm dev:android
+  ```
+
+## What Has Been Built
+
+### Database (`packages/db`)
+
+The database layer uses Drizzle ORM with PostgreSQL and includes:
+
+#### Schema Design
+
+1. **User Table** (`user.ts`)
+   - Stores application-specific user data
+   - References Supabase `auth.users.id` (UUID)
+   - Fields: `id`, `name`, `image`, `createdAt`, `updatedAt`
+
+2. **Profile Table** (`profile.ts`)
+   - One-to-one relationship with User
+   - Stores user preferences including timezone (IANA format)
+   - Includes CHECK constraint for timezone format validation
+
+3. **Session Table** (`session.ts`)
+   - Core entity for scheduled work sessions
+   - Fields: `id`, `userId`, `title`, `type`, `startTime`, `endTime`, `completed`, `completedAt`, `priority` (1-5), `description`, `fromSuggestionId`, `deletedAt`
+   - Session types: `DEEP_WORK`, `WORKOUT`, `LANGUAGE`, `CLIENT_MEETING`, `OTHER`
+   - Comprehensive indexing strategy:
+     - Partial covering index for non-deleted sessions (userId, startTime)
+     - Stats index for completed sessions (userId, completed, startTime)
+     - Type breakdown index (userId, type)
+     - Partial index for conflict detection (active sessions only)
+     - Composite partial index for suggestion tracking
+   - CHECK constraints: endTime > startTime, priority range, completedAt consistency
+
+4. **Availability Table** (`availability.ts`)
+   - Stores weekly availability as JSONB
+   - Structure: `{ "MONDAY": [{ startTime, endTime }], ... }`
+   - One record per user (userId as primary key)
+   - JSONB structure validation via CHECK constraint
+
+#### Database Client
+
+- Uses Neon HTTP driver for edge-compatible database access
+- Lazy initialization pattern for better testability
+- Proxy-based export to maintain interface while enabling lazy loading
+- Snake case column naming convention
+
+#### Timezone Handling
+
+- All timestamps stored in UTC (`timestamp with time zone`)
+- User timezone preference stored in Profile table
+- Utilities for timezone-aware date boundary calculations
+- Uses `date-fns-tz` for reliable DST-aware conversions
+
+### API (`packages/api`)
+
+The API layer is built with tRPC v11 and provides type-safe endpoints:
+
+#### Routers
+
+1. **Auth Router** (`router/auth.ts`)
+   - `getSession`: Get current user session
+   - `signUpAnonymously`: Create anonymous user account (no email required)
+   - `refreshToken`: Refresh authentication token
+
+2. **Session Router** (`router/session.ts`)
+   - `today`: Get sessions for today (timezone-aware, paginated)
+   - `week`: Get sessions for current week (timezone-aware, paginated)
+   - `byId`: Get session by ID
+   - `create`: Create new session with conflict checking
+   - `update`: Update existing session
+   - `delete`: Soft delete session
+   - `deleteAll`: Delete all user sessions
+   - `toggleComplete`: Mark session as completed/incomplete
+   - `checkConflicts`: Check if time range conflicts with existing sessions
+   - `suggest`: Get AI-powered time slot suggestions
+   - `acceptSuggestion`: Create session from suggestion
+
+3. **Availability Router** (`router/availability.ts`)
+   - `get`: Get user's weekly availability
+   - `setWeekly`: Set/update weekly availability
+
+4. **Stats Router** (`router/stats.ts`)
+   - `sessions`: Get comprehensive session statistics
+     - Total, completed, pending counts
+     - Breakdown by session type
+     - Today and week stats (timezone-aware)
+
+#### Smart Suggestions System
+
+The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algorithm:
+
+- **Pattern Detection**: Analyzes past completed sessions to detect repeating patterns
+  - Identifies sessions that occur on specific days/times
+  - Calculates frequency and success rate
+  - Considers recency weighting
+
+- **Scoring Algorithm**:
+  - Pattern-based scoring (frequency, success rate, priority)
+  - Spacing score (ensures sessions aren't too close together)
+  - Day fatigue calculation (considers existing sessions on the day)
+  - Recency weighting (recent patterns score higher)
+
+- **Availability Checking**: Validates suggestions against user's weekly availability
+
+- **Conflict Detection**: Ensures suggestions don't overlap with existing sessions
+
+- **Diversity Enforcement**: Limits suggestions per day/type to ensure variety
+
+- **Default Suggestions**: Falls back to default suggestions when no patterns detected
+
+#### Error Handling
+
+- Centralized error handling with `handleAsyncOperation`
+- Production-safe error messages (stack traces removed in production)
+- Zod validation error flattening
+- Database and auth error categorization
+
+#### Context & Middleware
+
+- `protectedProcedure`: Ensures user authentication and loads timezone
+- Timezone caching for performance
+- User context utilities for safe user ID/timezone access
+
+### Expo App (`apps/expo`)
+
+The mobile application is built with Expo Router and React Native:
+
+#### Navigation Structure
+
+- **Root Layout**: Handles authentication state and splash screen
+- **Auth Flow**: Welcome screen with sign-in button
+- **App Flow**: Protected routes with tab navigation
+  - Home tab: Dashboard with sessions and suggestions
+  - Settings tab: User preferences and account management
+
+#### Key Features
+
+1. **Home Screen** (`app/(app)/(tabs)/home.tsx`)
+   - Session recap card with statistics
+   - Smart suggestions section with retry logic
+   - Today's sessions list
+   - Progress card
+   - Add session button
+
+2. **Session Management**
+   - Create/edit session form with validation
+   - Time picker with timezone awareness
+   - Conflict detection before creation
+   - Session completion toggle
+   - Session deletion (soft delete)
+
+3. **Suggestions Screen** (`app/(app)/suggestions/index.tsx`)
+   - Displays AI-generated time slot suggestions
+   - Shows suggestion score and reasoning
+   - One-tap session creation from suggestions
+   - Suggestion ID generation for tracking
+
+4. **Settings Screen** (`app/(app)/(tabs)/settings.tsx`)
+   - User profile management
+   - Timezone selection
+   - Availability configuration
+   - Sign out functionality
+
+5. **Session Detail Screen** (`app/(app)/session/[id]/index.tsx`)
+   - View session details
+   - Edit session
+   - Delete session
+   - Completion toggle
+
+#### State Management
+
+- TanStack Query for server state
+- Optimistic updates for better UX
+- Query prefetching for performance
+- Cache invalidation strategies
+
+#### UI Components
+
+- Custom component library with consistent styling
+- Loading states and skeletons
+- Error boundaries and error displays
+- Toast notifications for user feedback
+- Form components with React Hook Form + Zod validation
+
+#### Timezone Handling
+
+- Client-side timezone detection
+- UTC to local time conversion for display
+- Timezone-aware date formatting
+- Session cache with timezone-aware filtering
+
+## Architectural Choices
+
+### Monorepo Structure
+
+**Choice**: Turborepo with pnpm workspaces
+
+**Rationale**:
+
+- Shared code between packages (validators, types, UI components)
+- Type-safe API client in Expo app (dev dependency only)
+- Consistent tooling across packages
+- Efficient build caching with Turborepo
+
+### Database: Drizzle ORM
+
+**Choice**: Drizzle ORM over Prisma or TypeORM
+
+**Rationale**:
+
+- Lightweight and performant
+- Excellent TypeScript support
+- Edge-compatible (Neon HTTP driver)
+- Flexible query API
+- Schema migrations with Drizzle Kit
+
+### API: tRPC
+
+**Choice**: tRPC over REST or GraphQL
+
+**Rationale**:
+
+- End-to-end type safety
+- No code generation needed
+- Excellent developer experience
+- Built-in validation with Zod
+- Works seamlessly with React Query
+
+### Authentication: Supabase
+
+**Choice**: Supabase for authentication
+
+**Rationale**:
+
+- Anonymous authentication support (no email required)
+- Flexible auth provider system
+- Supabase handles user management
+- Direct integration with Supabase Auth API
+
+### Mobile: Expo
+
+**Choice**: Expo over bare React Native
+
+**Rationale**:
+
+- Faster development iteration
+- Over-the-air updates with EAS Update
+- Built-in navigation (Expo Router)
+- Easy deployment to app stores
+- No native code required for most features
+
+### Styling: NativeWind
+
+**Choice**: NativeWind (Tailwind CSS for React Native)
+
+**Rationale**:
+
+- Familiar Tailwind CSS syntax
+- Shared theme configuration with web app
+- Consistent design system
+- Good performance with NativeWind v5
+
+### Timezone Strategy
+
+**Choice**: Store UTC, convert at boundaries
+
+**Rationale**:
+
+- Industry standard approach
+- PostgreSQL handles UTC conversion automatically
+- User timezone stored in profile for display
+- Date boundary queries calculated in user timezone, then converted to UTC
+- Uses `date-fns-tz` for reliable DST handling
+
+### Indexing Strategy
+
+**Choice**: Comprehensive partial and covering indexes
+
+**Rationale**:
+
+- Optimized for common query patterns (today, week, stats)
+- Partial indexes reduce index size (only non-deleted sessions)
+- Covering indexes avoid table lookups
+- Leftmost column rule for efficient query planning
+
+### Suggestion Algorithm
+
+**Choice**: Pattern-based with scoring system
+
+**Rationale**:
+
+- Learns from user behavior automatically
+- No manual configuration needed
+- Considers multiple factors (frequency, success rate, spacing, fatigue)
+- Falls back to defaults when no patterns exist
+- Provides reasoning for transparency
+
+## What Could Be Improved with More Time
+
+### Database Improvements
+
+1. **Query Optimization**
+   - Add database query performance monitoring
+   - Consider materialized views for complex stats queries
+   - Implement query result caching for frequently accessed data
+
+2. **Data Archival**
+   - Implement archival strategy for old completed sessions
+   - Add partitioning for large session tables
+   - Consider separate tables for historical data
+
+3. **Full-Text Search**
+   - Add PostgreSQL full-text search for session titles/descriptions
+   - Enable searching sessions by content
+
+### API Improvements
+
+1. **Rate Limiting**
+   - Implement rate limiting per user/IP
+   - Protect suggestion endpoint from abuse
+   - Add request throttling
+
+2. **Caching Layer**
+   - Add Redis caching for frequently accessed data
+   - Cache user timezone and availability
+   - Cache suggestion results with TTL
+
+3. **Batch Operations**
+   - Add batch session creation endpoint
+   - Bulk update operations
+   - Batch conflict checking
+
+4. **Webhooks/Events**
+   - Add webhook support for session events
+   - Event-driven architecture for notifications
+   - Real-time updates via WebSockets
+
+5. **Advanced Suggestions**
+   - Machine learning model for better predictions
+   - Consider calendar integration for external events
+   - Weather/context-aware suggestions
+   - Multi-user scheduling (team sessions)
+
+### Expo App Improvements
+
+1. **Offline Support**
+   - Implement offline-first architecture
+   - Local database with sync (SQLite + WatermelonDB)
+   - Queue mutations when offline
+   - Optimistic UI updates
+
+2. **Push Notifications**
+   - Session reminders
+   - Suggestion notifications
+   - Achievement notifications
+
+3. **Analytics**
+   - User behavior tracking
+   - Session completion analytics
+   - Suggestion acceptance rates
+   - Performance monitoring
+
+4. **Accessibility**
+   - Screen reader support
+   - Voice commands
+   - High contrast mode
+   - Font size scaling
+
+5. **Performance**
+   - Image optimization
+   - Code splitting
+   - Lazy loading for screens
+   - Memory optimization
+
+6. **Testing**
+   - Unit tests for utilities
+   - Integration tests for API
+   - E2E tests with Detox
+   - Visual regression testing
+
+### Feature Enhancements
+
+1. **Session Templates**
+   - Save common session configurations
+   - Quick creation from templates
+   - Template sharing between users
+
+2. **Recurring Sessions**
+   - Daily/weekly/monthly recurring sessions
+   - Exception handling (skip specific dates)
+   - Series management
+
+3. **Session Notes**
+   - Rich text notes
+   - Attachments (images, files)
+   - Session reflection prompts
+
+4. **Goals & Targets**
+   - Set weekly/monthly goals
+   - Track progress toward goals
+   - Goal-based suggestions
+
+5. **Social Features**
+   - Share sessions with friends
+   - Accountability partners
+   - Leaderboards
+
+6. **Export & Reporting**
+   - Export sessions to calendar (iCal)
+   - PDF reports
+   - CSV export for analysis
+
+### Infrastructure Improvements
+
+1. **Monitoring & Observability**
+   - Application performance monitoring (APM)
+   - Error tracking (Sentry)
+   - Log aggregation
+   - Database query monitoring
+
+2. **CI/CD**
+   - Automated testing in CI
+   - Automated deployments
+   - Preview deployments for PRs
+   - E2E testing in CI
+
+3. **Documentation**
+   - API documentation (OpenAPI/Swagger)
+   - Component storybook
+   - Architecture decision records (ADRs)
+   - User documentation
+
+4. **Security**
+   - Security audit
+   - Penetration testing
+   - Rate limiting improvements
+   - Input sanitization review
+
+5. **Scalability**
+   - Database connection pooling optimization
+   - Horizontal scaling preparation
+   - CDN for static assets
+   - Edge function optimization
+
+## Development Commands
 
 ```bash
 # Install dependencies
-pnpm i
+pnpm install
 
-# Configure environment variables
-# There is an `.env.example` in the root directory you can use for reference
-cp .env.example .env
+# Development
+pnpm dev                    # Start all apps
+pnpm dev:next              # Start Next.js backend only
 
-# Push the Drizzle schema to the database
-pnpm db:push
+# Database
+pnpm db:push               # Push schema to database
+pnpm db:studio             # Open Drizzle Studio
+
+# Code Quality
+pnpm lint                  # Lint all packages
+pnpm lint:fix              # Fix linting issues
+pnpm typecheck             # Type check all packages
+pnpm format                # Check formatting
+pnpm format:fix            # Fix formatting
+
+# Building
+pnpm build                 # Build all packages
+
+# Expo
+cd apps/expo
+pnpm dev                   # Start Expo dev server
+pnpm dev:ios               # Start iOS simulator
+pnpm dev:android           # Start Android emulator
 ```
 
-### 2. Generate Better Auth Schema
+## Project Structure
 
-This project uses [Better Auth](https://www.better-auth.com) for authentication. The auth schema needs to be generated using the Better Auth CLI before you can use the authentication features.
-
-```bash
-# Generate the Better Auth schema
-pnpm --filter @ssp/auth generate
+```
+smart-session-planner/
+├── apps/
+│   ├── expo/              # React Native mobile app
+│   └── nextjs/            # Next.js backend (tRPC server)
+├── packages/
+│   ├── api/               # tRPC API routes and helpers
+│   ├── auth/              # Supabase authentication configuration
+│   ├── db/                # Database schema and client
+│   ├── ui/                # Shared UI components
+│   └── validators/        # Zod validation schemas
+├── tooling/               # Shared tooling configs
+│   ├── eslint/
+│   ├── prettier/
+│   ├── tailwind/
+│   └── typescript/
+└── docs/                  # Documentation
 ```
 
-This command runs the Better Auth CLI with the following configuration:
+## License
 
-- **Config file**: `packages/auth/script/auth-cli.ts` - A CLI-only configuration file (isolated from src to prevent imports)
-- **Output**: `packages/db/src/auth-schema.ts` - Generated Drizzle schema for authentication tables
-
-The generation process:
-
-1. Reads the Better Auth configuration from `packages/auth/script/auth-cli.ts`
-2. Generates the appropriate database schema based on your auth setup
-3. Outputs a Drizzle-compatible schema file to the `@ssp/db` package
-
-> **Note**: The `auth-cli.ts` file is placed in the `script/` directory (instead of `src/`) to prevent accidental imports from other parts of the codebase. This file is exclusively for CLI schema generation and should **not** be used directly in your application. For runtime authentication, use the configuration from `packages/auth/src/index.ts`.
-
-For more information about the Better Auth CLI, see the [official documentation](https://www.better-auth.com/docs/concepts/cli#generate).
-
-### 3. Configure Expo `dev`-script
-
-#### Use iOS Simulator
-
-1. Make sure you have XCode and XCommand Line Tools installed [as shown on expo docs](https://docs.expo.dev/workflow/ios-simulator).
-
-   > **NOTE:** If you just installed XCode, or if you have updated it, you need to open the simulator manually once. Run `npx expo start` from `apps/expo`, and then enter `I` to launch Expo Go. After the manual launch, you can run `pnpm dev` in the root directory.
-
-   ```diff
-   +  "dev": "expo start --ios",
-   ```
-
-2. Run `pnpm dev` at the project root folder.
-
-#### Use Android Emulator
-
-1. Install Android Studio tools [as shown on expo docs](https://docs.expo.dev/workflow/android-studio-emulator).
-
-2. Change the `dev` script at `apps/expo/package.json` to open the Android emulator.
-
-   ```diff
-   +  "dev": "expo start --android",
-   ```
-
-3. Run `pnpm dev` at the project root folder.
-
-### 4. Configuring Better-Auth to work with Expo
-
-In order to get Better-Auth to work with Expo, you must either:
-
-#### Deploy the Auth Proxy (RECOMMENDED)
-
-Better-auth comes with an [auth proxy plugin](https://www.better-auth.com/docs/plugins/oauth-proxy). By deploying the Next.js app, you can get OAuth working in preview deployments and development for Expo apps.
-
-By using the proxy plugin, the Next.js apps will forward any auth requests to the proxy server, which will handle the OAuth flow and then redirect back to the Next.js app. This makes it easy to get OAuth working since you'll have a stable URL that is publicly accessible and doesn't change for every deployment and doesn't rely on what port the app is running on. So if port 3000 is taken and your Next.js app starts at port 3001 instead, your auth should still work without having to reconfigure the OAuth provider.
-
-#### Add your local IP to your OAuth provider
-
-You can alternatively add your local IP (e.g. `192.168.x.y:$PORT`) to your OAuth provider. This may not be as reliable as your local IP may change when you change networks. Some OAuth providers may also only support a single callback URL for each app making this approach unviable for some providers (e.g. GitHub).
-
-### 5a. When it's time to add a new UI component
-
-Run the `ui-add` script to add a new UI component using the interactive `shadcn/ui` CLI:
-
-```bash
-pnpm ui-add
-```
-
-When the component(s) has been installed, you should be good to go and start using it in your app.
-
-### 5b. When it's time to add a new package
-
-To add a new package, simply run `pnpm turbo gen init` in the monorepo root. This will prompt you for a package name as well as if you want to install any dependencies to the new package (of course you can also do this yourself later).
-
-The generator sets up the `package.json`, `tsconfig.json` and a `index.ts`, as well as configures all the necessary configurations for tooling around your package such as formatting, linting and typechecking. When the package is created, you're ready to go build out the package.
-
-## FAQ
-
-### Does the starter include Solito?
-
-No. Solito will not be included in this repo. It is a great tool if you want to share code between your Next.js and Expo app. However, the main purpose of this repo is not the integration between Next.js and Expo — it's the code splitting of your T3 App into a monorepo. The Expo app is just a bonus example of how you can utilize the monorepo with multiple apps but can just as well be any app such as Vite, Electron, etc.
-
-Integrating Solito into this repo isn't hard, and there are a few [official templates](https://github.com/nandorojo/solito/tree/master/example-monorepos) by the creators of Solito that you can use as a reference.
-
-### Does this pattern leak backend code to my client applications?
-
-No, it does not. The `api` package should only be a production dependency in the Next.js application where it's served. The Expo app, and all other apps you may add in the future, should only add the `api` package as a dev dependency. This lets you have full typesafety in your client applications, while keeping your backend code safe.
-
-If you need to share runtime code between the client and server, such as input validation schemas, you can create a separate `shared` package for this and import it on both sides.
-
-## Deployment
-
-### Next.js
-
-#### Prerequisites
-
-> **Note**
-> Please note that the Next.js application with tRPC must be deployed in order for the Expo app to communicate with the server in a production environment.
-
-#### Deploy to Vercel
-
-Let's deploy the Next.js application to [Vercel](https://vercel.com). If you've never deployed a Turborepo app there, don't worry, the steps are quite straightforward. You can also read the [official Turborepo guide](https://vercel.com/docs/concepts/monorepos/turborepo) on deploying to Vercel.
-
-1. Create a new project on Vercel, select the `apps/nextjs` folder as the root directory. Vercel's zero-config system should handle all configurations for you.
-
-2. Add your `POSTGRES_URL` environment variable.
-
-3. Done! Your app should successfully deploy. Assign your domain and use that instead of `localhost` for the `url` in the Expo app so that your Expo app can communicate with your backend when you are not in development.
-
-### Auth Proxy
-
-The auth proxy comes as a better-auth plugin. This is required for the Next.js app to be able to authenticate users in preview deployments. The auth proxy is not used for OAuth request in production deployments. The easiest way to get it running is to deploy the Next.js app to vercel.
-
-### Expo
-
-Deploying your Expo application works slightly differently compared to Next.js on the web. Instead of "deploying" your app online, you need to submit production builds of your app to app stores, like [Apple App Store](https://www.apple.com/app-store) and [Google Play](https://play.google.com/store/apps). You can read the full [guide to distributing your app](https://docs.expo.dev/distribution/introduction), including best practices, in the Expo docs.
-
-1. Make sure to modify the `getBaseUrl` function to point to your backend's production URL:
-
-   <https://github.com/t3-oss/create-t3-turbo/blob/656965aff7db271e5e080242c4a3ce4dad5d25f8/apps/expo/src/utils/api.tsx#L20-L37>
-
-2. Let's start by setting up [EAS Build](https://docs.expo.dev/build/introduction), which is short for Expo Application Services. The build service helps you create builds of your app, without requiring a full native development setup. The commands below are a summary of [Creating your first build](https://docs.expo.dev/build/setup).
-
-   ```bash
-   # Install the EAS CLI
-   pnpm add -g eas-cli
-
-   # Log in with your Expo account
-   eas login
-
-   # Configure your Expo app
-   cd apps/expo
-   eas build:configure
-   ```
-
-3. After the initial setup, you can create your first build. You can build for Android and iOS platforms and use different [`eas.json` build profiles](https://docs.expo.dev/build-reference/eas-json) to create production builds or development, or test builds. Let's make a production build for iOS.
-
-   ```bash
-   eas build --platform ios --profile production
-   ```
-
-   > If you don't specify the `--profile` flag, EAS uses the `production` profile by default.
-
-4. Now that you have your first production build, you can submit this to the stores. [EAS Submit](https://docs.expo.dev/submit/introduction) can help you send the build to the stores.
-
-   ```bash
-   eas submit --platform ios --latest
-   ```
-
-   > You can also combine build and submit in a single command, using `eas build ... --auto-submit`.
-
-5. Before you can get your app in the hands of your users, you'll have to provide additional information to the app stores. This includes screenshots, app information, privacy policies, etc. _While still in preview_, [EAS Metadata](https://docs.expo.dev/eas/metadata) can help you with most of this information.
-
-6. Once everything is approved, your users can finally enjoy your app. Let's say you spotted a small typo; you'll have to create a new build, submit it to the stores, and wait for approval before you can resolve this issue. In these cases, you can use EAS Update to quickly send a small bugfix to your users without going through this long process. Let's start by setting up EAS Update.
-
-   The steps below summarize the [Getting started with EAS Update](https://docs.expo.dev/eas-update/getting-started/#configure-your-project) guide.
-
-   ```bash
-   # Add the `expo-updates` library to your Expo app
-   cd apps/expo
-   pnpm expo install expo-updates
-
-   # Configure EAS Update
-   eas update:configure
-   ```
-
-7. Before we can send out updates to your app, you have to create a new build and submit it to the app stores. For every change that includes native APIs, you have to rebuild the app and submit the update to the app stores. See steps 2 and 3.
-
-8. Now that everything is ready for updates, let's create a new update for `production` builds. With the `--auto` flag, EAS Update uses your current git branch name and commit message for this update. See [How EAS Update works](https://docs.expo.dev/eas-update/how-eas-update-works/#publishing-an-update) for more information.
-
-   ```bash
-   cd apps/expo
-   eas update --auto
-   ```
-
-   > Your OTA (Over The Air) updates must always follow the app store's rules. You can't change your app's primary functionality without getting app store approval. But this is a fast way to update your app for minor changes and bug fixes.
-
-9. Done! Now that you have created your production build, submitted it to the stores, and installed EAS Update, you are ready for anything!
-
-## References
-
-The stack originates from [create-t3-app](https://github.com/t3-oss/create-t3-app).
-
-A [blog post](https://jumr.dev/blog/t3-turbo) where I wrote how to migrate a T3 app into this.
+MIT

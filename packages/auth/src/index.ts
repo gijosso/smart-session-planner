@@ -26,7 +26,7 @@ export function initAuth(options: {
     supabase,
     api: {
       /**
-       * Get session from headers (similar to better-auth's getSession)
+       * Get session from headers
        * Supports both Authorization header and Cookie-based sessions
        */
       async getSession(opts: { headers: HeadersLike }) {
