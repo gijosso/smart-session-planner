@@ -2,8 +2,8 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import type { SessionType, SuggestedSession } from "@ssp/api/client";
 
-import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import type { SuggestionWithId } from "~/types";
+import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { trpc } from "~/utils/api";
 
 /**
@@ -130,17 +130,16 @@ export function getSuggestionMutationOptions<
       // If the mutation fails, rollback to the previous value
       if (onMutateResult?.previousData) {
         const queryOptions = trpc.session.suggest.queryOptions({
-          lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
+          lookAheadDays:
+            queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
         });
-        queryClient.setQueryData(queryOptions.queryKey, onMutateResult.previousData);
+        queryClient.setQueryData(
+          queryOptions.queryKey,
+          onMutateResult.previousData,
+        );
       }
     },
-    onSettled: (
-      _data: unknown,
-      _error: unknown,
-      _variables: TVariables,
-      onMutateResult: unknown,
-    ) => {
+    onSettled: (_data: unknown, _error: unknown, _variables: TVariables) => {
       // Always refetch after error or success to ensure consistency
       const queryOptions = trpc.session.suggest.queryOptions({
         lookAheadDays: queryParams.lookAheadDays ?? SUGGESTION_LOOK_AHEAD_DAYS,
