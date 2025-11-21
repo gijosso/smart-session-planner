@@ -1,26 +1,44 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Alert, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router, Stack, useGlobalSearchParams } from "expo-router";
+import { router, useGlobalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Button, ErrorScreen, LoadingScreen } from "~/components";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  ErrorScreen,
+  LoadingScreen,
+  Screen,
+} from "~/components";
+import { BackButton } from "~/components/layout/back-button";
+import { Content } from "~/components/layout/content";
 import { PRIORITY_LEVELS } from "~/constants/app";
+import { COLORS_BACKGROUND_LIGHT, COLORS_MUTED } from "~/constants/colors";
 import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { createMutationErrorHandler } from "~/hooks/use-mutation-with-error-handling";
 import { useQueryError } from "~/hooks/use-query-error";
 import { useToast } from "~/hooks/use-toast";
 import { trpc } from "~/utils/api";
-import { formatDateForDisplay, formatTimeRange } from "~/utils/date";
 import { invalidateSessionQueries } from "~/utils/sessions/session-cache";
+import {
+  formatDateDisplay,
+  formatTimeRange,
+} from "~/utils/suggestions/suggestion-formatting";
 
 export default function Session() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { data, isLoading, error } = useQuery(
-    trpc.session.byId.queryOptions({ id }),
-  );
+  const {
+    data: session,
+    isLoading,
+    error,
+  } = useQuery(trpc.session.byId.queryOptions({ id }));
   const queryError = useQueryError({ error });
 
   const toggleCompleteMutation = useMutation(
@@ -109,7 +127,7 @@ export default function Session() {
   const handleDelete = useCallback(() => {
     Alert.alert(
       "Delete Session",
-      `Are you sure you want to delete "${data?.title}"? This action cannot be undone.`,
+      `Are you sure you want to delete "${session?.title}"? This action cannot be undone.`,
       [
         {
           text: "Cancel",
@@ -126,7 +144,26 @@ export default function Session() {
         },
       ],
     );
-  }, [data?.title, id, deleteMutation]);
+  }, [session?.title, id, deleteMutation]);
+
+  const formattedDate = useMemo(
+    () => formatDateDisplay(session?.startTime ?? new Date()),
+    [session?.startTime],
+  );
+
+  const formattedTimeRange = useMemo(
+    () =>
+      formatTimeRange(
+        session?.startTime ?? new Date(),
+        session?.endTime ?? new Date(),
+      ),
+    [session?.startTime, session?.endTime],
+  );
+
+  const sessionTypeLabel = useMemo(
+    () => SESSION_TYPES_DISPLAY[session?.type ?? "OTHER"].label,
+    [session?.type],
+  );
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -143,7 +180,7 @@ export default function Session() {
     );
   }
 
-  if (!data) {
+  if (!session) {
     return (
       <ErrorScreen
         error={{
@@ -158,104 +195,136 @@ export default function Session() {
   }
 
   return (
-    <SafeAreaView className="bg-background flex-1">
-      <Stack.Screen options={{ title: data.title }} />
-      <View className="h-full w-full p-4">
-        <View className="mb-6">
-          <View className="mb-2 flex flex-row items-center gap-2">
-            <Text className="text-primary text-3xl font-bold">
-              {data.title}
-            </Text>
-            {data.completed && (
-              <View className="bg-primary rounded-full px-2 py-1">
-                <Text className="text-primary-foreground text-xs font-semibold">
-                  ✓ Done
-                </Text>
-              </View>
-            )}
-          </View>
+    <Screen backButton variant="default">
+      <Content className="gap-8">
+        <View className="flex flex-row items-center gap-2">
+          <BackButton />
 
-          <Text className="text-muted-foreground mb-4 text-lg">
-            {SESSION_TYPES_DISPLAY[data.type].label}
-          </Text>
-
-          <View className="mb-4">
-            <Text className="text-muted-foreground mb-1 text-sm">Priority</Text>
-            <View className="flex flex-row gap-2">
-              {PRIORITY_LEVELS.map((priority) => (
-                <View
-                  key={priority}
-                  className={`rounded-md border px-3 py-1 ${
-                    data.priority === priority
-                      ? "bg-primary border-primary"
-                      : "border-input bg-background"
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      data.priority === priority
-                        ? "text-primary-foreground"
-                        : "text-foreground"
-                    }`}
-                  >
-                    {priority}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View className="mb-4">
-            <Text className="text-muted-foreground mb-1 text-sm">Date</Text>
-            <Text className="text-foreground text-base">
-              {formatDateForDisplay(data.startTime)}
-            </Text>
-          </View>
-
-          <View className="mb-4">
-            <Text className="text-muted-foreground mb-1 text-sm">Time</Text>
-            <Text className="text-foreground text-base">
-              {formatTimeRange(data.startTime, data.endTime)}
-            </Text>
-          </View>
-
-          {data.description && (
-            <View className="mb-4">
-              <Text className="text-muted-foreground mb-1 text-sm">
-                Description
-              </Text>
-              <Text className="text-foreground text-base">
-                {data.description}
-              </Text>
+          <Text className="text-foreground text-2xl">{session.title}</Text>
+          {session.completed && (
+            <View
+              className="bg-foreground items-center justify-center rounded-full p-1"
+              accessibilityRole="image"
+              accessibilityLabel="Completed indicator"
+            >
+              <Ionicons
+                name="checkmark-outline"
+                size={14}
+                color={COLORS_BACKGROUND_LIGHT}
+                accessibilityLabel="Checkmark icon"
+              />
             </View>
           )}
-
-          <Button
-            variant={data.completed ? "secondary" : "default"}
-            onPress={handleToggleComplete}
-            disabled={toggleCompleteMutation.isPending}
-            className="mt-4"
-          >
-            {toggleCompleteMutation.isPending
-              ? "Updating..."
-              : data.completed
-                ? "Mark as Incomplete"
-                : "Mark as Complete"}
-          </Button>
-          <Button variant="default" onPress={handleUpdate} className="mt-4">
-            Update
-          </Button>
-
-          <Button
-            variant="destructive"
-            onPress={handleDelete}
-            disabled={deleteMutation.isPending}
-            className="mt-4"
-          >
-            {deleteMutation.isPending ? "Deleting..." : "Delete Session"}
-          </Button>
         </View>
-      </View>
-    </SafeAreaView>
+
+        <Card>
+          <CardHeader>
+            <View className="flex flex-1 flex-row items-center justify-end">
+              <View
+                className="flex flex-row items-center gap-1"
+                accessibilityLabel={`Priority level ${session.priority} out of ${PRIORITY_LEVELS.length}`}
+                accessibilityRole="image"
+              >
+                {PRIORITY_LEVELS.map((level) => (
+                  <View
+                    key={level}
+                    className={`h-2 w-2 rounded-full ${
+                      level <= session.priority ? "bg-black" : "bg-gray-300"
+                    }`}
+                    accessibilityLabel={
+                      level <= session.priority
+                        ? "Active priority"
+                        : "Inactive priority"
+                    }
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View className="flex flex-1 flex-row items-center gap-4">
+              <View
+                className="bg-muted rounded-xl p-3"
+                accessibilityRole="image"
+              >
+                <Ionicons
+                  name={SESSION_TYPES_DISPLAY[session.type].icon}
+                  size={22}
+                  color={SESSION_TYPES_DISPLAY[session.type].iconColor}
+                  accessibilityLabel={`${sessionTypeLabel} icon`}
+                />
+              </View>
+
+              <Text
+                className="text-foreground text-xl font-semibold"
+                accessibilityRole="text"
+              >
+                {sessionTypeLabel}
+              </Text>
+            </View>
+          </CardHeader>
+
+          <CardContent className="flex flex-1 flex-col justify-center gap-4">
+            <View className="flex flex-row items-center gap-2">
+              <Ionicons
+                name="time-outline"
+                size={22}
+                color={COLORS_MUTED}
+                accessibilityLabel="Time icon"
+              />
+
+              <Text className="text-secondary-foreground">{formattedDate}</Text>
+
+              <View className="bg-muted-foreground h-1 w-1 rounded-full" />
+
+              <Text className="text-secondary-foreground">
+                {formattedTimeRange}
+              </Text>
+            </View>
+
+            {session.description && (
+              <Text className="text-secondary-foreground" numberOfLines={3}>
+                {session.description}.
+              </Text>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex flex-row gap-4">
+            <Button
+              variant="default"
+              size="lg"
+              className="flex-1"
+              onPress={handleUpdate}
+            >
+              Update
+            </Button>
+            <Button
+              className="w-28"
+              variant="destructive"
+              onPress={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </Content>
+
+      <View className="flex-1" />
+
+      <Content>
+        <Button
+          variant={session.completed ? "secondary" : "default"}
+          size="lg"
+          onPress={handleToggleComplete}
+          disabled={toggleCompleteMutation.isPending}
+        >
+          {toggleCompleteMutation.isPending
+            ? "Updating..."
+            : session.completed
+              ? "Mark as Incomplete"
+              : "Mark as Complete"}
+        </Button>
+      </Content>
+    </Screen>
   );
 }
