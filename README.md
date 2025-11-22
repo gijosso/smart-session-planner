@@ -264,6 +264,7 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 ### Database Improvements
 
 1. **DB operations**
+
    I did optimize db queries but nothing extra fancy.
    - No materialized views implemented
    - Expensive queries could be cached (see [Infrastructure Improvements](#infrastructure-improvements))
@@ -272,6 +273,7 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 ### Infrastructure Improvements
 
 1. **Redis**
+
    I did not use Redis as cache, although I wanted to get more familiar with, wanted to avoid a rabbit hole.
    - Rate limiting is implemented in memory and won't scale
    - User sessions, timezones, availibities (and probably suggestions) should be properly cached
@@ -279,12 +281,14 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 ### Feature Enhancements
 
 1. **Suggestion engine**
+
    Crafted a sound algorithm (after a couple of iteraions) matching the criterias.
    - I use default suggestions when user has not enough sessions yet
    - Default suggestions are based on availibilty but pretty default
    - Client side suggestions are not refetched on accepting/adjusting one, to prevent a refetch with an invalid avalibility window. It is an acceptable trade but could definitely be improved.
 
 2. **Onboarding**
+
    Would have loved to implement an onboarding after user creates an account.
    - Defining availibility
    - Defining preferences to craft relevant default suggestions
@@ -297,16 +301,19 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 ### Expo App Improvements
 
 1. **Smoothness**
+
    UX could be improved, no smooth animations nor transitions, Reanimated isn't used at all really.
    - Main pages are ScrollViews, should move away from it when layout or features change
    - Transparent StatusBar and minimnal SafeArea padding because I love this esthetic
 
 2. **Forms**
+
    I implemented simple forms, far from pretty but does the job.
    - Used Formik then transitioned to React Hook Form, but user feedback could be improved
    - Form components are pretty bare and are not using native functionalities
 
 3. **Offline Support**
+
    Always wanted to get my hands on a proper offline-first client, went online for time concerns.
    - Implement offline-first architecture
    - Local database with sync (SQLite + WatermelonDB)
