@@ -94,7 +94,7 @@ export function useSessionFormLogic(initialValues: SessionFormInitialValues) {
     mode: "onChange",
   });
 
-  // Reset form when initial values change (similar to Formik's enableReinitialize)
+  // Reset form when initial values change (similar to React Hook Form's reset with new values)
   useEffect(() => {
     reset(formattedInitialValues);
   }, [formattedInitialValues, reset]);

@@ -11,6 +11,31 @@ interface SessionsByTypeProps {
 }
 
 /**
+ * Get the background color class for a session type
+ * Classes are written inline so Tailwind can detect them at build time
+ */
+const getSessionBgClass = (type: SessionType): string => {
+  switch (type) {
+    case "DEEP_WORK":
+      return "bg-session-deep-work-bg";
+    case "WORKOUT":
+      return "bg-session-workout-bg";
+    case "LANGUAGE":
+      return "bg-session-language-bg";
+    case "MEDITATION":
+      return "bg-session-meditation-bg";
+    case "CLIENT_MEETING":
+      return "bg-session-client-meeting-bg";
+    case "STUDY":
+      return "bg-session-study-bg";
+    case "READING":
+      return "bg-session-reading-bg";
+    case "OTHER":
+      return "bg-session-other-bg";
+  }
+};
+
+/**
  * Component displaying session breakdown by type with progress bar and legend
  */
 export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
@@ -33,37 +58,34 @@ export const SessionsByType: React.FC<SessionsByTypeProps> = ({ byType }) => {
       </Text>
 
       <View className="h-2 flex-row gap-2 overflow-hidden rounded-full">
-        {activeTypes.map(([type, count]) => (
-          <View
-            key={type}
-            style={{
-              flex: count,
-              backgroundColor: SESSION_TYPES_DISPLAY[type].color,
-            }}
-          />
-        ))}
+        {activeTypes.map(([type, count]) => {
+          const bgClass = getSessionBgClass(type);
+          return (
+            <View
+              key={type}
+              className={`h-full ${bgClass}`}
+              style={{ flex: count }}
+            />
+          );
+        })}
       </View>
 
       <View className="flex flex-row flex-wrap items-center gap-4">
-        {activeTypes.map(([type, count]) => (
-          <View key={type} className="flex flex-row items-center gap-3">
-            <View
-              style={{
-                height: 12,
-                width: 12,
-                borderRadius: 9999,
-                backgroundColor: SESSION_TYPES_DISPLAY[type].color,
-              }}
-            />
-            <View className="flex flex-row items-center gap-2">
-              <Text className="text-foreground text-xl">
-                {SESSION_TYPES_DISPLAY[type].label}
-              </Text>
-              <View className="bg-muted-foreground h-0.5 w-0.5 rounded-full" />
-              <Text className="text-foreground text-xl">{count}</Text>
+        {activeTypes.map(([type, count]) => {
+          const bgClass = getSessionBgClass(type);
+          return (
+            <View key={type} className="flex flex-row items-center gap-3">
+              <View className={`h-3 w-3 rounded-full ${bgClass}`} />
+              <View className="flex flex-row items-center gap-2">
+                <Text className="text-foreground text-xl">
+                  {SESSION_TYPES_DISPLAY[type].label}
+                </Text>
+                <View className="bg-muted-foreground h-0.5 w-0.5 rounded-full" />
+                <Text className="text-foreground text-xl">{count}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
