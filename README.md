@@ -319,3 +319,7 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
    - Local database with sync (SQLite + WatermelonDB)
    - Queue mutations when offline
    - Optimistic UI updates
+
+4. **Colors**
+
+   Some colors were hardcoded in code but not in the theme itself. It should be added in and handled through Tailwind class names.
