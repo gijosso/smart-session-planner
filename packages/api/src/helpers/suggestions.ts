@@ -49,6 +49,8 @@ export interface SuggestionOptions {
   preferredTypes?: SessionType[]; // Optional: prefer these session types
   minPriority?: number; // Optional: minimum priority to consider (1-5)
   maxPriority?: number; // Optional: maximum priority to consider (1-5)
+  limit?: number; // Optional: maximum number of suggestions to return
+  offset?: number; // Optional: number of suggestions to skip (for pagination)
 }
 
 /**
@@ -610,8 +612,16 @@ export async function suggestTimeSlots(
   // Sort by score (highest first)
   const sortedSuggestions = suggestions.sort((a, b) => b.score - a.score);
 
-  // Enforce diversity across days/types and apply final limits
+  // Enforce diversity across days/types
   // Spacing is already integrated into scoring, so we just need diversity filtering
+  // Generate more suggestions than MAX_SUGGESTIONS to support pagination
+  const maxSuggestionsToGenerate = options.limit
+    ? Math.max(
+        (options.offset ?? 0) + options.limit,
+        SUGGESTION_LIMITS.MAX_SUGGESTIONS,
+      )
+    : SUGGESTION_LIMITS.MAX_SUGGESTIONS * 5; // Generate up to 5x for pagination support
+
   const filteredSuggestions: SuggestedSession[] = [];
   const selectedDays = new Map<string, number>(); // Track selected days (YYYY-MM-DD) -> count
   const selectedTypes = new Map<SessionType, number>(); // Track type counts
@@ -640,8 +650,8 @@ export async function suggestTimeSlots(
     selectedDays.set(dateKey, dayCount + 1);
     selectedTypes.set(suggestion.type, typeCount + 1);
 
-    // Limit total suggestions
-    if (filteredSuggestions.length >= SUGGESTION_LIMITS.MAX_SUGGESTIONS) {
+    // Generate enough suggestions for pagination
+    if (filteredSuggestions.length >= maxSuggestionsToGenerate) {
       break;
     }
   }
@@ -650,7 +660,7 @@ export async function suggestTimeSlots(
   // This handles cases where patterns exist but all suggestions were filtered out
   // Only show default suggestions if user doesn't have enough active sessions
   if (filteredSuggestions.length === 0 && shouldShowDefaultSuggestions()) {
-    return generateDefaultSuggestions(
+    const defaultSuggestions = generateDefaultSuggestions(
       availability.weeklyAvailability,
       userTimezone,
       activeSessions,
@@ -658,7 +668,20 @@ export async function suggestTimeSlots(
       lookAheadDays,
       options,
     );
+    // Apply pagination to default suggestions
+    const offset = options.offset ?? 0;
+    const limit = options.limit;
+    if (limit !== undefined) {
+      return defaultSuggestions.slice(offset, offset + limit);
+    }
+    return defaultSuggestions.slice(offset);
   }
 
-  return filteredSuggestions;
+  // Apply pagination
+  const offset = options.offset ?? 0;
+  const limit = options.limit;
+  if (limit !== undefined) {
+    return filteredSuggestions.slice(offset, offset + limit);
+  }
+  return filteredSuggestions.slice(offset);
 }

@@ -11,6 +11,7 @@ import { SkeletonCard } from "~/components/layout/skeleton-loader";
 import {
   FLEX_1_STYLE,
   SUGGESTION_LOOK_AHEAD_DAYS,
+  SUGGESTIONS_PAGE_SIZE,
 } from "~/constants/app";
 import {
   STATS_STALE_TIME_MS,
@@ -50,6 +51,8 @@ export default function Home() {
   const suggestionsQuery = useQuery({
     ...trpc.session.suggest.queryOptions({
       lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
+      limit: SUGGESTIONS_PAGE_SIZE,
+      offset: 0,
     }),
     enabled: criticalQueriesHaveData, // Lazy load: only fetch after critical queries have data
     staleTime: SUGGESTIONS_STALE_TIME_MS,

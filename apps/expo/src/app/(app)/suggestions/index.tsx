@@ -1,50 +1,33 @@
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 
-import type { SuggestionWithId } from "~/types";
 import { Button } from "~/components/button";
 import { LoadingScreen } from "~/components/layout/loading-screen";
 import { Screen } from "~/components/layout/screen";
 import { SUGGESTION_LOOK_AHEAD_DAYS } from "~/constants/app";
 import { SuggestionsList } from "~/features/suggestions/suggestions-list";
-import { trpc } from "~/utils/api";
-import { addSuggestionIds } from "~/utils/suggestions/suggestion-id";
+import { usePaginatedSuggestions } from "~/hooks/use-paginated-suggestions";
 
 /**
  * Suggestions Screen
  * Displays all available time slot suggestions for a session type
+ * Supports pagination with infinite scroll
  */
 export default function SuggestionsScreen() {
   const router = useRouter();
   const {
-    data: rawSuggestions,
+    suggestions,
+    hasMore,
     isLoading,
-    refetch,
-  } = useQuery(
-    trpc.session.suggest.queryOptions({
-      lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
-    }),
-  );
-
-  // Add idempotency IDs to suggestions for React Query tracking
-  // Only process if data exists and hasn't been processed yet
-  const suggestions: SuggestionWithId[] = useMemo(() => {
-    if (!rawSuggestions) return [];
-    // Check if IDs already exist (optimization to avoid unnecessary processing)
-    const hasIds = rawSuggestions.some(
-      (s) => "id" in s && typeof s.id === "string",
-    );
-    if (hasIds) {
-      return rawSuggestions as SuggestionWithId[];
-    }
-    return addSuggestionIds(rawSuggestions);
-  }, [rawSuggestions]);
-
-  const handleRefresh = useCallback(() => {
-    void refetch();
-  }, [refetch]);
+    isLoadingMore,
+    isRefreshing,
+    loadMore,
+    refresh,
+    isInitialLoad,
+  } = usePaginatedSuggestions({
+    lookAheadDays: SUGGESTION_LOOK_AHEAD_DAYS,
+  });
 
   const handleNavigateToAvailability = useCallback(() => {
     router.push("/settings/availability");
@@ -67,7 +50,31 @@ export default function SuggestionsScreen() {
     [handleNavigateToAvailability],
   );
 
-  if (!rawSuggestions) {
+  const ListFooterComponent = useCallback(() => {
+    if (!hasMore) return null;
+    if (isLoadingMore) {
+      return (
+        <View className="p-4">
+          <Text className="text-muted-foreground text-center text-sm">
+            Loading more suggestions...
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View className="p-4">
+        <Button
+          variant="outline"
+          onPress={loadMore}
+          accessibilityLabel="Load more suggestions"
+        >
+          <Text>Load More</Text>
+        </Button>
+      </View>
+    );
+  }, [hasMore, isLoadingMore, loadMore]);
+
+  if (isInitialLoad) {
     return <LoadingScreen />;
   }
 
@@ -87,9 +94,12 @@ export default function SuggestionsScreen() {
       <SuggestionsList
         suggestions={suggestions}
         horizontal={false}
-        isLoading={isLoading}
-        onRefresh={handleRefresh}
+        isLoading={isLoading || isRefreshing}
+        onRefresh={refresh}
         ListEmptyComponent={ListEmptyComponent}
+        ListFooterComponent={ListFooterComponent}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
       />
     </Screen>
   );

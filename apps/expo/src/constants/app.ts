@@ -5,6 +5,9 @@
 // Suggestion look-ahead days
 export const SUGGESTION_LOOK_AHEAD_DAYS = 14;
 
+// Pagination
+export const SUGGESTIONS_PAGE_SIZE = 15;
+
 // Component dimensions
 export const SUGGESTION_ITEM_WIDTH = 300;
 export const SUGGESTION_ITEM_HEIGHT = 250;

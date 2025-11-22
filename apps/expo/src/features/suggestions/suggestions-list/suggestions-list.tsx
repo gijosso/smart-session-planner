@@ -32,7 +32,10 @@ type SuggestionsListProps = {
   | "ItemSeparatorComponent"
   | "ListEmptyComponent"
   | "ListHeaderComponent"
+  | "ListFooterComponent"
   | "refreshControl"
+  | "onEndReached"
+  | "onEndReachedThreshold"
 >;
 
 const keyExtractor = (item: SuggestionWithId) => item.id;

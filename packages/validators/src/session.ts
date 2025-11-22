@@ -194,6 +194,8 @@ export const suggestTimeSlotsInputSchema = z.object({
     .min(SUGGESTION_INPUT_LIMITS.MIN_PRIORITY)
     .max(SUGGESTION_INPUT_LIMITS.MAX_PRIORITY)
     .optional(),
+  limit: z.number().int().min(1).max(1000).optional(),
+  offset: z.number().int().min(0).optional().default(0),
 });
 
 /**
