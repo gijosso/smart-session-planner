@@ -35,7 +35,7 @@
 
 ## Tech Stack
 
-Based on t3, tried to mimic MeAgain setup to learn the ins and out of the stack, also to have an easier testing/review process.
+Based on t3, tried to mimic MeAgain setup to learn the ins and outs of the stack, also to have an easier testing/review process.
 
 - **Monorepo**: Turborepo with pnpm workspaces
 - **Mobile App**: Expo (React Native) with Expo Router
@@ -69,7 +69,7 @@ Based on t3, tried to mimic MeAgain setup to learn the ins and out of the stack,
 
    ```env
    # Database
-   POSTGRES_URL=your-neon-postrges-url
+   POSTGRES_URL=your-neon-postgres-url
 
    # Supabase Configuration
    SUPABASE_URL=your-supabase-url
@@ -92,8 +92,8 @@ Based on t3, tried to mimic MeAgain setup to learn the ins and out of the stack,
 
 ## Tips
 
-- Anonymous sign up, log out and log in again to generate a new fresh account
-- In Settings you can generate 6 sessions to test the suggestion engine (ignore some db constraints for testing purposes)
+- Anonymous sign up, log out and log in again to generate a fresh account
+- In Settings you can generate 6 sessions to test the suggestion engine (ignore some DB constraints for testing purposes)
 - In Settings you can delete all sessions
 
 ## What Has Been Built
@@ -265,38 +265,38 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 
 1. **DB operations**
 
-   I did optimize db queries but nothing extra fancy.
+   I did optimize DB queries but nothing extra fancy.
    - No materialized views implemented
    - Expensive queries could be cached (see [Infrastructure Improvements](#infrastructure-improvements))
-   - Couldn't get transactions to properly work, had to move away due to time, definitely some partial updates and inconsistent data could be created/orphaned, dit not want to waste time on complex clean up where a transation would solve the issue.
+   - Couldn't get transactions to properly work, had to move away due to time, definitely some partial updates and inconsistent data could be created/orphaned, did not want to waste time on complex clean up where a transaction would solve the issue.
 
 ### Infrastructure Improvements
 
 1. **Redis**
 
-   I did not use Redis as cache, although I wanted to get more familiar with, wanted to avoid a rabbit hole.
+   I did not use Redis as cache, although I wanted to get more familiar with it, wanted to avoid a rabbit hole.
    - Rate limiting is implemented in memory and won't scale
-   - User sessions, timezones, availibities (and probably suggestions) should be properly cached
+   - User sessions, timezones, availabilities (and probably suggestions) should be properly cached
 
 ### Feature Enhancements
 
 1. **Suggestion engine**
 
-   Crafted a sound algorithm (after a couple of iteraions) matching the criterias.
-   - I use default suggestions when user has not enough sessions yet
-   - Default suggestions are based on availibilty but pretty default
-   - Client side suggestions are not refetched on accepting/adjusting one, to prevent a refetch with an invalid avalibility window. It is an acceptable trade but could definitely be improved.
+   Crafted a sound algorithm (after a couple of iterations) matching the criteria.
+   - I use default suggestions when user does not have enough sessions yet
+   - Default suggestions are based on availability but pretty default
+   - Client side suggestions are not refetched on accepting/adjusting one, to prevent a refetch with an invalid availability window. It is an acceptable trade but could definitely be improved.
 
 2. **Onboarding**
 
    Would have loved to implement an onboarding after user creates an account.
-   - Defining availibility
+   - Defining availability
    - Defining preferences to craft relevant default suggestions
 
-3. **Availibility**
-   - Availibilities are defined arbitrarely for users (7-9am Mon-Fri and 10-2pm Sat-Sun)
+3. **Availability**
+   - Availabilities are defined arbitrarily for users (7-9am Mon-Fri and 10-2pm Sat-Sun)
    - Rough calendar component generated to visualize it in Settings
-   - ~Unused Availibity edition
+   - ~Unused Availability edition
 
 ### Expo App Improvements
 
@@ -304,7 +304,7 @@ The suggestion engine (`helpers/suggestions.ts`) implements a sophisticated algo
 
    UX could be improved, no smooth animations nor transitions, Reanimated isn't used at all really.
    - Main pages are ScrollViews, should move away from it when layout or features change
-   - Transparent StatusBar and minimnal SafeArea padding because I love this esthetic
+   - Transparent StatusBar and minimal SafeArea padding because I love this aesthetic
 
 2. **Forms**
 
