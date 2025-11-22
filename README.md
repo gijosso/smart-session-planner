@@ -1,5 +1,38 @@
 # Smart Session Planner
 
+## Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <strong>Home Top</strong><br/>
+        <img src="./docs/home-top.png" alt="Home Top" width="200"/>
+      </td>
+      <td align="center">
+        <strong>Home Bottom</strong><br/>
+        <img src="./docs/home-bottom.png" alt="Home Bottom" width="200"/>
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <strong>Session</strong><br/>
+        <img src="./docs/session.png" alt="Session" width="200"/>
+      </td>
+      <td align="center">
+        <strong>Session Edit</strong><br/>
+        <img src="./docs/edit.png" alt="Session Edit" width="200"/>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" colspan="2">
+        <strong>Smart Suggestions</strong><br/>
+        <img src="./docs/smart-suggestions.png" alt="Smart Suggestions" width="200"/>
+      </td>
+    </tr>
+  </table>
+</div>
+
 ## Tech Stack
 
 Based on t3, tried to mimic MeAgain setup to learn the ins and out of the stack, also to have an easier testing/review process.
