@@ -77,6 +77,54 @@ export const SessionFormFields: React.FC<SessionFormFieldsProps> = ({
         isSubmitted={isSubmitted}
         serverError={serverError}
         layout="wrap"
+        getOptionColorClasses={(value) => {
+          const sessionTypeMap: Record<
+            SessionType,
+            { borderClass: string; textClass: string; bgClass: string }
+          > = {
+            DEEP_WORK: {
+              borderClass: "border-session-deep-work",
+              textClass: "text-session-deep-work",
+              bgClass: "bg-session-deep-work-bg",
+            },
+            WORKOUT: {
+              borderClass: "border-session-workout",
+              textClass: "text-session-workout",
+              bgClass: "bg-session-workout-bg",
+            },
+            LANGUAGE: {
+              borderClass: "border-session-language",
+              textClass: "text-session-language",
+              bgClass: "bg-session-language-bg",
+            },
+            MEDITATION: {
+              borderClass: "border-session-meditation",
+              textClass: "text-session-meditation",
+              bgClass: "bg-session-meditation-bg",
+            },
+            CLIENT_MEETING: {
+              borderClass: "border-session-client-meeting",
+              textClass: "text-session-client-meeting",
+              bgClass: "bg-session-client-meeting-bg",
+            },
+            STUDY: {
+              borderClass: "border-session-study",
+              textClass: "text-session-study",
+              bgClass: "bg-session-study-bg",
+            },
+            READING: {
+              borderClass: "border-session-reading",
+              textClass: "text-session-reading",
+              bgClass: "bg-session-reading-bg",
+            },
+            OTHER: {
+              borderClass: "border-session-other",
+              textClass: "text-session-other",
+              bgClass: "bg-session-other-bg",
+            },
+          };
+          return sessionTypeMap[value];
+        }}
       />
 
       <PrioritySelector

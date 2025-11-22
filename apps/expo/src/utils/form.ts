@@ -43,7 +43,9 @@ export const hasFieldError = <T extends Record<string, unknown>>(
 
 /**
  * Get error class name for a field
- * Returns "border-destructive" if field has error, empty string otherwise
+ * Returns error styling classes if field has error, empty string otherwise
+ * Includes border color change for visual feedback
+ * Note: Text color should be handled separately in components for better control
  */
 export const getFieldErrorClassName = <T extends Record<string, unknown>>(
   fieldName: keyof T,

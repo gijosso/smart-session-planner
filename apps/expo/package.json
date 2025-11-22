@@ -17,6 +17,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@legendapp/list": "^2.0.14",
+    "@react-native-community/datetimepicker": "^8.5.0",
     "@ssp/api": "workspace:*",
     "@ssp/validators": "workspace:*",
     "@tanstack/react-query": "catalog:",

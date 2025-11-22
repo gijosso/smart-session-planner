@@ -1,10 +1,9 @@
 import type React from "react";
-import { TextInput, View } from "react-native";
 import type { FieldErrors } from "react-hook-form";
+import { TextInput, View } from "react-native";
 
 import type { ServerError } from "~/utils/form";
 import { getFieldErrorClassName } from "~/utils/form";
-
 import { FormField } from "./form-field";
 
 interface TextInputFieldProps {
@@ -41,6 +40,10 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
   maxLength,
   className = "",
 }) => {
+  const hasError =
+    getFieldErrorClassName(fieldName, errors, isSubmitted, serverError).length >
+    0;
+
   const errorClassName = getFieldErrorClassName(
     fieldName,
     errors,
@@ -48,9 +51,11 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
     serverError,
   );
 
+  const textColor = hasError ? "text-destructive" : "text-foreground";
+  const bgColor = hasError ? "bg-destructive/10" : "bg-background";
   const baseClassName = multiline
-    ? "border-input bg-background text-foreground h-24 min-h-24 rounded-md border px-3 py-2 text-base"
-    : "border-input bg-background text-foreground rounded-md border px-3 py-2 text-base";
+    ? `border-input ${bgColor} ${textColor} h-24 min-h-24 rounded-md border px-3 py-2 text-base`
+    : `border-input ${bgColor} ${textColor} rounded-md border px-3 py-2 text-base`;
 
   return (
     <FormField
@@ -76,4 +81,3 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
     </FormField>
   );
 };
-

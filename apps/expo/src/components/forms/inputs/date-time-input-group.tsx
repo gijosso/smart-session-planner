@@ -1,6 +1,6 @@
 import type React from "react";
-import { Text, TextInput, View } from "react-native";
 import type { FieldErrors } from "react-hook-form";
+import { Text, TextInput, View } from "react-native";
 
 import type { ServerError } from "~/utils/form";
 import { getFieldError, getFieldErrorClassName } from "~/utils/form";
@@ -65,6 +65,13 @@ export const DateTimeInputGroup: React.FC<DateTimeInputGroupProps> = ({
     serverError,
   );
 
+  const dateHasError = dateErrorClassName.length > 0;
+  const timeHasError = timeErrorClassName.length > 0;
+  const dateTextColor = dateHasError ? "text-destructive" : "text-foreground";
+  const timeTextColor = timeHasError ? "text-destructive" : "text-foreground";
+  const dateBgColor = dateHasError ? "bg-destructive/10" : "bg-background";
+  const timeBgColor = timeHasError ? "bg-destructive/10" : "bg-background";
+
   const displayError = dateError ?? timeError;
 
   return (
@@ -77,7 +84,7 @@ export const DateTimeInputGroup: React.FC<DateTimeInputGroupProps> = ({
         <View className="flex-1">
           <TextInput
             key={`date-input-${dateFieldName}-${dateErrorClassName}`}
-            className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${dateErrorClassName}`}
+            className={`border-input ${dateBgColor} ${dateTextColor} rounded-md border px-3 py-2 text-base ${dateErrorClassName}`}
             value={dateValue}
             onChangeText={onDateChange}
             placeholder={datePlaceholder}
@@ -90,7 +97,7 @@ export const DateTimeInputGroup: React.FC<DateTimeInputGroupProps> = ({
         <View className="flex-1">
           <TextInput
             key={`time-input-${timeFieldName}-${timeErrorClassName}`}
-            className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${timeErrorClassName}`}
+            className={`border-input ${timeBgColor} ${timeTextColor} rounded-md border px-3 py-2 text-base ${timeErrorClassName}`}
             value={timeValue}
             onChangeText={onTimeChange}
             placeholder={timePlaceholder}
@@ -107,4 +114,3 @@ export const DateTimeInputGroup: React.FC<DateTimeInputGroupProps> = ({
     </View>
   );
 };
-

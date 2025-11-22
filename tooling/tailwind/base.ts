@@ -39,6 +39,40 @@ export default {
         },
         "suggestion-card": "hsl(var(--suggestion-card))",
         "progress-card": "hsl(var(--progress-card))",
+        session: {
+          "deep-work": {
+            DEFAULT: "var(--session-deep-work)",
+            bg: "var(--session-deep-work-bg)",
+          },
+          workout: {
+            DEFAULT: "var(--session-workout)",
+            bg: "var(--session-workout-bg)",
+          },
+          language: {
+            DEFAULT: "var(--session-language)",
+            bg: "var(--session-language-bg)",
+          },
+          meditation: {
+            DEFAULT: "var(--session-meditation)",
+            bg: "var(--session-meditation-bg)",
+          },
+          "client-meeting": {
+            DEFAULT: "var(--session-client-meeting)",
+            bg: "var(--session-client-meeting-bg)",
+          },
+          study: {
+            DEFAULT: "var(--session-study)",
+            bg: "var(--session-study-bg)",
+          },
+          reading: {
+            DEFAULT: "var(--session-reading)",
+            bg: "var(--session-reading-bg)",
+          },
+          other: {
+            DEFAULT: "var(--session-other)",
+            bg: "var(--session-other-bg)",
+          },
+        },
       },
       borderColor: {
         DEFAULT: "hsl(var(--border))",

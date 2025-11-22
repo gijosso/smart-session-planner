@@ -1,6 +1,6 @@
 import type React from "react";
-import { Text, TextInput, View } from "react-native";
 import type { FieldErrors } from "react-hook-form";
+import { Text, TextInput, View } from "react-native";
 
 import type { ServerError } from "~/utils/form";
 import { getFieldErrorClassName } from "~/utils/form";
@@ -37,20 +37,21 @@ export const DateInputField: React.FC<DateInputFieldProps> = ({
     serverError,
   );
 
+  const hasError = errorClassName.length > 0;
+  const textColor = hasError ? "text-destructive" : "text-foreground";
+  const bgColor = hasError ? "bg-destructive/10" : "bg-background";
+
   return (
     <View className="flex-1">
       <TextInput
         key={`date-input-${fieldName}-${errorClassName}`}
-        className={`border-input bg-background text-foreground rounded-md border px-3 py-2 text-base ${errorClassName}`}
+        className={`border-input ${bgColor} ${textColor} rounded-md border px-3 py-2 text-base ${errorClassName}`}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#71717A"
       />
-      <Text className="text-muted-foreground mt-1 text-xs">
-        {formatHint}
-      </Text>
+      <Text className="text-muted-foreground mt-1 text-xs">{formatHint}</Text>
     </View>
   );
 };
-
