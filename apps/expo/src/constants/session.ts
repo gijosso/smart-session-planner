@@ -7,41 +7,41 @@ export const SESSION_TYPES_DISPLAY = {
     label: "Deep Work",
     value: "DEEP_WORK",
     icon: "book-outline",
-    iconColor: "#8B5CF6",
-    color: "#8B5CF6", // Purple
-    backgroundColor: "#F5F3FF",
+    iconColor: "#59168B",
+    color: "#AD46FF", // Deep Purple
+    backgroundColor: "#E9D4FF",
   },
   WORKOUT: {
     label: "Workout",
     value: "WORKOUT",
     icon: "barbell-outline",
-    iconColor: "#10B981",
-    color: "#10B981", // Green
-    backgroundColor: "#DCFCE7",
+    iconColor: "#0D542B",
+    color: "#00C950", // Emerald Green
+    backgroundColor: "#B9F8CF",
   },
   LANGUAGE: {
     label: "Language",
     value: "LANGUAGE",
     icon: "language-outline",
-    iconColor: "#3B82F6",
-    color: "#3B82F6", // Blue
-    backgroundColor: "#EFF6FF",
+    iconColor: "#003366",
+    color: "#2B7FFF", // Sky Blue
+    backgroundColor: "#B3E5FC",
   },
   MEDITATION: {
     label: "Meditation",
     value: "MEDITATION",
     icon: "person-outline",
-    iconColor: "#F59E0B",
-    color: "#F59E0B", // Amber
-    backgroundColor: "#FFFBEB",
+    iconColor: "#FF9900",
+    color: "#FF9900", // Golden Orange
+    backgroundColor: "#FFE6B3",
   },
   CLIENT_MEETING: {
     label: "Client Meeting",
     value: "CLIENT_MEETING",
     icon: "people-outline",
-    iconColor: "#EF4444",
-    color: "#EF4444", // Red
-    backgroundColor: "#FEF2F2",
+    iconColor: "#101828",
+    color: "#101828", // Slate Gray
+    backgroundColor: "#E5E7EB",
   },
   STUDY: {
     label: "Study",
@@ -55,9 +55,9 @@ export const SESSION_TYPES_DISPLAY = {
     label: "Reading",
     value: "READING",
     icon: "book-outline",
-    iconColor: "#EC4899",
-    color: "#EC4899", // Pink
-    backgroundColor: "#FDF2F8",
+    iconColor: "#FF66B3",
+    color: "#FF66B3", // Magenta
+    backgroundColor: "#FFE6F2",
   },
   OTHER: {
     label: "Other",
