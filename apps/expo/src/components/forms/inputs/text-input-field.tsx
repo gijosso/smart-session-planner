@@ -1,10 +1,9 @@
 import type React from "react";
-import { TextInput, View } from "react-native";
 import type { FieldErrors } from "react-hook-form";
+import { TextInput } from "react-native";
 
 import type { ServerError } from "~/utils/form";
 import { getFieldErrorClassName } from "~/utils/form";
-
 import { FormField } from "./form-field";
 
 interface TextInputFieldProps {
@@ -76,4 +75,3 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
     </FormField>
   );
 };
-

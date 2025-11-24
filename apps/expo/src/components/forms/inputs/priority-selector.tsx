@@ -1,11 +1,11 @@
 import type React from "react";
-import { Text, View } from "react-native";
 import type { FieldErrors } from "react-hook-form";
+import { Text, View } from "react-native";
 
+import type { ServerError } from "~/utils/form";
 import { Button } from "~/components/button";
 import { PRIORITY_LEVELS } from "~/constants/app";
-import type { ServerError } from "~/utils/form";
-
+import { cn } from "~/utils/cn";
 import { FormField } from "./form-field";
 
 interface PrioritySelectorProps {
@@ -49,16 +49,18 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
               key={priority}
               variant={isSelected ? "default" : "outline"}
               onPress={() => onChange(priority)}
-              className={`flex-1 rounded-md border px-3 py-2 ${
+              className={cn(
+                "flex-1 rounded-md border px-3 py-2",
                 isSelected
                   ? "bg-primary border-primary"
-                  : "border-input bg-background"
-              }`}
+                  : "border-input bg-background",
+              )}
             >
               <Text
-                className={`text-center text-sm font-medium ${
-                  isSelected ? "text-primary-foreground" : "text-foreground"
-                }`}
+                className={cn(
+                  "text-center text-sm font-medium",
+                  isSelected ? "text-primary-foreground" : "text-foreground",
+                )}
               >
                 {priority}
               </Text>
@@ -69,4 +71,3 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
     </FormField>
   );
 };
-
