@@ -31,9 +31,9 @@ export const SESSION_TYPES_DISPLAY = {
     label: "Meditation",
     value: "MEDITATION",
     icon: "person-outline",
-    iconColor: "#FF9900",
-    color: "#FF9900", // Golden Orange
-    backgroundColor: "#FFE6B3",
+    iconColor: "#E66B00",
+    color: "#FF9800", // Orange
+    backgroundColor: "#FFE0B2",
   },
   CLIENT_MEETING: {
     label: "Client Meeting",
@@ -47,25 +47,25 @@ export const SESSION_TYPES_DISPLAY = {
     label: "Study",
     value: "STUDY",
     icon: "book-outline",
-    iconColor: "#6366F1",
-    color: "#6366F1", // Indigo
-    backgroundColor: "#EFF6FF",
+    iconColor: "#184E77",
+    color: "#38BDF8", // Light Blue
+    backgroundColor: "#E0F2FE",
   },
   READING: {
     label: "Reading",
     value: "READING",
-    icon: "book-outline",
-    iconColor: "#FF66B3",
-    color: "#FF66B3", // Magenta
-    backgroundColor: "#FFE6F2",
+    icon: "library-outline",
+    iconColor: "#3B3B3B",
+    color: "#FFB300", // Amber
+    backgroundColor: "#FFF7E0",
   },
   OTHER: {
     label: "Other",
     value: "OTHER",
-    icon: "book-outline",
-    iconColor: "#6B7280",
-    color: "#6B7280", // Gray
-    backgroundColor: "#F3F4F6",
+    icon: "help-circle-outline",
+    iconColor: "#607D8B",
+    color: "#9E9E9E", // Gray
+    backgroundColor: "#ECEFF1",
   },
 } satisfies Record<
   SessionType,

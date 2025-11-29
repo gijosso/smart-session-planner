@@ -1,8 +1,9 @@
 import type { FieldErrors } from "react-hook-form";
 import { Text, View } from "react-native";
 
-import { Button } from "~/components/button";
 import type { ServerError } from "~/utils/form";
+import { Button } from "~/components/button";
+import { SESSION_TYPES_DISPLAY } from "~/constants/session";
 import { isFieldErrors, isServerError } from "~/utils/form/type-guards";
 import { FormField } from "./form-field";
 
@@ -47,7 +48,9 @@ export function SelectButtonGroup<T extends string | number>({
     ? errors
     : ({} as FieldErrors<Record<string, unknown>>);
 
-  const validatedServerError: ServerError | undefined = isServerError(serverError)
+  const validatedServerError: ServerError | undefined = isServerError(
+    serverError,
+  )
     ? serverError
     : undefined;
 
@@ -73,13 +76,28 @@ export function SelectButtonGroup<T extends string | number>({
                   ? "bg-primary border-primary"
                   : "border-input bg-background"
               }`}
+              style={{
+                borderRadius: 14,
+                borderWidth: 1,
+                padding: 12,
+                borderColor: isSelected
+                  ? SESSION_TYPES_DISPLAY[
+                      option.value as keyof typeof SESSION_TYPES_DISPLAY
+                    ].iconColor
+                  : "transparent",
+                backgroundColor:
+                  SESSION_TYPES_DISPLAY[
+                    option.value as keyof typeof SESSION_TYPES_DISPLAY
+                  ].backgroundColor,
+              }}
             >
               <Text
-                className={
-                  isSelected
-                    ? "text-primary-foreground text-sm font-medium"
-                    : "text-foreground text-sm"
-                }
+                style={{
+                  color:
+                    SESSION_TYPES_DISPLAY[
+                      option.value as keyof typeof SESSION_TYPES_DISPLAY
+                    ].iconColor,
+                }}
               >
                 {option.label}
               </Text>
